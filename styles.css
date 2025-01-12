@@ -1,0 +1,133 @@
+/*
+CSS styles for the AI Summarizer plugin
+*/
+
+.ai-summarizer-view {
+    padding: 20px;
+  }
+  
+  .ai-summarizer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .ai-summarizer-settings-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+  }
+  
+  .ai-summarizer-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .ai-summarizer-form label {
+    font-weight: bold;
+  }
+  
+  .ai-summarizer-form input[type='text'],
+  .ai-summarizer-form select,
+  .ai-summarizer-form textarea {
+    padding: 5px;
+    border: 1px solid var(--interactive-hover);
+    border-radius: 4px;
+    width: 100%;
+    font-family: inherit;
+    font-size: inherit;
+  }
+  
+  .ai-summarizer-form button {
+    padding: 10px;
+    background-color: var(--interactive-accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  .ai-summarizer-form button:hover {
+    background-color: var(--interactive-accent-hover);
+  }
+  
+  .button-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .ai-summarizer-loading {
+    font-style: italic;
+    color: var(--text-accent);
+    margin-top: 10px;
+  }
+  
+  .ai-summarizer-loading .spinner {
+    border: 4px solid var(--background-modifier-border);
+    border-top: 4px solid var(--interactive-accent);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .ai-summarizer-summary {
+    width: 100%;
+    height: 200px;
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid var(--interactive-hover);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: inherit;
+    resize: vertical;
+  }
+  
+  .ai-summarizer-create-note {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: var(--interactive-accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  .ai-summarizer-create-note:hover {
+    background-color: var(--interactive-accent-hover);
+  }
+  
+  .error-message {
+    color: var(--text-error);
+    margin-top: 10px;
+  }
+  
+  .ai-summarizer-result {
+    padding: 10px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    margin-top: 20px;
+  }
+  
+  .ai-summarizer-prompt-select {
+    padding: 5px;
+    border: 1px solid var(--interactive-hover);
+    border-radius: 4px;
+    width: 100%;
+    font-family: inherit;
+    font-size: inherit;
+  }
+  

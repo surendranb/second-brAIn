@@ -1,0 +1,10 @@
+{
+	"id": "brAIn",
+	"name": "brAIn",
+	"version": "0.1.0",
+	"main": "main.js",
+	"description": "Building your knowledge base with AI",
+	"author": "Surendran",
+	"minAppVersion": "0.12.0"
+  }
+  

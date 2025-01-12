@@ -1,0 +1,36 @@
+# Compiled output
+main.js
+*.js.map
+data.json
+
+# Node modules
+node_modules/
+
+# Package manager files
+package-lock.json
+npm-debug.log
+yarn.lock
+
+# Obsidian specific files
+.obsidian/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Python bytecode
+*.pyc
+__pycache__/
+
+# Temporary files
+*.tmp
+*.log
+
+# IDE specific files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
