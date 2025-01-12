@@ -21,6 +21,7 @@ Thumbs.db
 # Python bytecode
 *.pyc
 __pycache__/
+myenv/
 
 # Temporary files
 *.tmp
