@@ -17,7 +17,7 @@ interface PluginSettings {
 const DEFAULT_SETTINGS: PluginSettings = {
     geminiApiKey: '',
     geminiModel: 'gemini-1.5-flash',
-    defaultPrompt: 'Summarize the content from {url}.',
+    defaultPrompt: 'You are an expert knowledge creator, skilled at transforming information into actionable insights for a second brain. Your goal is to create a comprehensive and well-structured note from the provided content.\n\nAnalyze the content and:\n\n1.  Provide a concise summary of the main points.\n2.  Identify and extract the key concepts and ideas.\n3.  Include relevant supporting details, examples, and evidence.\n4.  Extract and include direct quotes or excerpts that are particularly insightful or important, clearly attributing them to the source.\n5.  Identify and list related topics or concepts that are relevant to the content.\n6.  Include your own personal insights, reflections, and questions about the content.\n7.  Suggest specific actionable takeaways or steps that can be taken based on the content.\n8.  Structure the note with clear headings, subheadings, and bullet points for easy readability.\n9.  Include the source URL at the end of the note.\n10. Add relevant keywords and tags that will help with future retrieval.',
     notesFolder: 'Summaries',
 };
 
@@ -46,7 +46,7 @@ class SummaryView extends ItemView {
     async onOpen() {
         const { contentEl } = this;
 
-        contentEl.createEl('h2', { text: 'AI Summarizer' });
+        contentEl.createEl('h2', { text: 'your second brAIn' });
 
         const formContainer = contentEl.createEl('div', { cls: 'ai-summarizer-form' });
 
@@ -289,6 +289,8 @@ class AISummarizerSettingsTab extends PluginSettingTab {
             .setDesc('Choose the Gemini model to use.')
             .addDropdown(dropdown => dropdown
                 .addOption('gemini-1.5-flash', 'Gemini 1.5 Flash')
+				.addOption('gemini-1.5-pro', 'Gemini 1.5 Pro')
+				.addOption('gemini-2.0-flash-exp', 'Gemini 2.0 Flash')
                 .setValue(this.plugin.settings.geminiModel)
                 .onChange(async (value) => {
                     this.plugin.settings.geminiModel = value;
