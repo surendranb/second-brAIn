@@ -28,7 +28,7 @@ brAIn uses Python scripts to fetch content from web pages and YouTube videos. It
 
 ## Installation
 
-1.  Download the latest release from the [GitHub releases page](https://github.com/your-username/your-repo/releases).
+1.  Download the latest release from the [GitHub releases page](https://github.com/surendranb/second-brAIn/releases).
 2.  Extract the downloaded ZIP file into your Obsidian vault's plugins folder (usually `.obsidian/plugins`).
 3.  Enable the plugin in Obsidian's settings under "Community plugins".
 
@@ -70,7 +70,7 @@ brAIn uses Python scripts to fetch content from web pages and YouTube videos. It
 
 ## Reporting Issues
 
-If you encounter any bugs or have feature requests, please submit an issue on the [GitHub issues page](https://github.com/your-username/your-repo/issues).
+If you encounter any bugs or have feature requests, please submit an issue on the [GitHub issues page](https://github.com/surendranb/second-brAIn/issues).
 
 ## Contributing
 
