@@ -145,6 +145,7 @@ class SummaryView extends ItemView {
         { label: 'Summary Generated', state: 'idle' }
     ];
     private currentTitle: string = '';
+    private currentMetadata: any = null;
 
     constructor(leaf: WorkspaceLeaf, private plugin: AISummarizerPlugin) {
         super(leaf);
@@ -339,7 +340,7 @@ class SummaryView extends ItemView {
             if (url.includes('youtube.com')) {
                 console.log('[startSummarizationFlow] Fetching YouTube transcript...');
                 content = await this.fetchTranscriptFromPython(url);
-                if (content.startsWith('Error:')) {
+                if (content.startsWith('Error:') || content.includes('[ERROR]')) {
                     console.error('[startSummarizationFlow] Transcript fetch failed:', content);
                     new Notice('Failed to fetch transcript. ' + content);
                     this.updateStatusSteps(0, 'Failed to fetch transcript. ' + content, true);
@@ -348,13 +349,22 @@ class SummaryView extends ItemView {
             } else {
                 console.log('[startSummarizationFlow] Fetching web content...');
                 content = await this.fetchContentFromWebLink(url);
-                if (!content) {
+                if (!content || content.startsWith('Error:') || content.includes('[ERROR]')) {
                     console.error('[startSummarizationFlow] Content fetch failed');
                     new Notice('Failed to fetch content. Please check the URL.');
                     this.updateStatusSteps(0, 'Failed to fetch content. Please check the URL.', true);
                     return;
                 }
             }
+            
+            // Additional validation to ensure we have meaningful content
+            if (!content || content.trim().length < 50) {
+                console.error('[startSummarizationFlow] Content too short or empty');
+                new Notice('Failed to fetch meaningful content. Please check the URL.');
+                this.updateStatusSteps(0, 'Failed to fetch meaningful content.', true);
+                return;
+            }
+            
             console.log('[startSummarizationFlow] Content fetched successfully, length:', content.length);
             
             this.updateStatusSteps(1, 'Preparing request...');
@@ -379,7 +389,8 @@ class SummaryView extends ItemView {
             this.summaryTextArea.style.display = 'block';
             this.createNoteButton.style.display = 'block';
             
-            // Store the title for later use
+            // Store metadata for later use
+            this.currentMetadata = result.metadata;
             this.currentTitle = result.title;
             
             console.log('[startSummarizationFlow] Flow completed successfully');
@@ -455,12 +466,12 @@ class SummaryView extends ItemView {
         }
     }
 
-    private async summarizeContent(text: string, prompt: string, url: string): Promise<{ summary: string, title: string }> {
+    private async summarizeContent(text: string, prompt: string, url: string): Promise<{ summary: string, title: string, metadata: any }> {
         let selectedModel = '';
         console.log('[SummarizeContent] Provider:', this.plugin.settings.provider);
         
-        // Enhanced prompt that includes title generation
-        const enhancedPrompt = `${prompt}\n\nPlease structure your response in the following format:\n\nTITLE: [Your concise, descriptive title here]\n\nSUMMARY:\n[Your detailed summary here]`;
+        // Enhanced prompt that includes metadata generation
+        const enhancedPrompt = `${prompt}\n\nPlease structure your response in the following format:\n\nTITLE: [Your concise, descriptive title here]\n\nMETADATA:\n- Author: [Author name if available]\n- Key Topics: [3-5 main topics]\n- Tags: [3 relevant hashtags]\n- Related Concepts: [2-3 related concepts]\n\nSUMMARY:\n[Your detailed summary here]\n\nKEY INSIGHTS:\n- [Important insight 1]\n- [Important insight 2]\n- [Important insight 3]\n\nACTION ITEMS:\n- [Actionable item 1]\n- [Actionable item 2]`;
         
         if (this.plugin.settings.provider === 'gemini') {
             selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
@@ -468,7 +479,7 @@ class SummaryView extends ItemView {
             if (!this.plugin.settings.gemini.apiKey) {
                 new Notice('Please set your Gemini API key in the settings.');
                 console.error('[SummarizeContent] Gemini API key missing.');
-                return { summary: '', title: 'Untitled' };
+                return { summary: '', title: 'Untitled', metadata: {} };
             }
             if (!this.geminiClient) {
                 this.geminiClient = new GoogleGenerativeAI(this.plugin.settings.gemini.apiKey);
@@ -486,16 +497,34 @@ class SummaryView extends ItemView {
                 const responseText = result.response.text();
                 console.log('[SummarizeContent] Gemini API response:', responseText);
                 
-                // Parse the response to extract title and summary
+                // Parse the response to extract title, metadata, and summary
                 const titleMatch = responseText.match(/TITLE:\s*(.*?)(?:\n|$)/i);
                 const title = titleMatch ? titleMatch[1].trim() : 'Untitled';
-                const summary = responseText.replace(/TITLE:.*?\n/i, '').trim();
                 
-                return { summary, title };
+                // Extract metadata
+                const metadataMatch = responseText.match(/METADATA:\n([\s\S]*?)(?:\n\n|$)/i);
+                const metadataText = metadataMatch ? metadataMatch[1].trim() : '';
+                const metadata = this.parseMetadata(metadataText);
+                
+                // Extract summary and other sections
+                const summaryMatch = responseText.match(/SUMMARY:\n([\s\S]*?)(?:\n\nKEY INSIGHTS:|$)/i);
+                const summary = summaryMatch ? summaryMatch[1].trim() : '';
+                
+                const insightsMatch = responseText.match(/KEY INSIGHTS:\n([\s\S]*?)(?:\n\nACTION ITEMS:|$)/i);
+                const insights = insightsMatch ? insightsMatch[1].trim() : '';
+                
+                const actionsMatch = responseText.match(/ACTION ITEMS:\n([\s\S]*?)(?:\n\n|$)/i);
+                const actions = actionsMatch ? actionsMatch[1].trim() : '';
+                
+                return { 
+                    summary: this.formatSummary(summary, insights, actions),
+                    title,
+                    metadata
+                };
             } catch (error) {
                 new Notice(`Gemini API Error: ${error.message}`);
                 console.error('[SummarizeContent] Gemini API error:', error);
-                return { summary: '', title: 'Untitled' };
+                return { summary: '', title: 'Untitled', metadata: {} };
             }
         } else if (this.plugin.settings.provider === 'openrouter') {
             selectedModel = this.modelDropdown?.value || this.plugin.settings.openrouter.model;
@@ -503,7 +532,7 @@ class SummaryView extends ItemView {
             if (!this.plugin.settings.openrouter.apiKey) {
                 new Notice('Please set your OpenRouter API key in the settings.');
                 console.error('[SummarizeContent] OpenRouter API key missing.');
-                return { summary: '', title: 'Untitled' };
+                return { summary: '', title: 'Untitled', metadata: {} };
             }
             try {
                 const requestBody = {
@@ -534,25 +563,131 @@ class SummaryView extends ItemView {
                 console.log('[SummarizeContent] OpenRouter API response:', data);
                 const responseText = data.choices[0].message.content;
                 
-                // Parse the response to extract title and summary
+                // Parse the response to extract title, metadata, and summary
                 const titleMatch = responseText.match(/TITLE:\s*(.*?)(?:\n|$)/i);
                 const title = titleMatch ? titleMatch[1].trim() : 'Untitled';
-                const summary = responseText.replace(/TITLE:.*?\n/i, '').trim();
                 
-                return { summary, title };
+                // Extract metadata
+                const metadataMatch = responseText.match(/METADATA:\n([\s\S]*?)(?:\n\n|$)/i);
+                const metadataText = metadataMatch ? metadataMatch[1].trim() : '';
+                const metadata = this.parseMetadata(metadataText);
+                
+                // Extract summary and other sections
+                const summaryMatch = responseText.match(/SUMMARY:\n([\s\S]*?)(?:\n\nKEY INSIGHTS:|$)/i);
+                const summary = summaryMatch ? summaryMatch[1].trim() : '';
+                
+                const insightsMatch = responseText.match(/KEY INSIGHTS:\n([\s\S]*?)(?:\n\nACTION ITEMS:|$)/i);
+                const insights = insightsMatch ? insightsMatch[1].trim() : '';
+                
+                const actionsMatch = responseText.match(/ACTION ITEMS:\n([\s\S]*?)(?:\n\n|$)/i);
+                const actions = actionsMatch ? actionsMatch[1].trim() : '';
+                
+                return { 
+                    summary: this.formatSummary(summary, insights, actions),
+                    title,
+                    metadata
+                };
             } catch (error) {
                 new Notice(`OpenRouter API Error: ${error.message}`);
                 console.error('[SummarizeContent] OpenRouter API error:', error);
-                return { summary: '', title: 'Untitled' };
+                return { summary: '', title: 'Untitled', metadata: {} };
             }
         }
-        return { summary: '', title: 'Untitled' };
+        return { summary: '', title: 'Untitled', metadata: {} };
+    }
+
+    private parseMetadata(metadataText: string): any {
+        const metadata: any = {};
+        const lines = metadataText.split('\n');
+        
+        for (const line of lines) {
+            const [key, value] = line.split(':').map(s => s.trim());
+            if (key && value) {
+                switch (key.toLowerCase()) {
+                    case 'author':
+                        metadata.author = value;
+                        break;
+                    case 'key topics':
+                        metadata.topics = value.split(',').map(t => t.trim());
+                        break;
+                    case 'tags':
+                        metadata.tags = value.split(',').map(t => t.trim());
+                        break;
+                    case 'related concepts':
+                        metadata.related = value.split(',').map(t => t.trim());
+                        break;
+                }
+            }
+        }
+        
+        return metadata;
+    }
+
+    private formatSummary(summary: string, insights: string, actions: string): string {
+        let formattedContent = '';
+        
+        // Add summary section with callout
+        formattedContent += `> [!summary] Summary\n> ${summary.replace(/\n/g, '\n> ')}\n\n`;
+        
+        // Add key insights section with callout
+        if (insights) {
+            formattedContent += `> [!insight] Key Insights\n> ${insights.replace(/\n/g, '\n> ')}\n\n`;
+        }
+        
+        // Add action items section with callout and convert to checkboxes
+        if (actions) {
+            formattedContent += `> [!todo] Action Items\n`;
+            // Convert each action item to a checkbox
+            const actionItems = actions.split('\n').filter(line => line.trim().startsWith('-'));
+            actionItems.forEach(item => {
+                // Remove the leading dash and trim
+                const cleanItem = item.replace(/^-\s*/, '').trim();
+                formattedContent += `> - [ ] ${cleanItem}\n`;
+            });
+            formattedContent += '\n';
+        }
+        
+        return formattedContent;
     }
 
     private async createNoteWithSummary(summary: string, title: string, url: string): Promise<TFile | null> {
         const folderPath = this.plugin.settings.notesFolder;
         const fileName = this.sanitizeFileName(title + '.md');
-        const fileContent = `${summary}\n\nSource: ${url}`;
+        
+        // Create YAML frontmatter
+        const frontmatter = {
+            title: title,
+            date: new Date().toISOString().split('T')[0],
+            type: 'summary',
+            source: {
+                type: url.includes('youtube.com') ? 'youtube' : 'web',
+                url: url
+            },
+            tags: this.currentMetadata?.tags || [],
+            topics: this.currentMetadata?.topics || [],
+            related: this.currentMetadata?.related || [],
+            status: 'draft',
+            created: new Date().toISOString(),
+            modified: new Date().toISOString()
+        };
+
+        // Format the content with YAML frontmatter
+        const fileContent = `---
+${Object.entries(frontmatter).map(([key, value]) => {
+    if (typeof value === 'object') {
+        return `${key}:\n${Object.entries(value).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`;
+    }
+    return `${key}: ${value}`;
+}).join('\n')}
+---
+
+${summary}
+
+> [!source] Source
+> ${url}
+
+${this.currentMetadata?.author ? `> [!author] Author\n> ${this.currentMetadata.author}\n\n` : ''}`;
+
         console.log('[CreateNote] Creating note. Folder:', folderPath, 'File:', fileName);
         try {
             const folder = this.app.vault.getAbstractFileByPath(folderPath) as TFolder;
