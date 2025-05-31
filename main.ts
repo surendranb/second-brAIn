@@ -119,7 +119,76 @@ const DEFAULT_SETTINGS: PluginSettings = {
         endpoint: 'https://openrouter.ai/api/v1/chat/completions',
         models: OPENROUTER_MODELS
     },
-    defaultPrompt: 'You are an expert knowledge creator, skilled at transforming information into actionable insights for a second brain. Your goal is to create a comprehensive and well-structured note from the provided content.\n\nAnalyze the content and:\n\n1.  Provide a concise summary of the main points.\n2.  Identify and extract the key concepts and ideas.\n3.  Include relevant supporting details, examples, and evidence.\n4.  Extract and include direct quotes or excerpts that are particularly insightful or important, clearly attributing them to the source.\n5.  Identify and list related topics or concepts that are relevant to the content.\n6.  Include your own personal insights, reflections, and questions about the content.\n7.  Suggest specific actionable takeaways or steps that can be taken based on the content.\n8.  Structure the note with clear headings, subheadings, and bullet points for easy readability.\n9.  Include the source URL at the end of the note.\n10. Add relevant keywords and tags that will help with future retrieval.',
+    defaultPrompt: `You are an expert knowledge creator, skilled at transforming information into actionable insights for a second brain. Your goal is to create a comprehensive and well-structured note from the provided content.
+
+For each section below, provide detailed and thoughtful content:
+
+CONTEXT:
+- Provide the background and setting of the content
+- Explain why this information matters
+- Set up the framework for understanding the content
+
+FACTS:
+- Extract key factual information
+- Include specific data points, statistics, or concrete information
+- Focus on verifiable and objective information
+
+PERSPECTIVES:
+- Present different viewpoints on the topic
+- Include contrasting opinions or approaches
+- Consider cultural, historical, or theoretical perspectives
+
+INSIGHTS:
+- Identify deeper meanings and implications
+- Connect ideas to broader concepts
+- Highlight patterns and relationships
+
+PERSONAL REFLECTION:
+- Share your thoughts on the content
+- Connect it to existing knowledge
+- Identify personal relevance and applications
+
+ANALOGIES AND METAPHORS:
+- Create clear comparisons to explain complex ideas
+- Use relatable examples to illustrate concepts
+- Draw parallels to familiar situations
+
+QUESTIONS AND CURIOSITIES:
+- List important questions that arise
+- Identify areas that need further exploration
+- Note interesting points that deserve deeper investigation
+
+APPLICATIONS AND EXAMPLES:
+- Provide concrete examples of how to apply the information
+- Show real-world applications
+- Include specific use cases
+
+CONTRASTS AND COMPARISONS:
+- Compare with similar concepts or ideas
+- Highlight differences and similarities
+- Show how this fits into the broader context
+
+IMPLICATIONS:
+- Discuss potential impacts and consequences
+- Consider short-term and long-term effects
+- Explore possible future developments
+
+KNOWLEDGE GAPS:
+- Identify areas where more information is needed
+- Note assumptions that should be verified
+- List topics that require further research
+
+NEXT STEPS:
+- Suggest specific actions to take
+- Outline a plan for implementation
+- Recommend follow-up activities
+
+RELATED GOALS:
+- Connect to personal or professional objectives
+- Identify how this information supports larger goals
+- Suggest ways to integrate this knowledge into existing plans
+
+Please structure your response with clear sections, using bullet points for lists and maintaining a professional yet engaging tone. Focus on creating actionable insights that can be easily referenced and applied.`,
     notesFolder: 'Summaries'
 };
 
@@ -380,6 +449,7 @@ class SummaryView extends ItemView {
                 return;
             }
             console.log('[startSummarizationFlow] Summary generated successfully, length:', result.summary.length);
+            console.log('[startSummarizationFlow] Metadata:', result.metadata);
             
             this.updateStatusSteps(3, 'Summary generated!');
             await new Promise(res => setTimeout(res, 200));
@@ -408,6 +478,7 @@ class SummaryView extends ItemView {
         if (summary) {
             try {
                 const title = this.currentTitle || 'Untitled';
+                console.log('[handleCreateNoteButtonClick] Creating note with metadata:', this.currentMetadata);
                 const newNote = await this.createNoteWithSummary(summary, title, url);
 
                 if (newNote) {
@@ -470,8 +541,66 @@ class SummaryView extends ItemView {
         let selectedModel = '';
         console.log('[SummarizeContent] Provider:', this.plugin.settings.provider);
         
-        // Enhanced prompt that includes metadata generation
-        const enhancedPrompt = `${prompt}\n\nPlease structure your response in the following format:\n\nTITLE: [Your concise, descriptive title here]\n\nMETADATA:\n- Author: [Author name if available]\n- Key Topics: [3-5 main topics]\n- Tags: [3 relevant hashtags]\n- Related Concepts: [2-3 related concepts]\n\nSUMMARY:\n[Your detailed summary here]\n\nKEY INSIGHTS:\n- [Important insight 1]\n- [Important insight 2]\n- [Important insight 3]\n\nACTION ITEMS:\n- [Actionable item 1]\n- [Actionable item 2]`;
+        // Enhanced prompt that includes comprehensive note structure
+        const enhancedPrompt = `${prompt}\n\nPlease structure your response as a JSON object with the following format:\n\n{
+    "title": "Your concise, descriptive title here",
+    "metadata": {
+        "speakers": ["Speaker 1", "Speaker 2"],
+        "topics": ["Topic 1", "Topic 2", "Topic 3"],
+        "tags": ["#tag1", "#tag2", "#tag3"],
+        "related": ["Concept 1", "Concept 2", "Concept 3"]
+    },
+    "sections": {
+        "context": "Background and setting of the content",
+        "facts": [
+            "Key fact 1",
+            "Key fact 2",
+            "Key fact 3"
+        ],
+        "perspectives": [
+            "Different viewpoint 1",
+            "Different viewpoint 2"
+        ],
+        "insights": [
+            "Important insight 1",
+            "Important insight 2",
+            "Important insight 3"
+        ],
+        "personal_reflection": "Your thoughts and connections to existing knowledge",
+        "analogies": [
+            "Analogy 1",
+            "Analogy 2"
+        ],
+        "questions": [
+            "Question 1",
+            "Question 2"
+        ],
+        "applications": [
+            "Application 1",
+            "Application 2"
+        ],
+        "contrasts": [
+            "Contrast 1",
+            "Contrast 2"
+        ],
+        "implications": [
+            "Implication 1",
+            "Implication 2"
+        ],
+        "knowledge_gaps": [
+            "Gap 1",
+            "Gap 2"
+        ],
+        "next_steps": [
+            "Action 1",
+            "Action 2"
+        ],
+        "related_goals": [
+            "Goal 1",
+            "Goal 2"
+        ]
+    }
+}\n\nNote: For sections with checkboxes (questions, knowledge_gaps, next_steps, related_goals), the items will be automatically formatted as checkboxes in the final note.`;
         
         if (this.plugin.settings.provider === 'gemini') {
             selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
@@ -497,29 +626,13 @@ class SummaryView extends ItemView {
                 const responseText = result.response.text();
                 console.log('[SummarizeContent] Gemini API response:', responseText);
                 
-                // Parse the response to extract title, metadata, and summary
-                const titleMatch = responseText.match(/TITLE:\s*(.*?)(?:\n|$)/i);
-                const title = titleMatch ? titleMatch[1].trim() : 'Untitled';
-                
-                // Extract metadata
-                const metadataMatch = responseText.match(/METADATA:\n([\s\S]*?)(?:\n\n|$)/i);
-                const metadataText = metadataMatch ? metadataMatch[1].trim() : '';
-                const metadata = this.parseMetadata(metadataText);
-                
-                // Extract summary and other sections
-                const summaryMatch = responseText.match(/SUMMARY:\n([\s\S]*?)(?:\n\nKEY INSIGHTS:|$)/i);
-                const summary = summaryMatch ? summaryMatch[1].trim() : '';
-                
-                const insightsMatch = responseText.match(/KEY INSIGHTS:\n([\s\S]*?)(?:\n\nACTION ITEMS:|$)/i);
-                const insights = insightsMatch ? insightsMatch[1].trim() : '';
-                
-                const actionsMatch = responseText.match(/ACTION ITEMS:\n([\s\S]*?)(?:\n\n|$)/i);
-                const actions = actionsMatch ? actionsMatch[1].trim() : '';
+                // Parse the response to extract all sections
+                const sections = this.parseSections(responseText);
                 
                 return { 
-                    summary: this.formatSummary(summary, insights, actions),
-                    title,
-                    metadata
+                    summary: this.formatEnhancedSummary(sections),
+                    title: sections.title || 'Untitled',
+                    metadata: sections.metadata || {}
                 };
             } catch (error) {
                 new Notice(`Gemini API Error: ${error.message}`);
@@ -563,29 +676,13 @@ class SummaryView extends ItemView {
                 console.log('[SummarizeContent] OpenRouter API response:', data);
                 const responseText = data.choices[0].message.content;
                 
-                // Parse the response to extract title, metadata, and summary
-                const titleMatch = responseText.match(/TITLE:\s*(.*?)(?:\n|$)/i);
-                const title = titleMatch ? titleMatch[1].trim() : 'Untitled';
-                
-                // Extract metadata
-                const metadataMatch = responseText.match(/METADATA:\n([\s\S]*?)(?:\n\n|$)/i);
-                const metadataText = metadataMatch ? metadataMatch[1].trim() : '';
-                const metadata = this.parseMetadata(metadataText);
-                
-                // Extract summary and other sections
-                const summaryMatch = responseText.match(/SUMMARY:\n([\s\S]*?)(?:\n\nKEY INSIGHTS:|$)/i);
-                const summary = summaryMatch ? summaryMatch[1].trim() : '';
-                
-                const insightsMatch = responseText.match(/KEY INSIGHTS:\n([\s\S]*?)(?:\n\nACTION ITEMS:|$)/i);
-                const insights = insightsMatch ? insightsMatch[1].trim() : '';
-                
-                const actionsMatch = responseText.match(/ACTION ITEMS:\n([\s\S]*?)(?:\n\n|$)/i);
-                const actions = actionsMatch ? actionsMatch[1].trim() : '';
+                // Parse the response to extract all sections
+                const sections = this.parseSections(responseText);
                 
                 return { 
-                    summary: this.formatSummary(summary, insights, actions),
-                    title,
-                    metadata
+                    summary: this.formatEnhancedSummary(sections),
+                    title: sections.title || 'Untitled',
+                    metadata: sections.metadata || {}
                 };
             } catch (error) {
                 new Notice(`OpenRouter API Error: ${error.message}`);
@@ -596,58 +693,230 @@ class SummaryView extends ItemView {
         return { summary: '', title: 'Untitled', metadata: {} };
     }
 
-    private parseMetadata(metadataText: string): any {
-        const metadata: any = {};
-        const lines = metadataText.split('\n');
-        
-        for (const line of lines) {
-            const [key, value] = line.split(':').map(s => s.trim());
-            if (key && value) {
-                switch (key.toLowerCase()) {
-                    case 'author':
-                        metadata.author = value;
-                        break;
-                    case 'key topics':
-                        metadata.topics = value.split(',').map(t => t.trim());
-                        break;
-                    case 'tags':
-                        metadata.tags = value.split(',').map(t => t.trim());
-                        break;
-                    case 'related concepts':
-                        metadata.related = value.split(',').map(t => t.trim());
-                        break;
+    private parseSections(responseText: string): any {
+        try {
+            // First, try to extract JSON from markdown code blocks if present
+            const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+            const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText;
+            
+            // Try to parse the JSON
+            const response = JSON.parse(jsonText);
+            console.log('[parseSections] Parsed JSON response:', response);
+            
+            return {
+                title: response.title || 'Untitled',
+                metadata: response.metadata || {
+                    tags: ['#summary'],
+                    topics: [],
+                    related: [],
+                    speakers: []
+                },
+                ...response.sections
+            };
+        } catch (error) {
+            console.error('[parseSections] Failed to parse JSON response:', error);
+            // Fallback to old parsing method if JSON parsing fails
+            const sections: any = {
+                title: 'Untitled',
+                metadata: {
+                    tags: ['#summary'],
+                    topics: [],
+                    related: [],
+                    speakers: []
                 }
+            };
+            
+            // Extract title
+            const titleMatch = responseText.match(/TITLE:\s*(.*?)(?:\n|$)/i);
+            if (titleMatch) {
+                sections.title = titleMatch[1].trim();
             }
+            
+            // Extract metadata
+            const metadataMatch = responseText.match(/METADATA:\n([\s\S]*?)(?:\n\n|$)/i);
+            if (metadataMatch) {
+                sections.metadata = this.parseMetadata(metadataMatch[1].trim());
+            }
+            
+            return sections;
         }
-        
-        return metadata;
     }
 
-    private formatSummary(summary: string, insights: string, actions: string): string {
+    private formatEnhancedSummary(sections: any): string {
         let formattedContent = '';
         
-        // Add summary section with callout
-        formattedContent += `> [!summary] Summary\n> ${summary.replace(/\n/g, '\n> ')}\n\n`;
-        
-        // Add key insights section with callout
-        if (insights) {
-            formattedContent += `> [!insight] Key Insights\n> ${insights.replace(/\n/g, '\n> ')}\n\n`;
+        // Add context section with callout
+        if (sections.context) {
+            formattedContent += `> [!context] Context\n> ${sections.context.replace(/\n/g, '\n> ')}\n\n`;
         }
         
-        // Add action items section with callout and convert to checkboxes
-        if (actions) {
-            formattedContent += `> [!todo] Action Items\n`;
-            // Convert each action item to a checkbox
-            const actionItems = actions.split('\n').filter(line => line.trim().startsWith('-'));
-            actionItems.forEach(item => {
-                // Remove the leading dash and trim
-                const cleanItem = item.replace(/^-\s*/, '').trim();
-                formattedContent += `> - [ ] ${cleanItem}\n`;
+        // Add facts section with callout
+        if (sections.facts && Array.isArray(sections.facts)) {
+            formattedContent += `> [!fact] Facts\n`;
+            sections.facts.forEach((fact: string) => {
+                formattedContent += `> - ${fact}\n`;
+            });
+            formattedContent += '\n';
+        }
+        
+        // Add perspectives section with callout
+        if (sections.perspectives && Array.isArray(sections.perspectives)) {
+            formattedContent += `> [!perspective] Perspectives\n`;
+            sections.perspectives.forEach((perspective: string) => {
+                formattedContent += `> - ${perspective}\n`;
+            });
+            formattedContent += '\n';
+        }
+        
+        // Add insights section with callout
+        if (sections.insights && Array.isArray(sections.insights)) {
+            formattedContent += `> [!insight] Insights\n`;
+            sections.insights.forEach((insight: string) => {
+                formattedContent += `> - ${insight}\n`;
+            });
+            formattedContent += '\n';
+        }
+        
+        // Add personal reflection section with callout
+        if (sections.personal_reflection) {
+            formattedContent += `> [!reflection] Personal Reflection\n> ${sections.personal_reflection.replace(/\n/g, '\n> ')}\n\n`;
+        }
+        
+        // Add analogies section with callout
+        if (sections.analogies && Array.isArray(sections.analogies)) {
+            formattedContent += `> [!analogy] Analogies and Metaphors\n`;
+            sections.analogies.forEach((analogy: string) => {
+                formattedContent += `> - ${analogy}\n`;
+            });
+            formattedContent += '\n';
+        }
+        
+        // Add questions section with callout and checkboxes
+        if (sections.questions && Array.isArray(sections.questions)) {
+            formattedContent += `> [!question] Questions and Curiosities\n`;
+            sections.questions.forEach((question: string) => {
+                formattedContent += `> - [ ] ${question}\n`;
+            });
+            formattedContent += '\n';
+        }
+        
+        // Add applications section with callout
+        if (sections.applications && Array.isArray(sections.applications)) {
+            formattedContent += `> [!example] Applications and Examples\n`;
+            sections.applications.forEach((application: string) => {
+                formattedContent += `> - ${application}\n`;
+            });
+            formattedContent += '\n';
+        }
+        
+        // Add contrasts section with callout
+        if (sections.contrasts && Array.isArray(sections.contrasts)) {
+            formattedContent += `> [!contrast] Contrasts and Comparisons\n`;
+            sections.contrasts.forEach((contrast: string) => {
+                formattedContent += `> - ${contrast}\n`;
+            });
+            formattedContent += '\n';
+        }
+        
+        // Add implications section with callout
+        if (sections.implications && Array.isArray(sections.implications)) {
+            formattedContent += `> [!implication] Implications\n`;
+            sections.implications.forEach((implication: string) => {
+                formattedContent += `> - ${implication}\n`;
+            });
+            formattedContent += '\n';
+        }
+        
+        // Add knowledge gaps section with callout and checkboxes
+        if (sections.knowledge_gaps && Array.isArray(sections.knowledge_gaps)) {
+            formattedContent += `> [!gap] Knowledge Gaps\n`;
+            sections.knowledge_gaps.forEach((gap: string) => {
+                formattedContent += `> - [ ] ${gap}\n`;
+            });
+            formattedContent += '\n';
+        }
+        
+        // Add next steps section with callout and checkboxes
+        if (sections.next_steps && Array.isArray(sections.next_steps)) {
+            formattedContent += `> [!todo] Next Steps\n`;
+            sections.next_steps.forEach((step: string) => {
+                formattedContent += `> - [ ] ${step}\n`;
+            });
+            formattedContent += '\n';
+        }
+        
+        // Add related goals section with callout and checkboxes
+        if (sections.related_goals && Array.isArray(sections.related_goals)) {
+            formattedContent += `> [!goal] Related Goals\n`;
+            sections.related_goals.forEach((goal: string) => {
+                formattedContent += `> - [ ] ${goal}\n`;
             });
             formattedContent += '\n';
         }
         
         return formattedContent;
+    }
+
+    private parseMetadata(metadataText: string): any {
+        console.log('[parseMetadata] Starting to parse metadata text:', metadataText);
+        const metadata: any = {
+            tags: [],
+            topics: [],
+            related: [],
+            speakers: []
+        };
+        
+        const lines = metadataText.split('\n');
+        console.log('[parseMetadata] Split into lines:', lines);
+        
+        for (const line of lines) {
+            const [key, value] = line.split(':').map(s => s.trim());
+            console.log('[parseMetadata] Processing line - key:', key, 'value:', value);
+            if (key && value) {
+                switch (key.toLowerCase()) {
+                    case 'speakers':
+                        // Split by comma and clean up each speaker
+                        metadata.speakers = value.split(',')
+                            .map(s => s.trim())
+                            .filter(s => s.length > 0 && s !== 'N/A')
+                            .map(s => s.replace(/^\[|\]$/g, '').trim());
+                        console.log('[parseMetadata] Processed speakers:', metadata.speakers);
+                        break;
+                    case 'key topics':
+                        // Split by comma and clean up each topic
+                        metadata.topics = value.split(',')
+                            .map(t => t.trim())
+                            .filter(t => t.length > 0)
+                            .map(t => t.replace(/^\[|\]$/g, '').trim());
+                        console.log('[parseMetadata] Processed topics:', metadata.topics);
+                        break;
+                    case 'tags':
+                        // Split by comma and clean up each tag
+                        metadata.tags = value.split(',')
+                            .map(t => t.trim())
+                            .filter(t => t.length > 0)
+                            .map(t => t.replace(/^\[|\]$/g, '').trim());
+                        console.log('[parseMetadata] Processed tags:', metadata.tags);
+                        break;
+                    case 'related concepts':
+                        // Split by comma and clean up each concept
+                        metadata.related = value.split(',')
+                            .map(t => t.trim())
+                            .filter(t => t.length > 0)
+                            .map(t => t.replace(/^\[|\]$/g, '').trim());
+                        console.log('[parseMetadata] Processed related concepts:', metadata.related);
+                        break;
+                }
+            }
+        }
+        
+        // Only add default tags if no tags were found
+        if (metadata.tags.length === 0) {
+            metadata.tags = ['#summary'];
+        }
+        
+        console.log('[parseMetadata] Final metadata object:', metadata);
+        return metadata;
     }
 
     private async createNoteWithSummary(summary: string, title: string, url: string): Promise<TFile | null> {
@@ -663,22 +932,26 @@ class SummaryView extends ItemView {
                 type: url.includes('youtube.com') ? 'youtube' : 'web',
                 url: url
             },
-            tags: this.currentMetadata?.tags || [],
-            topics: this.currentMetadata?.topics || [],
-            related: this.currentMetadata?.related || [],
             status: 'draft',
             created: new Date().toISOString(),
             modified: new Date().toISOString()
         };
 
-        // Format the content with YAML frontmatter
+        // Format the content with YAML frontmatter and Obsidian-native features
         const fileContent = `---
-${Object.entries(frontmatter).map(([key, value]) => {
-    if (typeof value === 'object') {
-        return `${key}:\n${Object.entries(value).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`;
-    }
-    return `${key}: ${value}`;
-}).join('\n')}
+${Object.entries(frontmatter)
+    .map(([key, value]) => {
+        if (typeof value === 'object' && !Array.isArray(value)) {
+            // Handle nested objects (like source)
+            return `${key}:\n${Object.entries(value)
+                .map(([k, v]) => `  ${k}: ${JSON.stringify(v)}`)
+                .join('\n')}`;
+        } else {
+            // Handle simple values
+            return `${key}: ${JSON.stringify(value)}`;
+        }
+    })
+    .join('\n')}
 ---
 
 ${summary}
@@ -686,7 +959,13 @@ ${summary}
 > [!source] Source
 > ${url}
 
-${this.currentMetadata?.author ? `> [!author] Author\n> ${this.currentMetadata.author}\n\n` : ''}`;
+${this.currentMetadata?.speakers?.length ? `## Speakers\n${this.currentMetadata.speakers.map((speaker: string) => `- [[${speaker}]]`).join('\n')}\n\n` : ''}
+
+${this.currentMetadata?.topics?.length ? `## Topics\n${this.currentMetadata.topics.map((topic: string) => `- [[${topic}]]`).join('\n')}\n\n` : ''}
+
+${this.currentMetadata?.related?.length ? `## Related Concepts\n${this.currentMetadata.related.map((concept: string) => `- [[${concept}]]`).join('\n')}\n\n` : ''}
+
+${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}` : ''}`;
 
         console.log('[CreateNote] Creating note. Folder:', folderPath, 'File:', fileName);
         try {
