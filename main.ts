@@ -245,6 +245,9 @@ Please structure your response with clear sections, using bullet points for list
 
 class SummaryView extends ItemView {
     private urlInput: HTMLInputElement;
+    private noteDropdown: HTMLSelectElement;
+    private urlModeRadio: HTMLInputElement;
+    private noteModeRadio: HTMLInputElement;
     private promptInput: HTMLTextAreaElement;
     private generateButton: HTMLButtonElement;
     private resultArea: HTMLDivElement;
@@ -258,7 +261,9 @@ class SummaryView extends ItemView {
     private steps: string[] = ['Fetch', 'Generate'];
     private statusSteps: { label: string, state: 'idle' | 'in-progress' | 'success' | 'error' }[] = [
         { label: 'Fetch Content/Transcript', state: 'idle' },
-        { label: 'Generate Note', state: 'idle' }
+        { label: 'Generate Note', state: 'idle' },
+        { label: 'Organize in Knowledge Map', state: 'idle' },
+        { label: 'Save & Open Note', state: 'idle' }
     ];
     private currentTitle: string = '';
     private currentMetadata: any = null;
@@ -284,10 +289,55 @@ class SummaryView extends ItemView {
         const formContainer = contentEl.createEl('div', { cls: 'ai-summarizer-form' });
         formContainer.style.marginBottom = '20px';
 
-        formContainer.createEl('label', { text: 'Enter the URL (YouTube videos, blogs or a podcast transcript)' });
-        this.urlInput = formContainer.createEl('input', { type: 'text', placeholder: 'https://www.youtube.com/watch?v=' }) as HTMLInputElement;
+        // Input mode selector
+        const inputModeContainer = formContainer.createEl('div', { cls: 'ai-summarizer-input-mode' });
+        inputModeContainer.style.marginBottom = '15px';
+        
+        const urlModeLabel = inputModeContainer.createEl('label');
+        this.urlModeRadio = urlModeLabel.createEl('input', { type: 'radio' }) as HTMLInputElement;
+        this.urlModeRadio.name = 'inputMode';
+        this.urlModeRadio.value = 'url';
+        this.urlModeRadio.checked = true;
+        urlModeLabel.appendText(' Create new note from URL');
+        
+        const noteModeLabel = inputModeContainer.createEl('label');
+        noteModeLabel.style.marginLeft = '20px';
+        this.noteModeRadio = noteModeLabel.createEl('input', { type: 'radio' }) as HTMLInputElement;
+        this.noteModeRadio.name = 'inputMode';
+        this.noteModeRadio.value = 'note';
+        noteModeLabel.appendText(' Organize existing note');
+        
+        // URL input section
+        const urlSection = formContainer.createEl('div', { cls: 'url-input-section' });
+        urlSection.createEl('label', { text: 'Enter the URL (YouTube videos, blogs or a podcast transcript)' });
+        this.urlInput = urlSection.createEl('input', { type: 'text', placeholder: 'https://www.youtube.com/watch?v=' }) as HTMLInputElement;
         this.urlInput.setAttribute('aria-label', 'URL input');
         this.urlInput.style.marginBottom = '10px';
+        
+        // Note selection section
+        const noteSection = formContainer.createEl('div', { cls: 'note-input-section' });
+        noteSection.style.display = 'none';
+        noteSection.createEl('label', { text: 'Select an existing note to organize' });
+        this.noteDropdown = noteSection.createEl('select') as HTMLSelectElement;
+        this.noteDropdown.style.width = '100%';
+        this.noteDropdown.style.marginBottom = '10px';
+        
+        // Populate note dropdown
+        this.populateNoteDropdown(this.noteDropdown);
+        
+        // Mode switching logic
+        const toggleInputMode = () => {
+            if (this.urlModeRadio.checked) {
+                urlSection.style.display = 'block';
+                noteSection.style.display = 'none';
+            } else {
+                urlSection.style.display = 'none';
+                noteSection.style.display = 'block';
+            }
+        };
+        
+        this.urlModeRadio.addEventListener('change', toggleInputMode);
+        this.noteModeRadio.addEventListener('change', toggleInputMode);
 
         // Inline error message for URL
         const urlError = formContainer.createEl('div', { cls: 'error-message' });
@@ -381,13 +431,24 @@ class SummaryView extends ItemView {
 
         this.generateButton.addEventListener('click', async () => {
             urlError.style.display = 'none';
-            if (!this.urlInput.value) {
-                urlError.innerText = 'Please enter a URL.';
-                urlError.style.display = 'block';
-                this.urlInput.focus();
-                return;
+            
+            if (this.urlModeRadio.checked) {
+                if (!this.urlInput.value) {
+                    urlError.innerText = 'Please enter a URL.';
+                    urlError.style.display = 'block';
+                    this.urlInput.focus();
+                    return;
+                }
+                this.startNoteGeneration();
+            } else {
+                if (!this.noteDropdown.value) {
+                    urlError.innerText = 'Please select a note to organize.';
+                    urlError.style.display = 'block';
+                    this.noteDropdown.focus();
+                    return;
+                }
+                this.startNoteOrganization();
             }
-            this.startNoteGeneration();
         });
 
         // Accessibility: focus management
@@ -422,6 +483,26 @@ class SummaryView extends ItemView {
                 this.modelDropdown.appendChild(option);
             });
         }
+    }
+
+    private populateNoteDropdown(dropdown: HTMLSelectElement) {
+        dropdown.innerHTML = '';
+        
+        // Add default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.text = 'Select a note to organize...';
+        dropdown.appendChild(defaultOption);
+        
+        // Get all markdown files
+        const markdownFiles = this.app.vault.getMarkdownFiles();
+        
+        markdownFiles.forEach((file) => {
+            const option = document.createElement('option');
+            option.value = file.path;
+            option.text = file.basename;
+            dropdown.appendChild(option);
+        });
     }
 
     private updateStatusSteps(currentStep: number, status: string, error: boolean = false) {
@@ -486,6 +567,7 @@ class SummaryView extends ItemView {
             
             let content = '';
             // Step 1: Fetch
+            this.statusMessage.innerText = 'Connecting to source and extracting content...';
             console.log('[startNoteGeneration] Starting content fetch...');
             if (url.includes('youtube.com')) {
                 console.log('[startNoteGeneration] Fetching YouTube transcript...');
@@ -517,38 +599,248 @@ class SummaryView extends ItemView {
             
             console.log('[startNoteGeneration] Content fetched successfully, length:', content.length);
             
-            this.updateStatusSteps(1, 'Generating note...');
+            this.updateStatusSteps(1, 'Analyzing content with AI...');
+            this.statusMessage.innerText = 'This may take 30-60 seconds for complex content...';
             console.log('[startNoteGeneration] Starting content processing...');
             const result = await this.summarizeContent(content, prompt, url);
             if (!result.summary) {
-                console.error('[startNoteGeneration] Note generation failed');
-                new Notice('Failed to generate note.');
-                this.updateStatusSteps(1, 'Failed to generate note.', true);
+                console.error('[startNoteGeneration] Note generation failed - no summary returned');
+                new Notice('AI failed to generate structured content. This might be due to API issues or content complexity.');
+                this.updateStatusSteps(1, 'AI response processing failed. Check your API settings and try again.', true);
                 return;
             }
             console.log('[startNoteGeneration] Note generated successfully, length:', result.summary.length);
             console.log('[startNoteGeneration] Metadata:', result.metadata);
             
-            this.updateStatusSteps(1, 'Note generated!');
-            await new Promise(res => setTimeout(res, 200));
+            // Check if we used fallback parsing and inform the user
+            if (result.summary.includes('Raw AI Response')) {
+                this.statusMessage.innerText = 'AI response required fallback parsing - content preserved but may need manual review';
+                new Notice('Note created with fallback parsing. Please review the content for completeness.');
+            }
+            
+            this.updateStatusSteps(2, 'Creating knowledge hierarchy...');
+            await new Promise(res => setTimeout(res, 100));
             
             // Store metadata for later use
             this.currentMetadata = result.metadata;
             this.currentTitle = result.title;
 
             // Create and open the note  
+            this.updateStatusSteps(3, 'Creating note file...');
+            
             const newNote = await this.createNoteWithSummary(result.summary, result.title, url, result.metadata, result);
             if (newNote) {
+                this.updateStatusSteps(3, 'Opening note...', false);
                 const leaf = this.app.workspace.getLeaf('tab');
                 await leaf.openFile(newNote);
-                this.updateStatusSteps(1, 'Note generated!', false);
-                new Notice('Note created successfully.');
+                this.updateStatusSteps(3, 'Complete! Note organized and ready.', false);
+                new Notice('Note created and organized successfully!');
+            } else {
+                console.error('[CreateNote] Note creation failed');
+                this.updateStatusSteps(3, 'Failed to create note', true);
             }
         } catch (error) {
             console.error('[startNoteGeneration] Error:', error);
             new Notice('An error occurred. Please try again.');
             this.updateStatusSteps(1, 'Error occurred.', true);
         }
+    }
+
+    private async startNoteOrganization() {
+        console.log('[startNoteOrganization] Starting note organization...');
+        const notePath = this.noteDropdown.value;
+        
+        try {
+            // Clear UI elements
+            if (!this.resultArea) {
+                this.resultArea = this.containerEl.createEl('div', { cls: 'ai-summarizer-result' }) as HTMLDivElement;
+            }
+            this.resultArea.innerText = '';
+            
+            // Update status for note organization flow
+            this.updateStatusSteps(0, 'Reading note content...');
+            this.statusMessage.innerText = 'Loading existing note content...';
+            
+            // Read the existing note
+            const noteFile = this.app.vault.getAbstractFileByPath(notePath) as TFile;
+            if (!noteFile) {
+                new Notice('Note file not found.');
+                this.updateStatusSteps(0, 'Note file not found.', true);
+                return;
+            }
+            
+            const noteContent = await this.app.vault.read(noteFile);
+            console.log('[startNoteOrganization] Note content loaded, length:', noteContent.length);
+            
+            this.updateStatusSteps(1, 'Analyzing note for organization...');
+            this.statusMessage.innerText = 'AI is analyzing content to determine best knowledge hierarchy...';
+            
+            // Use AI to analyze the note for hierarchy placement
+            const analysis = await this.analyzeNoteForHierarchy(noteContent, noteFile.basename);
+            if (!analysis.hierarchy) {
+                new Notice('Failed to analyze note for organization.');
+                this.updateStatusSteps(1, 'Failed to analyze note content.', true);
+                return;
+            }
+            
+            console.log('[startNoteOrganization] Analysis completed:', analysis);
+            
+            this.updateStatusSteps(2, 'Creating knowledge hierarchy...');
+            this.statusMessage.innerText = `Organizing in ${analysis.hierarchy.level1} > ${analysis.hierarchy.level2}...`;
+            
+            // Create/update MOC structure
+            const mocPath = await this.plugin.mocManager.ensureMOCExists(analysis.hierarchy);
+            console.log('[startNoteOrganization] MOC path:', mocPath);
+            
+            this.updateStatusSteps(3, 'Adding to knowledge map...');
+            this.statusMessage.innerText = 'Adding note to knowledge map...';
+            
+            // Add the note to the MOC
+            await this.plugin.mocManager.updateMOC(mocPath, notePath, noteFile.basename, analysis.learning_context);
+            
+            this.updateStatusSteps(3, 'Organization complete!', false);
+            new Notice(`Note organized in ${analysis.hierarchy.level1} > ${analysis.hierarchy.level2}`);
+            
+            // Open the note
+            const leaf = this.app.workspace.getLeaf('tab');
+            await leaf.openFile(noteFile);
+            
+        } catch (error) {
+            console.error('[startNoteOrganization] Error:', error);
+            new Notice('An error occurred while organizing the note.');
+            this.updateStatusSteps(3, 'Organization failed.', true);
+        }
+    }
+
+    private async analyzeNoteForHierarchy(noteContent: string, noteTitle: string): Promise<{ hierarchy: MOCHierarchy, learning_context: LearningContext }> {
+        console.log('[analyzeNoteForHierarchy] Analyzing note for hierarchy placement');
+        
+        // Create a simplified prompt focused on hierarchy analysis
+        const hierarchyPrompt = `Analyze the following note content and determine the best knowledge hierarchy placement. 
+
+Please respond with ONLY a JSON object in this exact format:
+
+{
+    "hierarchy": {
+        "level1": "Knowledge Domain (e.g., Computer Science, Physics, Business, Philosophy, etc.)",
+        "level2": "Learning Area within the domain (e.g., Machine Learning, Quantum Mechanics, Marketing, Ethics)",
+        "level3": "Specific Topic (optional)",
+        "level4": "Key Concept (optional)"
+    },
+    "learning_context": {
+        "prerequisites": ["Concept 1", "Concept 2"],
+        "related_concepts": ["Related Topic 1", "Related Topic 2"],
+        "learning_path": ["Step 1", "Step 2", "Step 3"],
+        "complexity_level": "beginner|intermediate|advanced",
+        "estimated_reading_time": "X minutes"
+    }
+}
+
+Note Title: "${noteTitle}"
+
+Note Content:
+${noteContent}`;
+
+        let selectedModel = '';
+        
+        if (this.plugin.settings.provider === 'gemini') {
+            selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
+            if (!this.plugin.settings.gemini.apiKey) {
+                throw new Error('Gemini API key not configured');
+            }
+            if (!this.geminiClient) {
+                this.geminiClient = new GoogleGenerativeAI(this.plugin.settings.gemini.apiKey);
+            }
+            
+            const model = this.geminiClient.getGenerativeModel({ model: selectedModel });
+            const result = await model.generateContent({
+                contents: [{
+                    role: 'user',
+                    parts: [{ text: hierarchyPrompt }]
+                }]
+            });
+            const responseText = result.response.text();
+            
+            // Parse the response
+            return this.parseHierarchyResponse(responseText);
+            
+        } else if (this.plugin.settings.provider === 'openrouter') {
+            selectedModel = this.modelDropdown?.value || this.plugin.settings.openrouter.model;
+            if (!this.plugin.settings.openrouter.apiKey) {
+                throw new Error('OpenRouter API key not configured');
+            }
+            
+            const response = await fetch(this.plugin.settings.openrouter.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.plugin.settings.openrouter.apiKey}`,
+                    'HTTP-Referer': 'https://github.com/yourusername/second-brAIn',
+                    'X-Title': 'second-brAIn'
+                },
+                body: JSON.stringify({
+                    model: selectedModel,
+                    messages: [
+                        { role: 'system', content: 'You are a knowledge organization expert. Analyze content and provide hierarchy placement in the exact JSON format requested.' },
+                        { role: 'user', content: hierarchyPrompt }
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 1000
+                })
+            });
+            
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(`OpenRouter API error: ${data.error?.message || response.statusText}`);
+            }
+            
+            const responseText = data.choices[0].message.content;
+            return this.parseHierarchyResponse(responseText);
+        }
+        
+        throw new Error('No AI provider configured');
+    }
+
+    private parseHierarchyResponse(responseText: string): { hierarchy: MOCHierarchy, learning_context: LearningContext } {
+        console.log('[parseHierarchyResponse] Parsing hierarchy response');
+        
+        // Try to extract JSON
+        let jsonText = responseText;
+        const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) {
+            jsonText = jsonMatch[1].trim();
+        }
+        
+        try {
+            // Clean up and parse JSON
+            jsonText = this.cleanupJSON(jsonText);
+            const response = JSON.parse(jsonText);
+            
+            if (response.hierarchy && response.learning_context) {
+                return {
+                    hierarchy: response.hierarchy,
+                    learning_context: response.learning_context
+                };
+            }
+        } catch (error) {
+            console.error('[parseHierarchyResponse] JSON parsing failed:', error);
+        }
+        
+        // Fallback to heuristic analysis
+        console.log('[parseHierarchyResponse] Using fallback heuristic analysis');
+        return {
+            hierarchy: {
+                level1: 'General Knowledge',
+                level2: 'Miscellaneous'
+            },
+            learning_context: {
+                prerequisites: [],
+                related_concepts: [],
+                learning_path: ['General Knowledge'],
+                complexity_level: 'intermediate',
+                estimated_reading_time: '5-10 minutes'
+            }
+        };
     }
 
     private async fetchContentFromWebLink(url: string): Promise<string> {
@@ -591,7 +883,7 @@ class SummaryView extends ItemView {
         }
     }
 
-    private async summarizeContent(text: string, prompt: string, url: string): Promise<{ summary: string, title: string, metadata: any }> {
+    private async summarizeContent(text: string, prompt: string, url: string): Promise<{ summary: string, title: string, metadata: any, hierarchy?: any, learning_context?: any }> {
         let selectedModel = '';
         console.log('[SummarizeContent] Provider:', this.plugin.settings.provider);
         
@@ -698,7 +990,7 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
             if (!this.plugin.settings.gemini.apiKey) {
                 new Notice('Please set your Gemini API key in the settings.');
                 console.error('[SummarizeContent] Gemini API key missing.');
-                return { summary: '', title: 'Untitled', metadata: {} };
+                return { summary: '', title: 'Untitled', metadata: {}, hierarchy: undefined, learning_context: undefined };
             }
             if (!this.geminiClient) {
                 this.geminiClient = new GoogleGenerativeAI(this.plugin.settings.gemini.apiKey);
@@ -718,16 +1010,20 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
                 
                 // Parse the response to extract all sections
                 const sections = this.parseSections(responseText);
+                console.log('[SummarizeContent] Parsed sections with hierarchy:', sections.hierarchy);
+                console.log('[SummarizeContent] Parsed sections with learning_context:', sections.learning_context);
                 
                 return { 
                     summary: this.formatEnhancedSummary(sections),
                     title: sections.title || 'Untitled',
-                    metadata: sections.metadata || {}
+                    metadata: sections.metadata || {},
+                    hierarchy: sections.hierarchy,
+                    learning_context: sections.learning_context
                 };
             } catch (error) {
                 new Notice(`Gemini API Error: ${error.message}`);
                 console.error('[SummarizeContent] Gemini API error:', error);
-                return { summary: '', title: 'Untitled', metadata: {} };
+                return { summary: '', title: 'Untitled', metadata: {}, hierarchy: undefined, learning_context: undefined };
             }
         } else if (this.plugin.settings.provider === 'openrouter') {
             selectedModel = this.modelDropdown?.value || this.plugin.settings.openrouter.model;
@@ -735,7 +1031,7 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
             if (!this.plugin.settings.openrouter.apiKey) {
                 new Notice('Please set your OpenRouter API key in the settings.');
                 console.error('[SummarizeContent] OpenRouter API key missing.');
-                return { summary: '', title: 'Untitled', metadata: {} };
+                return { summary: '', title: 'Untitled', metadata: {}, hierarchy: undefined, learning_context: undefined };
             }
             try {
                 const requestBody = {
@@ -768,30 +1064,37 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
                 
                 // Parse the response to extract all sections
                 const sections = this.parseSections(responseText);
+                console.log('[SummarizeContent] Parsed sections with hierarchy:', sections.hierarchy);
+                console.log('[SummarizeContent] Parsed sections with learning_context:', sections.learning_context);
                 
                 return { 
                     summary: this.formatEnhancedSummary(sections),
                     title: sections.title || 'Untitled',
-                    metadata: sections.metadata || {}
+                    metadata: sections.metadata || {},
+                    hierarchy: sections.hierarchy,
+                    learning_context: sections.learning_context
                 };
             } catch (error) {
                 new Notice(`OpenRouter API Error: ${error.message}`);
                 console.error('[SummarizeContent] OpenRouter API error:', error);
-                return { summary: '', title: 'Untitled', metadata: {} };
+                return { summary: '', title: 'Untitled', metadata: {}, hierarchy: undefined, learning_context: undefined };
             }
         }
-        return { summary: '', title: 'Untitled', metadata: {} };
+        return { summary: '', title: 'Untitled', metadata: {}, hierarchy: undefined, learning_context: undefined };
     }
 
     private parseSections(responseText: string): any {
+        // Extract and prepare JSON text
+        const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+        let jsonText = jsonMatch ? jsonMatch[1].trim() : responseText;
+        
         try {
-            // First, try to extract JSON from markdown code blocks if present
-            const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
-            const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText;
+            // Clean up common JSON issues from AI responses
+            jsonText = this.cleanupJSON(jsonText);
             
             // Try to parse the JSON
             const response = JSON.parse(jsonText);
-            console.log('[parseSections] Parsed JSON response:', response);
+            console.log('[parseSections] Successfully parsed AI response');
             
             return {
                 title: response.title || 'Untitled',
@@ -815,8 +1118,41 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
                 ...response.sections
             };
         } catch (error) {
-            console.error('[parseSections] Failed to parse JSON response:', error);
-            // Fallback to old parsing method if JSON parsing fails
+            console.error('[parseSections] JSON parsing failed, attempting cleanup...');
+            
+            // Try one more time with aggressive cleanup
+            try {
+                const aggressivelyCleanedJSON = this.aggressiveJSONCleanup(jsonText);
+                const response = JSON.parse(aggressivelyCleanedJSON);
+                console.log('[parseSections] Successfully parsed with cleanup');
+                
+                return {
+                    title: response.title || 'Untitled',
+                    metadata: response.metadata || {
+                        tags: ['#summary'],
+                        topics: [],
+                        related: [],
+                        speakers: []
+                    },
+                    hierarchy: response.hierarchy || {
+                        level1: 'General Knowledge',
+                        level2: 'Miscellaneous'
+                    },
+                    learning_context: response.learning_context || {
+                        prerequisites: [],
+                        related_concepts: [],
+                        learning_path: [],
+                        complexity_level: 'intermediate',
+                        estimated_reading_time: '5-10 minutes'
+                    },
+                    ...response.sections
+                };
+            } catch (secondError) {
+                console.error('[parseSections] JSON cleanup failed, using fallback parsing');
+            }
+            
+            // Fallback to text parsing method if JSON parsing fails completely
+            console.log('[parseSections] Using fallback text parsing');
             const sections: any = {
                 title: 'Untitled',
                 metadata: {
@@ -824,27 +1160,78 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
                     topics: [],
                     related: [],
                     speakers: []
-                }
+                },
+                hierarchy: {
+                    level1: 'General Knowledge',
+                    level2: 'Miscellaneous'
+                },
+                learning_context: {
+                    prerequisites: [],
+                    related_concepts: [],
+                    learning_path: ['Miscellaneous'],
+                    complexity_level: 'intermediate',
+                    estimated_reading_time: '5-10 minutes'
+                },
+                // Add basic content sections for fallback
+                context: 'Content analysis completed with fallback parsing.',
+                facts: ['AI response parsing encountered technical issues', 'Content was processed using fallback methods'],
+                insights: ['This content may benefit from manual review and enhancement'],
+                personal_reflection: 'The original AI response could not be fully parsed, but the content has been preserved.',
+                questions: ['What were the key points in the original content?', 'How can this information be better organized?'],
+                next_steps: ['Review and enhance the content manually', 'Consider regenerating with a different prompt'],
+                applications: ['Use as a starting point for further research', 'Expand with additional context and details']
             };
             
-            // Extract title
-            const titleMatch = responseText.match(/TITLE:\s*(.*?)(?:\n|$)/i);
+            // Try to extract title from the response text
+            let titleMatch = responseText.match(/["']title["']:\s*["']([^"']+)["']/i);
+            if (!titleMatch) {
+                titleMatch = responseText.match(/TITLE:\s*(.*?)(?:\n|$)/i);
+            }
+            if (!titleMatch) {
+                titleMatch = responseText.match(/title[:\s]+([^\n]+)/i);
+            }
             if (titleMatch) {
                 sections.title = titleMatch[1].trim();
             }
             
-            // Extract metadata
+            // Try to extract basic hierarchy from content patterns
+            const text = responseText.toLowerCase();
+            if (text.includes('computer') || text.includes('programming') || text.includes('software') || text.includes('ai') || text.includes('machine learning')) {
+                sections.hierarchy.level1 = 'Computer Science';
+                if (text.includes('ai') || text.includes('machine learning') || text.includes('neural')) {
+                    sections.hierarchy.level2 = 'Artificial Intelligence';
+                } else if (text.includes('web') || text.includes('frontend') || text.includes('backend')) {
+                    sections.hierarchy.level2 = 'Web Development';
+                } else {
+                    sections.hierarchy.level2 = 'Programming';
+                }
+            } else if (text.includes('business') || text.includes('marketing') || text.includes('finance') || text.includes('management')) {
+                sections.hierarchy.level1 = 'Business';
+                sections.hierarchy.level2 = 'General Business';
+            }
+            
+            // Extract metadata if it exists
             const metadataMatch = responseText.match(/METADATA:\n([\s\S]*?)(?:\n\n|$)/i);
             if (metadataMatch) {
                 sections.metadata = this.parseMetadata(metadataMatch[1].trim());
             }
             
+            // Add the original response text as raw content so nothing is lost
+            sections.raw_content = responseText;
+            
+            console.log('[parseSections] Fallback parsing completed');
             return sections;
         }
     }
 
     private formatEnhancedSummary(sections: any): string {
         let formattedContent = '';
+        
+        // If we have raw content from fallback parsing, add it first
+        if (sections.raw_content) {
+            formattedContent += `> [!warning] Parsing Notice\n> The AI response could not be fully parsed as structured data. The raw content is preserved below, and basic organization has been applied. You may want to manually review and enhance this content.\n\n`;
+            formattedContent += `## Raw AI Response\n\n${sections.raw_content}\n\n---\n\n`;
+        }
         
         // Add context section with callout
         if (sections.context) {
@@ -958,6 +1345,77 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
         return formattedContent;
     }
 
+    private cleanupJSON(jsonText: string): string {
+        // Remove common issues that cause JSON parsing to fail
+        let cleaned = jsonText
+            // Remove BOM and other invisible Unicode characters
+            .replace(/^\uFEFF/, '') // Remove BOM
+            .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and similar
+            .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+            // Remove any markdown formatting if it leaked through
+            .replace(/```json\s*|\s*```/g, '')
+            // Remove trailing commas before closing brackets/braces
+            .replace(/,(\s*[}\]])/g, '$1')
+            // Fix escaped quotes in content
+            .replace(/\\"/g, '"')
+            // Remove any stray backslashes before quotes
+            .replace(/\\(?!")/g, '')
+            // Fix double-escaped characters
+            .replace(/\\\\"/g, '\\"')
+            // Fix unescaped quotes inside strings (basic attempt)
+            .replace(/:\s*"([^"]*)"([^",}\]]*)"([^",}\]]*)/g, ': "$1\\"$2\\"$3')
+            // Clean up any extra spaces around JSON elements
+            .trim();
+            
+        // Ensure it starts and ends with braces
+        if (!cleaned.startsWith('{')) {
+            const braceIndex = cleaned.indexOf('{');
+            if (braceIndex > -1) {
+                cleaned = cleaned.substring(braceIndex);
+            }
+        }
+        
+        return cleaned;
+    }
+
+    private aggressiveJSONCleanup(jsonText: string): string {
+        // More aggressive cleanup for severely malformed JSON
+        let cleaned = jsonText
+            // Remove ALL invisible characters more aggressively
+            .replace(/^\uFEFF/, '') // Remove BOM
+            .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
+            .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+            .replace(/[\u2000-\u206F]/g, '') // Remove additional Unicode spaces
+            .replace(/[\u2E00-\u2E7F]/g, ''); // Remove punctuation symbols
+        
+        // Try to fix common patterns that break JSON
+        cleaned = cleaned
+            // Remove trailing commas more aggressively
+            .replace(/,\s*([}\]])/g, '$1')
+            // Fix unescaped quotes in strings (simple heuristic)
+            .replace(/([^\\])"([^"]*)"([^,:}\]]*)/g, '$1\\"$2\\"$3')
+            // Remove any stray backslashes
+            .replace(/\\(?!["\\/bfnrt])/g, '')
+            // Fix malformed string endings
+            .replace(/([^"])"\s*,?\s*$/gm, '$1",')
+            // Remove any trailing content after final }
+            .replace(/}\s*[^}]*$/, '}')
+            // Remove any content before first {
+            .replace(/^[^{]*/, '')
+            // Ensure proper JSON structure
+            .trim();
+            
+        // If it doesn't start/end with braces, try to extract the main object
+        if (!cleaned.startsWith('{')) {
+            const match = cleaned.match(/\{[\s\S]*\}/);
+            if (match) {
+                cleaned = match[0];
+            }
+        }
+        
+        return cleaned;
+    }
+
     private parseMetadata(metadataText: string): any {
         console.log('[parseMetadata] Starting to parse metadata text:', metadataText);
         const metadata: any = {
@@ -1028,15 +1486,20 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
         let mocPath: string | null = null;
         let hierarchyData: NoteHierarchyAnalysis | null = null;
         
+        // Helper function to update MOC status
+        const updateMOCStatus = (message: string) => {
+            this.statusMessage.innerText = message;
+        };
+        
         if (this.plugin.settings.enableMOC && metadata) {
             try {
-                console.log('[CreateNote] Using AI-generated hierarchy for MOC placement...');
-                
                 // Use AI-generated hierarchy from the analysis result
                 const aiHierarchy = fullResult?.hierarchy;
                 const aiLearningContext = fullResult?.learning_context;
                 
                 if (aiHierarchy && aiHierarchy.level1 && aiHierarchy.level2) {
+                    updateMOCStatus(`Organizing in ${aiHierarchy.level1} > ${aiHierarchy.level2}...`);
+                    
                     hierarchyData = {
                         hierarchy: aiHierarchy,
                         learning_context: aiLearningContext || {
@@ -1051,17 +1514,24 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
                         }
                     };
                     
-                    console.log('[CreateNote] AI Hierarchy analysis result:', hierarchyData);
+                    console.log('[CreateNote] Hierarchy detected:', `${hierarchyData.hierarchy.level1} > ${hierarchyData.hierarchy.level2}`);
                     
+                    updateMOCStatus('Creating knowledge map structure...');
                     mocPath = await this.plugin.mocManager.ensureMOCExists(hierarchyData.hierarchy);
-                    console.log('[CreateNote] MOC ensured at:', mocPath);
+                    console.log('[CreateNote] MOC path:', mocPath);
+                    updateMOCStatus('Knowledge map ready');
                 } else {
                     console.log('[CreateNote] No AI hierarchy found, falling back to heuristic analysis...');
+                    updateMOCStatus('Analyzing content for organization...');
                     hierarchyData = await this.plugin.hierarchyAnalyzer.analyzeContent(metadata, title, summary);
+                    updateMOCStatus('Creating knowledge map...');
                     mocPath = await this.plugin.mocManager.ensureMOCExists(hierarchyData.hierarchy);
+                    updateMOCStatus('Knowledge map ready');
                 }
             } catch (error) {
                 console.error('[CreateNote] MOC analysis failed:', error);
+                updateMOCStatus('Knowledge organization failed, but note will be saved');
+                new Notice('Note will be saved, but automatic organization failed. You can organize it manually later.');
                 // Continue with note creation even if MOC fails
             }
         }
@@ -1138,11 +1608,14 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
             // Update MOC with the new note
             if (mocPath && this.plugin.settings.enableMOC) {
                 try {
-                    console.log('[CreateNote] Updating MOC with new note...');
+                    updateMOCStatus('Adding note to knowledge map...');
+                    console.log('[CreateNote] Adding note to MOC...');
                     await this.plugin.mocManager.updateMOC(mocPath, newFile.path, title, hierarchyData?.learning_context);
-                    console.log('[CreateNote] MOC updated successfully');
+                    console.log('[CreateNote] Note successfully added to MOC');
+                    updateMOCStatus('Note organized in knowledge map!');
                 } catch (error) {
                     console.error('[CreateNote] Failed to update MOC:', error);
+                    updateMOCStatus('Note saved (MOC update failed)');
                     // Don't fail note creation if MOC update fails
                 }
             }
@@ -1217,6 +1690,103 @@ ${hierarchy.level4 ? `- [[${hierarchy.level4}]]` : ''}
         return content;
     }
 
+    async createHierarchicalMOCTemplate(levelInfo: any, hierarchy: MOCHierarchy, allLevels: any[]): Promise<string> {
+        const timestamp = new Date().toISOString();
+        const isRootLevel = levelInfo.level === 1;
+        const currentIndex = allLevels.findIndex(l => l.level === levelInfo.level);
+        const parentLevel = currentIndex > 0 ? allLevels[currentIndex - 1] : null;
+        const childLevels = allLevels.filter(l => l.level > levelInfo.level);
+
+        const frontmatter = {
+            type: 'moc',
+            title: levelInfo.title,
+            domain: hierarchy.level1,
+            level: levelInfo.level,
+            created: timestamp,
+            updated: timestamp,
+            tags: ['moc', hierarchy.level1.toLowerCase().replace(/\s+/g, '-'), `level-${levelInfo.level}`],
+            note_count: 0,
+            learning_paths: []
+        };
+
+        let navigationSection = '';
+        
+        // Add parent navigation (if not root level)
+        if (parentLevel) {
+            navigationSection += `## 🔼 Parent Level\n- [[${parentLevel.title}]] (${this.getLevelName(parentLevel.level)})\n\n`;
+        }
+
+        // Add child navigation (if has children)
+        if (childLevels.length > 0) {
+            navigationSection += `## 🔽 Sub-Levels\n`;
+            childLevels.forEach(child => {
+                navigationSection += `- [[${child.title}]] (${this.getLevelName(child.level)})\n`;
+            });
+            navigationSection += '\n';
+        }
+
+        // Add sibling navigation (same level, different branches)
+        const siblingHint = levelInfo.level > 1 ? `\n## 🔄 Related ${this.getLevelName(levelInfo.level)}s\n<!-- Related ${this.getLevelName(levelInfo.level).toLowerCase()}s will be linked here automatically -->\n\n` : '';
+
+        const content = `---
+${Object.entries(frontmatter)
+    .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+    .join('\n')}
+---
+
+# ${levelInfo.title}
+
+> [!info] Knowledge ${this.getLevelName(levelInfo.level)}
+> This MOC represents the **${levelInfo.title}** ${this.getLevelName(levelInfo.level).toLowerCase()} within the **${hierarchy.level1}** domain.
+${levelInfo.level === 4 ? `> This is the most specific level for **${hierarchy.level4}** concepts.` : ''}
+
+${navigationSection}${siblingHint}## Learning Paths
+${this.generateLearningPaths(hierarchy, levelInfo.level)}
+
+## Core Concepts
+${this.generateCoreConcepts(hierarchy, levelInfo.level)}
+
+## Related Topics
+<!-- Related topics will be added automatically as new notes are created -->
+
+## Prerequisites
+<!-- Prerequisites will be populated from note learning contexts -->
+
+## Notes
+<!-- Notes will be added automatically to the most specific level -->
+
+---
+*This ${this.getLevelName(levelInfo.level)} MOC was automatically generated and will be updated as new content is added.*`;
+
+        return content;
+    }
+
+    private getLevelName(level: number): string {
+        switch (level) {
+            case 1: return 'Domain';
+            case 2: return 'Area';
+            case 3: return 'Topic';
+            case 4: return 'Concept';
+            default: return 'Level';
+        }
+    }
+
+    private generateLearningPaths(hierarchy: MOCHierarchy, currentLevel: number): string {
+        const paths = [];
+        if (hierarchy.level2) paths.push(`- [[${hierarchy.level2} Learning Path]]`);
+        if (hierarchy.level3 && currentLevel <= 3) paths.push(`- [[${hierarchy.level3} Learning Path]]`);
+        if (hierarchy.level4 && currentLevel <= 4) paths.push(`- [[${hierarchy.level4} Learning Path]]`);
+        return paths.length > 0 ? paths.join('\n') : '<!-- Learning paths will be added as content grows -->';
+    }
+
+    private generateCoreConcepts(hierarchy: MOCHierarchy, currentLevel: number): string {
+        const concepts = [];
+        if (hierarchy.level2 && currentLevel <= 2) concepts.push(`- [[${hierarchy.level2}]]`);
+        if (hierarchy.level3 && currentLevel <= 3) concepts.push(`- [[${hierarchy.level3}]]`);
+        if (hierarchy.level4 && currentLevel <= 4) concepts.push(`- [[${hierarchy.level4}]]`);
+        return concepts.length > 0 ? concepts.join('\n') : '<!-- Core concepts will be identified as content is added -->';
+    }
+
     async getMOCPath(hierarchy: MOCHierarchy): Promise<string> {
         const mocFolder = this.settings.mocFolder || 'MOCs';
         const domainFolder = hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_');
@@ -1225,53 +1795,235 @@ ${hierarchy.level4 ? `- [[${hierarchy.level4}]]` : ''}
     }
 
     async ensureMOCExists(hierarchy: MOCHierarchy): Promise<string> {
-        const mocPath = await this.getMOCPath(hierarchy);
+        console.log('[MOCManager] Creating MOC structure for:', `${hierarchy.level1} > ${hierarchy.level2}`);
+        
+        // Create all MOC levels that exist in the hierarchy
+        await this.createAllMOCLevels(hierarchy);
+        
+        // Return the path of the most specific MOC (where notes will be added)
+        const mostSpecificPath = await this.getMostSpecificMOCPath(hierarchy);
+        console.log('[MOCManager] Note will be added to:', mostSpecificPath);
+        
+        return mostSpecificPath;
+    }
+
+    private async createAllMOCLevels(hierarchy: MOCHierarchy): Promise<void> {
+        // Validate and normalize hierarchy
+        const normalizedHierarchy = this.normalizeHierarchy(hierarchy);
+        console.log('[MOCManager] Normalized hierarchy:', normalizedHierarchy);
+
+        // Check for existing similar MOCs before creating
+        const existingMOCs = await this.findExistingMOCs(normalizedHierarchy);
+        console.log('[MOCManager] Found existing MOCs:', existingMOCs);
+
+        // Create directory structure based on hierarchy levels
+        const mocStructure = this.createHierarchicalStructure(normalizedHierarchy);
+        
+        for (const levelInfo of mocStructure) {
+            const existingMOC = existingMOCs.find(moc => 
+                moc.level === levelInfo.level && 
+                this.isSimilarContent(moc.title, levelInfo.title)
+            );
+
+            if (existingMOC) {
+                console.log(`[MOCManager] Using existing MOC for level ${levelInfo.level}:`, existingMOC.path);
+                levelInfo.path = existingMOC.path;
+                levelInfo.isExisting = true;
+            } else {
+                await this.ensureSingleMOCExists(levelInfo, normalizedHierarchy, mocStructure);
+            }
+        }
+    }
+
+    private normalizeHierarchy(hierarchy: MOCHierarchy): MOCHierarchy {
+        return {
+            level1: this.normalizeTitle(hierarchy.level1),
+            level2: this.normalizeTitle(hierarchy.level2),
+            level3: hierarchy.level3 ? this.normalizeTitle(hierarchy.level3) : undefined,
+            level4: hierarchy.level4 ? this.normalizeTitle(hierarchy.level4) : undefined
+        };
+    }
+
+    private normalizeTitle(title: string): string {
+        return title
+            .trim()
+            .replace(/[&]/g, 'and')  // & → and
+            .replace(/[^\w\s-]/g, '') // Remove special chars except spaces and hyphens
+            .replace(/\s+/g, ' ')     // Multiple spaces → single space
+            .trim();
+    }
+
+    private createHierarchicalStructure(hierarchy: MOCHierarchy): any[] {
+        const mocFolder = this.settings.mocFolder || 'MOCs';
+        const levels = [];
+
+        // Level 1: Domain (in root MOCs folder)
+        levels.push({
+            level: 1,
+            title: hierarchy.level1,
+            path: `${mocFolder}/${hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_')}.md`,
+            directory: mocFolder
+        });
+
+        // Level 2: Area (in domain subfolder)
+        const domainDir = `${mocFolder}/${hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_')}`;
+        levels.push({
+            level: 2,
+            title: hierarchy.level2,
+            path: `${domainDir}/${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')}.md`,
+            directory: domainDir
+        });
+
+        // Level 3: Topic (in area subfolder)
+        if (hierarchy.level3) {
+            const areaDir = `${domainDir}/${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')}`;
+            levels.push({
+                level: 3,
+                title: hierarchy.level3,
+                path: `${areaDir}/${hierarchy.level3.replace(/[\\/:*?"<>|]/g, '_')}.md`,
+                directory: areaDir
+            });
+        }
+
+        // Level 4: Concept (in topic subfolder)
+        if (hierarchy.level4) {
+            const topicDir = hierarchy.level3 
+                ? `${domainDir}/${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')}/${hierarchy.level3.replace(/[\\/:*?"<>|]/g, '_')}`
+                : `${domainDir}/${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')}`;
+            levels.push({
+                level: 4,
+                title: hierarchy.level4,
+                path: `${topicDir}/${hierarchy.level4.replace(/[\\/:*?"<>|]/g, '_')}.md`,
+                directory: topicDir
+            });
+        }
+
+        return levels;
+    }
+
+    private async findExistingMOCs(hierarchy: MOCHierarchy): Promise<any[]> {
+        const existingMOCs = [];
+        const mocFolder = this.settings.mocFolder || 'MOCs';
         
         try {
-            const existingFile = this.app.vault.getAbstractFileByPath(mocPath);
+            // Search for existing MOCs that might match our hierarchy
+            const allFiles = this.app.vault.getMarkdownFiles();
+            const mocFiles = allFiles.filter(file => file.path.startsWith(mocFolder));
+            
+            for (const file of mocFiles) {
+                try {
+                    const content = await this.app.vault.read(file);
+                    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+                    
+                    if (frontmatterMatch) {
+                        const frontmatter = frontmatterMatch[1];
+                        const typeMatch = frontmatter.match(/type:\s*"?moc"?/);
+                        const levelMatch = frontmatter.match(/level:\s*(\d+)/);
+                        const titleMatch = frontmatter.match(/title:\s*"([^"]+)"/);
+                        
+                        if (typeMatch && levelMatch && titleMatch) {
+                            existingMOCs.push({
+                                path: file.path,
+                                level: parseInt(levelMatch[1]),
+                                title: titleMatch[1],
+                                file: file
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.warn('[MOCManager] Could not read file:', file.path, error);
+                }
+            }
+        } catch (error) {
+            console.error('[MOCManager] Error finding existing MOCs:', error);
+        }
+        
+        return existingMOCs;
+    }
+
+    private isSimilarContent(title1: string, title2: string): boolean {
+        const normalize = (str: string) => str.toLowerCase()
+            .replace(/[&]/g, 'and')
+            .replace(/[^\w\s]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        
+        const norm1 = normalize(title1);
+        const norm2 = normalize(title2);
+        
+        // Exact match
+        if (norm1 === norm2) return true;
+        
+        // Check if one contains the other (for variations)
+        if (norm1.includes(norm2) || norm2.includes(norm1)) return true;
+        
+        // Check for similar words (simple similarity)
+        const words1 = norm1.split(' ');
+        const words2 = norm2.split(' ');
+        const commonWords = words1.filter(word => words2.includes(word));
+        
+        // If more than 50% of words are common, consider similar
+        return commonWords.length >= Math.min(words1.length, words2.length) * 0.5;
+    }
+
+    private async ensureSingleMOCExists(levelInfo: any, hierarchy: MOCHierarchy, allLevels: any[]): Promise<void> {
+        // Skip if this is an existing MOC we're reusing
+        if (levelInfo.isExisting) {
+            return;
+        }
+
+        try {
+            const existingFile = this.app.vault.getAbstractFileByPath(levelInfo.path);
             if (existingFile) {
-                console.log('[MOCManager] MOC already exists:', mocPath);
-                return mocPath;
+                console.log('[MOCManager] MOC already exists:', levelInfo.path);
+                return;
             }
         } catch (error) {
             // File doesn't exist, continue to create it
         }
 
-        // Create MOC directory structure if needed
-        const mocFolder = this.settings.mocFolder || 'MOCs';
-        const domainFolder = hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_');
-        const fullDirPath = `${mocFolder}/${domainFolder}`;
-
+        // Ensure directory structure exists
         try {
-            const folder = this.app.vault.getAbstractFileByPath(fullDirPath);
+            const folder = this.app.vault.getAbstractFileByPath(levelInfo.directory);
             if (!folder) {
-                await this.app.vault.createFolder(fullDirPath);
-                console.log('[MOCManager] Created MOC directory:', fullDirPath);
+                await this.app.vault.createFolder(levelInfo.directory);
+                console.log('[MOCManager] Created directory:', levelInfo.directory);
             }
         } catch (error) {
-            console.error('[MOCManager] Error creating MOC directory:', error);
+            console.error('[MOCManager] Error creating directory:', levelInfo.directory, error);
         }
 
-        // Create MOC file
-        const mocContent = await this.createMOCTemplate(hierarchy);
+        // Create MOC content with hierarchical navigation
+        const mocContent = await this.createHierarchicalMOCTemplate(levelInfo, hierarchy, allLevels);
         try {
-            await this.app.vault.create(mocPath, mocContent);
-            console.log('[MOCManager] Created new MOC:', mocPath);
-            return mocPath;
+            await this.app.vault.create(levelInfo.path, mocContent);
+            console.log('[MOCManager] Created new MOC:', levelInfo.path);
         } catch (error) {
-            console.error('[MOCManager] Error creating MOC file:', error);
-            throw error;
+            console.error('[MOCManager] Error creating MOC file:', levelInfo.path, error);
         }
     }
 
+    private async getMostSpecificMOCPath(hierarchy: MOCHierarchy): Promise<string> {
+        // Use the same hierarchical structure logic as createHierarchicalStructure
+        const mocStructure = this.createHierarchicalStructure(hierarchy);
+        
+        // Return the path of the most specific level (highest level number)
+        const mostSpecific = mocStructure[mocStructure.length - 1];
+        console.log('[MOCManager] Most specific MOC path:', mostSpecific.path);
+        
+        return mostSpecific.path;
+    }
+
     async updateMOC(mocPath: string, notePath: string, noteTitle: string, learningContext?: LearningContext): Promise<void> {
+        console.log('[MOCManager] Adding note to MOC:', noteTitle);
+        
         try {
             const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
             if (!mocFile) {
                 console.error('[MOCManager] MOC file not found:', mocPath);
                 return;
             }
-
+            
             const content = await this.app.vault.read(mocFile);
             
             // Parse frontmatter to update note count
@@ -1294,20 +2046,33 @@ ${hierarchy.level4 ? `- [[${hierarchy.level4}]]` : ''}
                 );
             }
 
-            // Add note to the Notes section
-            const noteLink = `- [[${noteTitle}]]${learningContext ? ` (${learningContext.complexity_level})` : ''}`;
-            const notesSection = updatedContent.match(/## Notes\n([\s\S]*?)(?=\n##|\n---|\n\*|$)/);
+            // Add note to the Notes section - use actual filename for link
+            const noteFileName = this.extractFileNameForLink(notePath);
+            const noteLink = `- [[${noteFileName}]]${learningContext ? ` (${learningContext.complexity_level})` : ''}`;
             
-            if (notesSection && !updatedContent.includes(`[[${noteTitle}]]`)) {
-                const existingNotes = notesSection[1].trim();
-                const newNotesSection = existingNotes 
-                    ? `${existingNotes}\n${noteLink}`
-                    : noteLink;
+            const notesSection = updatedContent.match(/## Notes\n([\s\S]*?)(?=\n##|\n---|\n\*|$)/);
+            console.log('[MOCManager] Found Notes section:', !!notesSection);
+            
+            if (notesSection) {
+                const duplicateCheck = updatedContent.includes(`[[${noteFileName}]]`);
                 
-                updatedContent = updatedContent.replace(
-                    /## Notes\n[\s\S]*?(?=\n##|\n---|\n\*|$)/,
-                    `## Notes\n${newNotesSection}\n`
-                );
+                if (!duplicateCheck) {
+                    const existingNotes = notesSection[1].trim();
+                    const newNotesSection = existingNotes 
+                        ? `${existingNotes}\n${noteLink}`
+                        : noteLink;
+                    
+                    updatedContent = updatedContent.replace(
+                        /## Notes\n[\s\S]*?(?=\n##|\n---|\n\*|$)/,
+                        `## Notes\n${newNotesSection}\n`
+                    );
+                    
+                    console.log('[MOCManager] Added note to MOC');
+                } else {
+                    console.log('[MOCManager] Note already exists in MOC');
+                }
+            } else {
+                console.warn('[MOCManager] No ## Notes section found in MOC');
             }
 
             // Update Prerequisites section if learning context is available
@@ -1333,10 +2098,23 @@ ${hierarchy.level4 ? `- [[${hierarchy.level4}]]` : ''}
             }
 
             await this.app.vault.modify(mocFile, updatedContent);
-            console.log('[MOCManager] Updated MOC:', mocPath);
+            console.log('[MOCManager] MOC updated successfully');
         } catch (error) {
             console.error('[MOCManager] Error updating MOC:', error);
         }
+    }
+
+    private extractFileNameForLink(notePath: string): string {
+        // Extract filename from path and remove .md extension for wiki links
+        // e.g., "Summaries/My Note Title.md" → "My Note Title"
+        const pathParts = notePath.split('/');
+        const fileName = pathParts[pathParts.length - 1];
+        
+        // Remove .md extension
+        const fileNameWithoutExtension = fileName.replace(/\.md$/, '');
+        
+        console.log('[MOCManager] Extracted filename for link:', fileNameWithoutExtension);
+        return fileNameWithoutExtension;
     }
 }
 
