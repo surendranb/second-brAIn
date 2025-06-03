@@ -195,9 +195,7 @@ Please structure your response with clear sections, using bullet points for list
 class SummaryView extends ItemView {
     private urlInput: HTMLInputElement;
     private promptInput: HTMLTextAreaElement;
-    private summarizeButton: HTMLButtonElement;
-    private summaryTextArea: HTMLTextAreaElement;
-    private createNoteButton: HTMLButtonElement;
+    private generateButton: HTMLButtonElement;
     private resultArea: HTMLDivElement;
     private loadingIndicator: HTMLDivElement;
     private geminiClient: GoogleGenerativeAI | null = null;
@@ -206,12 +204,10 @@ class SummaryView extends ItemView {
     private statusMessage: HTMLDivElement;
     private retryButton: HTMLButtonElement;
     private currentStep: number = 0;
-    private steps: string[] = ['Fetch', 'Summarize', 'Create Note'];
+    private steps: string[] = ['Fetch', 'Generate'];
     private statusSteps: { label: string, state: 'idle' | 'in-progress' | 'success' | 'error' }[] = [
         { label: 'Fetch Content/Transcript', state: 'idle' },
-        { label: 'Prepare Request', state: 'idle' },
-        { label: 'Call Gemini/OpenRouter', state: 'idle' },
-        { label: 'Summary Generated', state: 'idle' }
+        { label: 'Generate Note', state: 'idle' }
     ];
     private currentTitle: string = '';
     private currentMetadata: any = null;
@@ -230,42 +226,65 @@ class SummaryView extends ItemView {
 
     async onOpen() {
         const { contentEl } = this;
+        contentEl.empty();
 
-        contentEl.createEl('h2', { text: 'your second brAIn' });
-
+        // Section: Input
+        const inputHeader = contentEl.createEl('h3', { text: 'Input' });
         const formContainer = contentEl.createEl('div', { cls: 'ai-summarizer-form' });
+        formContainer.style.marginBottom = '20px';
 
-        formContainer.createEl('label', { text: 'Enter the URL (YouTube videos, blogs or a podcast transcript) ' });
+        formContainer.createEl('label', { text: 'Enter the URL (YouTube videos, blogs or a podcast transcript)' });
         this.urlInput = formContainer.createEl('input', { type: 'text', placeholder: 'https://www.youtube.com/watch?v=' }) as HTMLInputElement;
+        this.urlInput.setAttribute('aria-label', 'URL input');
+        this.urlInput.style.marginBottom = '10px';
 
-        formContainer.createEl('label', { text: 'Prompt: ' });
+        // Inline error message for URL
+        const urlError = formContainer.createEl('div', { cls: 'error-message' });
+        urlError.style.display = 'none';
+
+        // Section: Options
+        const optionsHeader = contentEl.createEl('h3', { text: 'Options' });
+        optionsHeader.style.marginTop = '24px';
+
+        // Prompt collapsible
+        const promptToggle = formContainer.createEl('button', { text: 'Show Prompt', cls: 'ai-summarizer-prompt-toggle' }) as HTMLButtonElement;
+        promptToggle.setAttribute('aria-expanded', 'false');
+        promptToggle.style.marginBottom = '8px';
+
+        const promptHelp = formContainer.createEl('div', { text: '(Optional) Edit the prompt to customize the note structure.', cls: 'ai-summarizer-prompt-help' });
+        promptHelp.style.fontSize = '0.9em';
+        promptHelp.style.color = 'var(--text-muted)';
+        promptHelp.style.marginBottom = '4px';
+
         this.promptInput = formContainer.createEl('textarea', { placeholder: 'Write your prompt here...' }) as HTMLTextAreaElement;
         this.promptInput.value = this.plugin.settings.defaultPrompt;
+        this.promptInput.style.display = 'none';
+        this.promptInput.setAttribute('aria-label', 'Prompt input');
+        this.promptInput.rows = 8;
 
-        const buttonContainer = formContainer.createEl('div', { cls: 'button-container' });
-        buttonContainer.style.display = 'flex';
-        buttonContainer.style.flexDirection = 'column';
-        buttonContainer.style.gap = '10px';
+        promptToggle.onclick = () => {
+            const expanded = promptToggle.getAttribute('aria-expanded') === 'true';
+            if (expanded) {
+                this.promptInput.style.display = 'none';
+                promptToggle.innerText = 'Show Prompt';
+                promptToggle.setAttribute('aria-expanded', 'false');
+            } else {
+                this.promptInput.style.display = 'block';
+                promptToggle.innerText = 'Hide Prompt';
+                promptToggle.setAttribute('aria-expanded', 'true');
+            }
+        };
 
-        this.summarizeButton = buttonContainer.createEl('button', { text: 'Summarize' }) as HTMLButtonElement;
-        this.summarizeButton.style.width = '100%';
+        // Advanced Options collapsible
+        const advToggle = formContainer.createEl('button', { text: 'Show Advanced Options', cls: 'ai-summarizer-adv-toggle' }) as HTMLButtonElement;
+        advToggle.setAttribute('aria-expanded', 'false');
+        advToggle.style.marginBottom = '8px';
 
-        this.createNoteButton = contentEl.createEl('button', { text: 'Create Note', cls: 'ai-summarizer-create-note' }) as HTMLButtonElement;
-        this.createNoteButton.style.display = 'none';
-
-        this.summaryTextArea = contentEl.createEl('textarea', { cls: 'ai-summarizer-summary' }) as HTMLTextAreaElement;
-        this.summaryTextArea.style.display = 'none';
-        this.summaryTextArea.style.width = '100%';
-        this.summaryTextArea.style.height = '200px';
-        this.summaryTextArea.style.marginTop = '20px';
-
-        this.resultArea = contentEl.createEl('div', { cls: 'ai-summarizer-result' }) as HTMLDivElement;
-        this.resultArea.style.display = 'none';
-
-        this.geminiClient = new GoogleGenerativeAI(this.plugin.settings.gemini.apiKey);
+        const advOptions = formContainer.createEl('div', { cls: 'ai-summarizer-adv-options' });
+        advOptions.style.display = 'none';
 
         // Model Dropdown
-        const modelContainer = contentEl.createEl('div', { cls: 'ai-summarizer-model-container' });
+        const modelContainer = advOptions.createEl('div', { cls: 'ai-summarizer-model-container' });
         modelContainer.createEl('label', { text: 'Model: ' });
         this.modelDropdown = modelContainer.createEl('select') as HTMLSelectElement;
         this.populateModelDropdown();
@@ -277,7 +296,22 @@ class SummaryView extends ItemView {
             }
         });
 
-        // Status Circles Indicator
+        advToggle.onclick = () => {
+            const expanded = advToggle.getAttribute('aria-expanded') === 'true';
+            if (expanded) {
+                advOptions.style.display = 'none';
+                advToggle.innerText = 'Show Advanced Options';
+                advToggle.setAttribute('aria-expanded', 'false');
+            } else {
+                advOptions.style.display = 'block';
+                advToggle.innerText = 'Hide Advanced Options';
+                advToggle.setAttribute('aria-expanded', 'true');
+            }
+        };
+
+        // Section: Progress
+        const progressHeader = contentEl.createEl('h3', { text: 'Progress' });
+        progressHeader.style.marginTop = '24px';
         this.progressContainer = contentEl.createEl('div', { cls: 'ai-summarizer-progress-container' });
         this.statusMessage = contentEl.createEl('div', { cls: 'ai-summarizer-status-message' });
         this.retryButton = contentEl.createEl('button', { text: 'Retry', cls: 'ai-summarizer-retry-button' }) as HTMLButtonElement;
@@ -285,29 +319,37 @@ class SummaryView extends ItemView {
         this.retryButton.onclick = () => {
             this.retryButton.style.display = 'none';
             this.statusMessage.innerText = '';
-            this.startSummarizationFlow();
+            this.startNoteGeneration();
         };
         this.updateStatusSteps(0, 'Idle');
 
-        this.summarizeButton.addEventListener('click', async () => {
-            this.startSummarizationFlow();
+        // Generate Note button
+        this.generateButton = formContainer.createEl('button', { text: 'Generate Note' }) as HTMLButtonElement;
+        this.generateButton.style.width = '100%';
+        this.generateButton.style.marginTop = '18px';
+
+        this.generateButton.addEventListener('click', async () => {
+            urlError.style.display = 'none';
+            if (!this.urlInput.value) {
+                urlError.innerText = 'Please enter a URL.';
+                urlError.style.display = 'block';
+                this.urlInput.focus();
+                return;
+            }
+            this.startNoteGeneration();
         });
 
-        this.createNoteButton.addEventListener('click', () => {
-            this.handleCreateNoteButtonClick();
+        // Accessibility: focus management
+        this.urlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                this.generateButton.focus();
+            }
         });
 
-        // Place status tracker below Summarize button
-        buttonContainer.appendChild(this.summarizeButton);
-        // Remove any old progress/loading indicator from the UI
-        if (this.loadingIndicator) this.loadingIndicator.remove();
-        if (this.progressContainer) this.progressContainer.remove();
-        if (this.statusMessage) this.statusMessage.remove();
-        if (this.retryButton) this.retryButton.remove();
-        // Add the new status tracker below the Summarize button
-        contentEl.appendChild(this.progressContainer);
-        contentEl.appendChild(this.statusMessage);
-        contentEl.appendChild(this.retryButton);
+        this.resultArea = contentEl.createEl('div', { cls: 'ai-summarizer-result' }) as HTMLDivElement;
+        this.resultArea.style.display = 'none';
+
+        this.geminiClient = new GoogleGenerativeAI(this.plugin.settings.gemini.apiKey);
     }
 
     private populateModelDropdown() {
@@ -373,53 +415,41 @@ class SummaryView extends ItemView {
         }
     }
 
-    private async startSummarizationFlow() {
-        console.log('[startSummarizationFlow] Starting flow...');
+    private async startNoteGeneration() {
+        console.log('[startNoteGeneration] Starting flow...');
         const url = this.urlInput.value;
         const prompt = this.promptInput.value;
-        console.log('[startSummarizationFlow] URL:', url);
-        console.log('[startSummarizationFlow] Prompt:', prompt);
-        
-        this.updateStatusSteps(0, 'Fetching content/transcript...');
+
         if (!url) {
-            console.error('[startSummarizationFlow] URL is empty');
-            new Notice('URL cannot be empty.');
-            this.updateStatusSteps(0, 'URL cannot be empty.', true);
+            new Notice('Please enter a URL.');
             return;
         }
-        if (!prompt) {
-            console.error('[startSummarizationFlow] Prompt is empty');
-            new Notice('Prompt cannot be empty.');
-            this.updateStatusSteps(0, 'Prompt cannot be empty.', true);
-            return;
-        }
+
         try {
-            console.log('[startSummarizationFlow] Clearing UI elements...');
+            console.log('[startNoteGeneration] Clearing UI elements...');
             if (!this.resultArea) {
-                console.error('[startSummarizationFlow] resultArea is undefined!');
+                console.error('[startNoteGeneration] resultArea is undefined!');
                 this.resultArea = this.containerEl.createEl('div', { cls: 'ai-summarizer-result' }) as HTMLDivElement;
             }
             this.resultArea.innerText = '';
-            this.summaryTextArea.style.display = 'none';
-            this.createNoteButton.style.display = 'none';
             
             let content = '';
             // Step 1: Fetch
-            console.log('[startSummarizationFlow] Starting content fetch...');
+            console.log('[startNoteGeneration] Starting content fetch...');
             if (url.includes('youtube.com')) {
-                console.log('[startSummarizationFlow] Fetching YouTube transcript...');
+                console.log('[startNoteGeneration] Fetching YouTube transcript...');
                 content = await this.fetchTranscriptFromPython(url);
                 if (content.startsWith('Error:') || content.includes('[ERROR]')) {
-                    console.error('[startSummarizationFlow] Transcript fetch failed:', content);
+                    console.error('[startNoteGeneration] Transcript fetch failed:', content);
                     new Notice('Failed to fetch transcript. ' + content);
                     this.updateStatusSteps(0, 'Failed to fetch transcript. ' + content, true);
                     return;
                 }
             } else {
-                console.log('[startSummarizationFlow] Fetching web content...');
+                console.log('[startNoteGeneration] Fetching web content...');
                 content = await this.fetchContentFromWebLink(url);
                 if (!content || content.startsWith('Error:') || content.includes('[ERROR]')) {
-                    console.error('[startSummarizationFlow] Content fetch failed');
+                    console.error('[startNoteGeneration] Content fetch failed');
                     new Notice('Failed to fetch content. Please check the URL.');
                     this.updateStatusSteps(0, 'Failed to fetch content. Please check the URL.', true);
                     return;
@@ -428,72 +458,45 @@ class SummaryView extends ItemView {
             
             // Additional validation to ensure we have meaningful content
             if (!content || content.trim().length < 50) {
-                console.error('[startSummarizationFlow] Content too short or empty');
+                console.error('[startNoteGeneration] Content too short or empty');
                 new Notice('Failed to fetch meaningful content. Please check the URL.');
                 this.updateStatusSteps(0, 'Failed to fetch meaningful content.', true);
                 return;
             }
             
-            console.log('[startSummarizationFlow] Content fetched successfully, length:', content.length);
+            console.log('[startNoteGeneration] Content fetched successfully, length:', content.length);
             
-            this.updateStatusSteps(1, 'Preparing request...');
-            await new Promise(res => setTimeout(res, 200));
-            
-            this.updateStatusSteps(2, 'Calling Gemini/OpenRouter...');
-            console.log('[startSummarizationFlow] Starting content summarization...');
+            this.updateStatusSteps(1, 'Generating note...');
+            console.log('[startNoteGeneration] Starting content processing...');
             const result = await this.summarizeContent(content, prompt, url);
             if (!result.summary) {
-                console.error('[startSummarizationFlow] Summary generation failed');
-                new Notice('Failed to generate summary.');
-                this.updateStatusSteps(2, 'Failed to generate summary.', true);
+                console.error('[startNoteGeneration] Note generation failed');
+                new Notice('Failed to generate note.');
+                this.updateStatusSteps(1, 'Failed to generate note.', true);
                 return;
             }
-            console.log('[startSummarizationFlow] Summary generated successfully, length:', result.summary.length);
-            console.log('[startSummarizationFlow] Metadata:', result.metadata);
+            console.log('[startNoteGeneration] Note generated successfully, length:', result.summary.length);
+            console.log('[startNoteGeneration] Metadata:', result.metadata);
             
-            this.updateStatusSteps(3, 'Summary generated!');
+            this.updateStatusSteps(1, 'Note generated!');
             await new Promise(res => setTimeout(res, 200));
-            
-            console.log('[startSummarizationFlow] Updating UI with summary...');
-            this.summaryTextArea.value = result.summary;
-            this.summaryTextArea.style.display = 'block';
-            this.createNoteButton.style.display = 'block';
             
             // Store metadata for later use
             this.currentMetadata = result.metadata;
             this.currentTitle = result.title;
-            
-            console.log('[startSummarizationFlow] Flow completed successfully');
-        } catch (error) {
-            console.error('[startSummarizationFlow] Error in flow:', error);
-            new Notice(`Error: ${error.message}`);
-            this.updateStatusSteps(this.statusSteps.findIndex(s => s.state === 'in-progress'), `Error: ${error.message}`, true);
-        }
-    }
 
-    private async handleCreateNoteButtonClick() {
-        const summary = this.summaryTextArea.value;
-        const url = this.urlInput.value;
-
-        if (summary) {
-            try {
-                const title = this.currentTitle || 'Untitled';
-                console.log('[handleCreateNoteButtonClick] Creating note with metadata:', this.currentMetadata);
-                const newNote = await this.createNoteWithSummary(summary, title, url);
-
-                if (newNote) {
-                    const leaf = this.app.workspace.getLeaf('tab');
-                    await leaf.openFile(newNote);
-                }
-
+            // Create and open the note
+            const newNote = await this.createNoteWithSummary(result.summary, result.title, url);
+            if (newNote) {
+                const leaf = this.app.workspace.getLeaf('tab');
+                await leaf.openFile(newNote);
+                this.updateStatusSteps(1, 'Note generated!', false);
                 new Notice('Note created successfully.');
-                this.summaryTextArea.style.display = 'none';
-                this.createNoteButton.style.display = 'none';
-            } catch (error) {
-                new Notice('Error creating note.');
             }
-        } else {
-            new Notice('Summary cannot be empty.');
+        } catch (error) {
+            console.error('[startNoteGeneration] Error:', error);
+            new Notice('An error occurred. Please try again.');
+            this.updateStatusSteps(1, 'Error occurred.', true);
         }
     }
 

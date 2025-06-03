@@ -35,3 +35,6 @@ myenv/
 *.njsproj
 *.sln
 *.swp
+PROJECT_RULES.md
+FEATURE_DEVELOPMENT.md
+*.md
