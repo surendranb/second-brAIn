@@ -52,6 +52,7 @@ export interface LearningContext {
     related_concepts: string[];
     learning_path: string[];
     complexity_level: 'beginner' | 'intermediate' | 'advanced';
+    estimated_reading_time?: string;
 }
 
 export interface MOCMetadata {
@@ -535,8 +536,8 @@ class SummaryView extends ItemView {
             this.currentMetadata = result.metadata;
             this.currentTitle = result.title;
 
-            // Create and open the note
-            const newNote = await this.createNoteWithSummary(result.summary, result.title, url, result.metadata);
+            // Create and open the note  
+            const newNote = await this.createNoteWithSummary(result.summary, result.title, url, result.metadata, result);
             if (newNote) {
                 const leaf = this.app.workspace.getLeaf('tab');
                 await leaf.openFile(newNote);
@@ -594,7 +595,7 @@ class SummaryView extends ItemView {
         let selectedModel = '';
         console.log('[SummarizeContent] Provider:', this.plugin.settings.provider);
         
-        // Enhanced prompt that includes comprehensive note structure
+        // Enhanced prompt that includes comprehensive note structure and MOC hierarchy analysis
         const enhancedPrompt = `${prompt}\n\nPlease structure your response as a JSON object with the following format:\n\n{
     "title": "Your concise, descriptive title here",
     "metadata": {
@@ -602,6 +603,19 @@ class SummaryView extends ItemView {
         "topics": ["Topic 1", "Topic 2", "Topic 3"],
         "tags": ["#tag1", "#tag2", "#tag3"],
         "related": ["Concept 1", "Concept 2", "Concept 3"]
+    },
+    "hierarchy": {
+        "level1": "Knowledge Domain (e.g., Computer Science, Physics, Business, Philosophy, etc.)",
+        "level2": "Learning Area within the domain (e.g., Machine Learning, Quantum Mechanics, Marketing, Ethics)",
+        "level3": "Specific Topic (e.g., Neural Networks, Wave Functions, Digital Marketing, Applied Ethics)",
+        "level4": "Key Concept (e.g., Backpropagation, Schrödinger Equation, SEO, Moral Reasoning)"
+    },
+    "learning_context": {
+        "prerequisites": ["Concept 1", "Concept 2"],
+        "related_concepts": ["Related Topic 1", "Related Topic 2"],
+        "learning_path": ["Step 1", "Step 2", "Step 3"],
+        "complexity_level": "beginner|intermediate|advanced",
+        "estimated_reading_time": "5-10 minutes"
     },
     "sections": {
         "context": "Background and setting of the content",
@@ -653,7 +667,30 @@ class SummaryView extends ItemView {
             "Goal 2"
         ]
     }
-}\n\nNote: For sections with checkboxes (questions, knowledge_gaps, next_steps, related_goals), the items will be automatically formatted as checkboxes in the final note.`;
+}
+
+IMPORTANT INSTRUCTIONS FOR HIERARCHY AND LEARNING CONTEXT:
+
+1. HIERARCHY ANALYSIS:
+   - level1: Identify the broad knowledge domain (e.g., Computer Science, Physics, Business, Philosophy, History, Biology, etc.)
+   - level2: Determine the specific learning area within that domain (e.g., Artificial Intelligence, Quantum Mechanics, Digital Marketing)
+   - level3: Identify the specific topic being discussed (e.g., Neural Networks, Quantum Entanglement, SEO Strategy)
+   - level4: Extract the key concept or technique (e.g., Backpropagation, Bell's Theorem, Keyword Research)
+
+2. LEARNING CONTEXT:
+   - prerequisites: What knowledge should someone have before learning this?
+   - related_concepts: What other topics connect to this content?
+   - learning_path: What sequence of topics would help someone master this area?
+   - complexity_level: Assess based on technical depth, prerequisite knowledge, and cognitive load
+   - estimated_reading_time: Based on content length and complexity
+
+3. QUALITY GUIDELINES:
+   - Be specific and accurate with domain classification
+   - Ensure hierarchy levels make logical sense (general → specific)
+   - Prerequisites should be foundational concepts, not advanced topics
+   - Learning paths should be progressive and logical
+
+Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, related_goals), the items will be automatically formatted as checkboxes in the final note.`;
         
         if (this.plugin.settings.provider === 'gemini') {
             selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
@@ -763,6 +800,17 @@ class SummaryView extends ItemView {
                     topics: [],
                     related: [],
                     speakers: []
+                },
+                hierarchy: response.hierarchy || {
+                    level1: 'General Knowledge',
+                    level2: 'Miscellaneous'
+                },
+                learning_context: response.learning_context || {
+                    prerequisites: [],
+                    related_concepts: [],
+                    learning_path: [],
+                    complexity_level: 'intermediate',
+                    estimated_reading_time: '5-10 minutes'
                 },
                 ...response.sections
             };
@@ -972,7 +1020,7 @@ class SummaryView extends ItemView {
         return metadata;
     }
 
-    private async createNoteWithSummary(summary: string, title: string, url: string, metadata?: any): Promise<TFile | null> {
+    private async createNoteWithSummary(summary: string, title: string, url: string, metadata?: any, fullResult?: any): Promise<TFile | null> {
         const folderPath = this.plugin.settings.notesFolder;
         const fileName = this.sanitizeFileName(title + '.md');
         
@@ -982,12 +1030,36 @@ class SummaryView extends ItemView {
         
         if (this.plugin.settings.enableMOC && metadata) {
             try {
-                console.log('[CreateNote] Analyzing content for MOC placement...');
-                hierarchyData = await this.plugin.hierarchyAnalyzer.analyzeContent(metadata, title, summary);
-                console.log('[CreateNote] Hierarchy analysis result:', hierarchyData);
+                console.log('[CreateNote] Using AI-generated hierarchy for MOC placement...');
                 
-                mocPath = await this.plugin.mocManager.ensureMOCExists(hierarchyData.hierarchy);
-                console.log('[CreateNote] MOC ensured at:', mocPath);
+                // Use AI-generated hierarchy from the analysis result
+                const aiHierarchy = fullResult?.hierarchy;
+                const aiLearningContext = fullResult?.learning_context;
+                
+                if (aiHierarchy && aiHierarchy.level1 && aiHierarchy.level2) {
+                    hierarchyData = {
+                        hierarchy: aiHierarchy,
+                        learning_context: aiLearningContext || {
+                            prerequisites: [],
+                            related_concepts: [],
+                            learning_path: [aiHierarchy.level2],
+                            complexity_level: 'intermediate',
+                            estimated_reading_time: '5-10 minutes'
+                        },
+                        moc_placement: {
+                            primary_moc: `${aiHierarchy.level1}/${aiHierarchy.level2}`
+                        }
+                    };
+                    
+                    console.log('[CreateNote] AI Hierarchy analysis result:', hierarchyData);
+                    
+                    mocPath = await this.plugin.mocManager.ensureMOCExists(hierarchyData.hierarchy);
+                    console.log('[CreateNote] MOC ensured at:', mocPath);
+                } else {
+                    console.log('[CreateNote] No AI hierarchy found, falling back to heuristic analysis...');
+                    hierarchyData = await this.plugin.hierarchyAnalyzer.analyzeContent(metadata, title, summary);
+                    mocPath = await this.plugin.mocManager.ensureMOCExists(hierarchyData.hierarchy);
+                }
             } catch (error) {
                 console.error('[CreateNote] MOC analysis failed:', error);
                 // Continue with note creation even if MOC fails
@@ -1067,7 +1139,7 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
             if (mocPath && this.plugin.settings.enableMOC) {
                 try {
                     console.log('[CreateNote] Updating MOC with new note...');
-                    await this.plugin.mocManager.updateMOC(mocPath, newFile.path, title);
+                    await this.plugin.mocManager.updateMOC(mocPath, newFile.path, title, hierarchyData?.learning_context);
                     console.log('[CreateNote] MOC updated successfully');
                 } catch (error) {
                     console.error('[CreateNote] Failed to update MOC:', error);
@@ -1119,21 +1191,28 @@ ${Object.entries(frontmatter)
 
 # ${hierarchy.level2}
 
+> [!info] Knowledge Domain
+> This MOC organizes content within the **${hierarchy.level1}** domain, specifically focusing on **${hierarchy.level2}**.
+
 ## Learning Paths
 ${hierarchy.level3 ? `- [[${hierarchy.level3} Learning Path]]` : ''}
+${hierarchy.level4 ? `- [[${hierarchy.level4} Learning Path]]` : ''}
 
 ## Core Concepts
 ${hierarchy.level3 ? `- [[${hierarchy.level3}]]` : ''}
 ${hierarchy.level4 ? `- [[${hierarchy.level4}]]` : ''}
 
 ## Related Topics
-<!-- Related topics will be added automatically -->
+<!-- Related topics will be added automatically as new notes are created -->
+
+## Prerequisites
+<!-- Prerequisites will be populated from note learning contexts -->
 
 ## Notes
 <!-- Notes will be added automatically -->
 
 ---
-*This MOC was automatically generated and will be updated as new notes are added.*`;
+*This MOC was automatically generated based on AI analysis and will be updated as new notes are added.*`;
 
         return content;
     }
@@ -1185,7 +1264,7 @@ ${hierarchy.level4 ? `- [[${hierarchy.level4}]]` : ''}
         }
     }
 
-    async updateMOC(mocPath: string, notePath: string, noteTitle: string): Promise<void> {
+    async updateMOC(mocPath: string, notePath: string, noteTitle: string, learningContext?: LearningContext): Promise<void> {
         try {
             const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
             if (!mocFile) {
@@ -1216,7 +1295,7 @@ ${hierarchy.level4 ? `- [[${hierarchy.level4}]]` : ''}
             }
 
             // Add note to the Notes section
-            const noteLink = `- [[${noteTitle}]]`;
+            const noteLink = `- [[${noteTitle}]]${learningContext ? ` (${learningContext.complexity_level})` : ''}`;
             const notesSection = updatedContent.match(/## Notes\n([\s\S]*?)(?=\n##|\n---|\n\*|$)/);
             
             if (notesSection && !updatedContent.includes(`[[${noteTitle}]]`)) {
@@ -1229,6 +1308,28 @@ ${hierarchy.level4 ? `- [[${hierarchy.level4}]]` : ''}
                     /## Notes\n[\s\S]*?(?=\n##|\n---|\n\*|$)/,
                     `## Notes\n${newNotesSection}\n`
                 );
+            }
+
+            // Update Prerequisites section if learning context is available
+            if (learningContext && learningContext.prerequisites.length > 0) {
+                const prerequisitesSection = updatedContent.match(/## Prerequisites\n([\s\S]*?)(?=\n##|\n---|\n\*|$)/);
+                if (prerequisitesSection) {
+                    const existingPrereqs = prerequisitesSection[1].replace(/<!--[\s\S]*?-->/g, '').trim();
+                    const newPrereqs = learningContext.prerequisites.map(p => `- [[${p}]]`).join('\n');
+                    
+                    // Merge prerequisites without duplicates
+                    const allPrereqs = new Set([
+                        ...existingPrereqs.split('\n').filter(line => line.trim() && !line.includes('<!--')),
+                        ...newPrereqs.split('\n')
+                    ]);
+                    
+                    const mergedPrereqs = Array.from(allPrereqs).join('\n');
+                    
+                    updatedContent = updatedContent.replace(
+                        /## Prerequisites\n[\s\S]*?(?=\n##|\n---|\n\*|$)/,
+                        `## Prerequisites\n${mergedPrereqs}\n`
+                    );
+                }
             }
 
             await this.app.vault.modify(mocFile, updatedContent);
