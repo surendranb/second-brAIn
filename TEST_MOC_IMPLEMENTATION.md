@@ -6,15 +6,17 @@ This document explains how to test the newly implemented MOC (Map of Content) or
 ## What Was Implemented
 
 ### Core Features
-1. **Automatic MOC Creation**: When a new note is created, the system analyzes its content and automatically creates or updates the appropriate MOC
-2. **Knowledge Hierarchy Detection**: Uses heuristic analysis to determine knowledge domains (Computer Science, Science, Business, etc.)
-3. **Bidirectional Linking**: Notes are automatically linked to their MOCs and vice versa
-4. **MOC Structure**: Organized folder structure under `MOCs/Domain/Topic.md`
+1. **AI-Powered Hierarchy Generation**: The AI analyzes content and generates a 4-level knowledge hierarchy (Domain → Area → Topic → Concept)
+2. **Automatic MOC Creation**: MOCs are created automatically based on AI analysis with rich metadata
+3. **Learning Context Integration**: AI generates prerequisites, learning paths, and complexity assessments
+4. **Enhanced MOC Templates**: Knowledge domain descriptions, prerequisite tracking, and complexity indicators
+5. **Bidirectional Linking**: Notes are automatically linked to their MOCs with complexity annotations
 
 ### Technical Implementation
-- **MOCManager**: Handles MOC file creation, updates, and directory management
-- **HierarchyAnalyzer**: Analyzes content to determine knowledge domain and hierarchy
-- **Integration**: Seamlessly integrated into existing note creation flow
+- **AI-Generated Hierarchy**: LLM produces structured hierarchy analysis as part of content processing
+- **MOCManager**: Enhanced with learning context integration and prerequisite management
+- **HierarchyAnalyzer**: Fallback heuristic analysis when AI hierarchy is unavailable
+- **Learning Context**: Tracks prerequisites, related concepts, learning paths, and complexity levels
 
 ## How to Test
 
@@ -63,13 +65,15 @@ modified: "2024-01-01T00:00:00.000Z"
 hierarchy:
   level1: "Computer Science"
   level2: "Programming"
-  level3: "Python"
+  level3: "Python Programming"
+  level4: "Variables and Data Types"
 moc: "MOCs/Computer Science/Programming.md"
 learning_context:
-  prerequisites: []
-  related_concepts: []
-  learning_path: ["Programming"]
+  prerequisites: ["Basic Mathematics", "Computer Fundamentals"]
+  related_concepts: ["Object-Oriented Programming", "Algorithms", "Data Structures"]
+  learning_path: ["Programming Basics", "Python Syntax", "Advanced Python"]
   complexity_level: "intermediate"
+  estimated_reading_time: "10-15 minutes"
 ---
 ```
 
@@ -89,20 +93,29 @@ learning_paths: []
 
 # Programming
 
+> [!info] Knowledge Domain
+> This MOC organizes content within the **Computer Science** domain, specifically focusing on **Programming**.
+
 ## Learning Paths
-- [[Python Learning Path]]
+- [[Python Programming Learning Path]]
+- [[Variables and Data Types Learning Path]]
 
 ## Core Concepts
-- [[Python]]
+- [[Python Programming]]
+- [[Variables and Data Types]]
 
 ## Related Topics
-<!-- Related topics will be added automatically -->
+<!-- Related topics will be added automatically as new notes are created -->
+
+## Prerequisites
+- [[Basic Mathematics]]
+- [[Computer Fundamentals]]
 
 ## Notes
-- [[Your Note Title]]
+- [[Your Note Title]] (intermediate)
 
 ---
-*This MOC was automatically generated and will be updated as new notes are added.*
+*This MOC was automatically generated based on AI analysis and will be updated as new notes are added.*
 ```
 
 ### Expected File Structure
