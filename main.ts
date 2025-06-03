@@ -1,12 +1,12 @@
 import { Plugin, WorkspaceLeaf, ItemView, Notice, TFolder, Setting, PluginSettingTab, App, TFile, Modal } from 'obsidian';
 import { GoogleGenerativeAI, GenerateContentRequest } from '@google/generative-ai';
-import { exec } from 'child_process';
+// import { exec } from 'child_process'; // No longer using exec for transcript fetching
 import { promisify } from 'util';
 import * as path from 'path';
 import { AISummarizerSettingsTab } from './settings';
 
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
-const execPromise = promisify(exec);
+// const execPromise = promisify(exec); // No longer using execPromise for transcript
 
 // Provider Types
 export type Provider = 'gemini' | 'openrouter';
@@ -259,7 +259,7 @@ class SummaryView extends ItemView {
     private retryButton: HTMLButtonElement;
     private currentStep: number = 0;
     private steps: string[] = ['Fetch', 'Generate'];
-    private statusSteps: { label: string, state: 'idle' | 'in-progress' | 'success' | 'error' }[] = [
+    private statusSteps: { label: string, state: 'idle' | 'in-progress' | 'success' | 'error', currentAttempt?: number, totalAttempts?: number }[] = [
         { label: 'Fetch Content/Transcript', state: 'idle' },
         { label: 'Generate Note', state: 'idle' },
         { label: 'Organize in Knowledge Map', state: 'idle' },
@@ -505,35 +505,51 @@ class SummaryView extends ItemView {
         });
     }
 
-    private updateStatusSteps(currentStep: number, status: string, error: boolean = false) {
-        // Set all states to idle
+    private updateStatusSteps(currentStep: number, status: string, error: boolean = false, attemptInfo?: {current: number, total: number}) {
+        // Set all states to idle and clear attempt info
         for (let i = 0; i < this.statusSteps.length; i++) {
             this.statusSteps[i].state = 'idle';
+            this.statusSteps[i].currentAttempt = undefined;
+            this.statusSteps[i].totalAttempts = undefined;
         }
         // Set states up to currentStep
         for (let i = 0; i < currentStep; i++) {
             this.statusSteps[i].state = 'success';
         }
-        if (error) {
-            this.statusSteps[currentStep].state = 'error';
-        } else if (currentStep < this.statusSteps.length) {
-            this.statusSteps[currentStep].state = 'in-progress';
+
+        if (currentStep < this.statusSteps.length) {
+            if (error) {
+                this.statusSteps[currentStep].state = 'error';
+            } else {
+                this.statusSteps[currentStep].state = 'in-progress';
+            }
+            if (attemptInfo) {
+                this.statusSteps[currentStep].currentAttempt = attemptInfo.current;
+                this.statusSteps[currentStep].totalAttempts = attemptInfo.total;
+            }
         }
+
         // Render
         this.progressContainer.innerHTML = '';
         for (let i = 0; i < this.statusSteps.length; i++) {
+            const step = this.statusSteps[i];
             const circle = document.createElement('span');
             circle.innerText = '●';
             circle.style.marginRight = '6px';
-            switch (this.statusSteps[i].state) {
+            switch (step.state) {
                 case 'idle': circle.style.color = 'gray'; break;
                 case 'in-progress': circle.style.color = 'orange'; break;
                 case 'success': circle.style.color = 'green'; break;
                 case 'error': circle.style.color = 'red'; break;
             }
             this.progressContainer.appendChild(circle);
+
             const label = document.createElement('span');
-            label.innerText = this.statusSteps[i].label;
+            let labelText = step.label;
+            if (step.state === 'in-progress' && step.currentAttempt && step.totalAttempts) {
+                labelText = `${step.label} (Attempt ${step.currentAttempt}/${step.totalAttempts})`;
+            }
+            label.innerText = labelText;
             label.style.marginRight = '18px';
             label.style.fontWeight = i === currentStep ? 'bold' : 'normal';
             label.style.color = circle.style.color;
@@ -557,6 +573,15 @@ class SummaryView extends ItemView {
             return;
         }
 
+        // Reset status steps to their initial state before starting
+        this.statusSteps = [
+            { label: 'Fetch Content/Transcript', state: 'idle' },
+            { label: 'Generate Note', state: 'idle' },
+            { label: 'Organize in Knowledge Map', state: 'idle' },
+            { label: 'Save & Open Note', state: 'idle' }
+        ];
+        this.updateStatusSteps(0, 'Initiating process...'); // Initial status before fetching
+
         try {
             console.log('[startNoteGeneration] Clearing UI elements...');
             if (!this.resultArea) {
@@ -567,19 +592,30 @@ class SummaryView extends ItemView {
             
             let content = '';
             // Step 1: Fetch
-            this.statusMessage.innerText = 'Connecting to source and extracting content...';
+            // Initial status update for fetching
+            this.updateStatusSteps(0, 'Connecting to source and extracting content...');
             console.log('[startNoteGeneration] Starting content fetch...');
+
             if (url.includes('youtube.com')) {
                 console.log('[startNoteGeneration] Fetching YouTube transcript...');
-                content = await this.fetchTranscriptFromPython(url);
-                if (content.startsWith('Error:') || content.includes('[ERROR]')) {
-                    console.error('[startNoteGeneration] Transcript fetch failed:', content);
-                    new Notice('Failed to fetch transcript. ' + content);
-                    this.updateStatusSteps(0, 'Failed to fetch transcript. ' + content, true);
+                // The fetchTranscriptFromPython function now handles its own status updates for retries
+                try {
+                    content = await this.fetchTranscriptFromPython(url);
+                    // If successful, fetchTranscriptFromPython would have called updateStatusSteps for the final success of attempt X/Y
+                    // So, we might not need an explicit success message here, or we can set a general "Transcript fetched"
+                    this.updateStatusSteps(0, 'Transcript fetched successfully.', false); // Mark step 0 as success
+                } catch (error) {
+                    // error is expected to be a string message from the Python script or an Error object
+                    const errorMessage = typeof error === 'string' ? error : (error as Error).message;
+                    console.error('[startNoteGeneration] Transcript fetch failed:', errorMessage);
+                    new Notice('Failed to fetch transcript. ' + errorMessage);
+                    this.updateStatusSteps(0, 'Failed to fetch transcript: ' + errorMessage, true);
                     return;
                 }
             } else {
+                // ... (existing web content fetching logic, ensure it also updates status correctly)
                 console.log('[startNoteGeneration] Fetching web content...');
+                this.updateStatusSteps(0, 'Fetching web content...'); // Status for web content
                 content = await this.fetchContentFromWebLink(url);
                 if (!content || content.startsWith('Error:') || content.includes('[ERROR]')) {
                     console.error('[startNoteGeneration] Content fetch failed');
@@ -587,18 +623,21 @@ class SummaryView extends ItemView {
                     this.updateStatusSteps(0, 'Failed to fetch content. Please check the URL.', true);
                     return;
                 }
+                 this.updateStatusSteps(0, 'Web content fetched successfully.', false); // Mark step 0 as success
             }
             
             // Additional validation to ensure we have meaningful content
-            if (!content || content.trim().length < 50) {
+            if (!content || content.trim().length < 10) { // Adjusted length check, as even short transcripts can be valid
                 console.error('[startNoteGeneration] Content too short or empty');
-                new Notice('Failed to fetch meaningful content. Please check the URL.');
-                this.updateStatusSteps(0, 'Failed to fetch meaningful content.', true);
+                const noticeMsg = 'Failed to fetch meaningful content. The content may be too short or the URL is incorrect.';
+                new Notice(noticeMsg);
+                this.updateStatusSteps(0, noticeMsg, true);
                 return;
             }
             
             console.log('[startNoteGeneration] Content fetched successfully, length:', content.length);
             
+            // ... rest of the startNoteGeneration method
             this.updateStatusSteps(1, 'Analyzing content with AI...');
             this.statusMessage.innerText = 'This may take 30-60 seconds for complex content...';
             console.log('[startNoteGeneration] Starting content processing...');
@@ -639,10 +678,13 @@ class SummaryView extends ItemView {
                 console.error('[CreateNote] Note creation failed');
                 this.updateStatusSteps(3, 'Failed to create note', true);
             }
-        } catch (error) {
+        } catch (error) { // This is a general catch for startNoteGeneration, not specific to transcript fetching
             console.error('[startNoteGeneration] Error:', error);
-            new Notice('An error occurred. Please try again.');
-            this.updateStatusSteps(1, 'Error occurred.', true);
+            const errorMessage = typeof error === 'string' ? error : (error as Error).message;
+            new Notice('An error occurred: ' + errorMessage);
+            // Determine which step the error occurred in, if possible.
+            // For now, assume it's after fetching if it reaches here.
+            this.updateStatusSteps(1, 'Error occurred: ' + errorMessage, true);
         }
     }
 
@@ -847,40 +889,139 @@ ${noteContent}`;
         // @ts-ignore
         const vaultPath = this.app.vault.adapter.basePath || '';
         const scriptPath = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'fetch_content.py');
-        const quotedScriptPath = `"${scriptPath}"`;
         const venvPython = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'venv', 'bin', 'python3');
-        const quotedVenvPython = `"${venvPython}"`;
-        const command = `${quotedVenvPython} ${quotedScriptPath} "${url}"`;
-        console.log('[FetchContent] Running command:', command);
-        try {
-            const { stdout, stderr } = await execPromise(command);
-            if (stdout) console.log('[FetchContent] STDOUT:', stdout);
-            if (stderr) console.error('[FetchContent] STDERR:', stderr);
-            return stdout.trim();
-        } catch (error) {
-            console.error('[FetchContent] Command failed:', command, error);
-            throw new Error(`Failed to fetch content from web link: ${error.message}`);
-        }
+
+        console.log('[FetchContent] Preparing to run command:', venvPython, scriptPath, url);
+
+        const { spawn } = require('child_process');
+        const pythonProcess = spawn(venvPython, [scriptPath, url]);
+
+        let fullOutput = "";
+        let lastErrorLine = "";
+
+        return new Promise((resolve, reject) => {
+            pythonProcess.stdout.on('data', (data: Buffer) => {
+                const output = data.toString();
+                fullOutput += output;
+                console.log('[FetchContent] STDOUT:', output);
+            });
+
+            pythonProcess.stderr.on('data', (data: Buffer) => {
+                const errorOutput = data.toString();
+                fullOutput += errorOutput;
+                console.error('[FetchContent] STDERR:', errorOutput);
+                if (errorOutput.includes("[ERROR]")) {
+                    lastErrorLine = errorOutput.trim();
+                }
+            });
+
+            pythonProcess.on('close', (code: number) => {
+                console.log(`[FetchContent] Child process exited with code ${code}`);
+                if (code === 0) {
+                    resolve(fullOutput.trim());
+                } else {
+                    const finalError = lastErrorLine || `Python script for web content exited with code ${code}. Full output: ${fullOutput}`;
+                    console.error('[FetchContent] Command failed:', finalError);
+                    reject(new Error(finalError));
+                }
+            });
+
+            pythonProcess.on('error', (err: Error) => {
+                console.error('[FetchContent] Failed to start subprocess.', err);
+                reject(new Error(`Failed to start web content extraction process: ${err.message}`));
+            });
+        });
     }
 
     private async fetchTranscriptFromPython(url: string): Promise<string> {
         // @ts-ignore
         const vaultPath = this.app.vault.adapter.basePath || '';
         const scriptPath = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'fetch_transcript.py');
-        const quotedScriptPath = `"${scriptPath}"`;
         const venvPython = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'venv', 'bin', 'python3');
-        const quotedVenvPython = `"${venvPython}"`;
-        const command = `${quotedVenvPython} ${quotedScriptPath} "${url}"`;
-        console.log('[FetchTranscript] Running command:', command);
-        try {
-            const { stdout, stderr } = await execPromise(command);
-            if (stdout) console.log('[FetchTranscript] STDOUT:', stdout);
-            if (stderr) console.error('[FetchTranscript] STDERR:', stderr);
-            return stdout.trim();
-        } catch (error) {
-            console.error('[FetchTranscript] Command failed:', command, error);
-            throw new Error(`Failed to fetch transcript: ${error.message}`);
-        }
+
+        console.log('[FetchTranscript] Preparing to run command:', venvPython, scriptPath, url);
+
+        // No direct execPromise here, instead, we'll use spawn to get live output
+        const { spawn } = require('child_process');
+        const pythonProcess = spawn(venvPython, [scriptPath, url]);
+
+        let fullOutput = "";
+        let lastErrorLine = "";
+
+        return new Promise((resolve, reject) => {
+            pythonProcess.stdout.on('data', (data: Buffer) => {
+                const output = data.toString();
+                fullOutput += output;
+                console.log('[FetchTranscript] STDOUT:', output);
+
+                // Try to parse attempt info
+                const attemptMatch = output.match(/\[INFO\] Attempt (\d+)\/(\d+): Fetching transcript/);
+                if (attemptMatch) {
+                    const currentAttempt = parseInt(attemptMatch[1]);
+                    const totalAttempts = parseInt(attemptMatch[2]);
+                    this.updateStatusSteps(0, `Fetching transcript (Attempt ${currentAttempt}/${totalAttempts})...`, false, {current: currentAttempt, total: totalAttempts});
+                }
+            });
+
+            pythonProcess.stderr.on('data', (data: Buffer) => {
+                const errorOutput = data.toString();
+                fullOutput += errorOutput; // Also add stderr to fullOutput for context
+                console.error('[FetchTranscript] STDERR:', errorOutput);
+                // Store the last error line in case it's the final error message
+                if (errorOutput.includes("[ERROR]")) { // Catch specific errors from script
+                    lastErrorLine = errorOutput.trim();
+                }
+            });
+
+            pythonProcess.on('close', (code: number) => {
+                console.log(`[FetchTranscript] Child process exited with code ${code}`);
+
+                const resultMarker = "[INFO] Script finished. Outputting result.";
+                const markerIndex = fullOutput.lastIndexOf(resultMarker);
+                let processedResult = "";
+
+                if (markerIndex !== -1) {
+                    processedResult = fullOutput.substring(markerIndex + resultMarker.length).trim();
+                } else {
+                    // Fallback if marker is not found
+                    // This might happen if the script errors out before printing the marker
+                    processedResult = fullOutput.trim();
+                }
+
+                // Prioritize error messages from the script's known error format
+                if (processedResult.startsWith('Error: Failed to fetch transcript after')) {
+                    console.error('[FetchTranscript] Command failed with final error message:', processedResult);
+                    this.updateStatusSteps(0, processedResult, true); // Update UI with final error
+                    reject(processedResult);
+                } else if (lastErrorLine && lastErrorLine.startsWith('[ERROR]')) {
+                    // Use other errors captured from stderr if they look like script errors
+                    console.error('[FetchTranscript] Command failed with error from STDERR:', lastErrorLine);
+                    this.updateStatusSteps(0, lastErrorLine, true);
+                    reject(lastErrorLine);
+                } else if (code !== 0) {
+                    // Generic error if non-zero exit code and no specific script error
+                    const finalError = `Python script exited with code ${code}. Output: ${processedResult || 'No specific output.'}`;
+                    console.error('[FetchTranscript] Command failed with exit code:', finalError);
+                    this.updateStatusSteps(0, finalError, true);
+                    reject(new Error(finalError));
+                } else if (!processedResult) {
+                    const noTranscriptError = "Error: No transcript data was returned by the script, though it exited cleanly.";
+                    console.warn('[FetchTranscript] No transcript data returned:', noTranscriptError);
+                    this.updateStatusSteps(0, noTranscriptError, true);
+                    reject(noTranscriptError);
+                } else {
+                    console.log('[FetchTranscript] Successfully fetched:', processedResult.substring(0,100) + "...");
+                    // Implicit success from updateStatusSteps in startNoteGeneration if this resolves
+                    resolve(processedResult);
+                }
+            });
+
+            pythonProcess.on('error', (err: Error) => {
+                console.error('[FetchTranscript] Failed to start subprocess.', err);
+                this.updateStatusSteps(0, `Failed to start transcript process: ${err.message}`, true);
+                reject(new Error(`Failed to start transcript extraction process: ${err.message}`));
+            });
+        });
     }
 
     private async summarizeContent(text: string, prompt: string, url: string): Promise<{ summary: string, title: string, metadata: any, hierarchy?: any, learning_context?: any }> {
