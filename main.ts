@@ -39,6 +39,52 @@ export interface OpenRouterSettings {
     models: OpenRouterModel[];
 }
 
+// MOC-related Types
+export interface MOCHierarchy {
+    level1: string; // Knowledge Domain (e.g., "Computer Science")
+    level2: string; // Learning Area (e.g., "Machine Learning") 
+    level3?: string; // Specific Topic (e.g., "Neural Networks")
+    level4?: string; // Key Concept (e.g., "Backpropagation")
+}
+
+export interface LearningContext {
+    prerequisites: string[];
+    related_concepts: string[];
+    learning_path: string[];
+    complexity_level: 'beginner' | 'intermediate' | 'advanced';
+}
+
+export interface MOCMetadata {
+    title: string;
+    type: 'moc';
+    domain: string;
+    created: string;
+    updated: string;
+    tags: string[];
+    note_count: number;
+    learning_paths: string[];
+}
+
+export interface MOC {
+    metadata: MOCMetadata;
+    sections: {
+        learning_paths: string[];
+        core_concepts: string[];
+        related_topics: string[];
+        notes: string[];
+    };
+    filepath: string;
+}
+
+export interface NoteHierarchyAnalysis {
+    hierarchy: MOCHierarchy;
+    learning_context: LearningContext;
+    moc_placement: {
+        primary_moc: string;
+        secondary_mocs?: string[];
+    };
+}
+
 // Main Plugin Settings
 export interface PluginSettings {
     provider: Provider;
@@ -46,6 +92,8 @@ export interface PluginSettings {
     openrouter: OpenRouterSettings;
     defaultPrompt: string;
     notesFolder: string;
+    mocFolder: string; // New setting for MOC folder
+    enableMOC: boolean; // Toggle for MOC functionality
 }
 
 // Available Models
@@ -189,7 +237,9 @@ RELATED GOALS:
 - Suggest ways to integrate this knowledge into existing plans
 
 Please structure your response with clear sections, using bullet points for lists and maintaining a professional yet engaging tone. Focus on creating actionable insights that can be easily referenced and applied.`,
-    notesFolder: 'Summaries'
+    notesFolder: 'Summaries',
+    mocFolder: 'MOCs',
+    enableMOC: true
 };
 
 class SummaryView extends ItemView {
@@ -486,7 +536,7 @@ class SummaryView extends ItemView {
             this.currentTitle = result.title;
 
             // Create and open the note
-            const newNote = await this.createNoteWithSummary(result.summary, result.title, url);
+            const newNote = await this.createNoteWithSummary(result.summary, result.title, url, result.metadata);
             if (newNote) {
                 const leaf = this.app.workspace.getLeaf('tab');
                 await leaf.openFile(newNote);
@@ -922,9 +972,27 @@ class SummaryView extends ItemView {
         return metadata;
     }
 
-    private async createNoteWithSummary(summary: string, title: string, url: string): Promise<TFile | null> {
+    private async createNoteWithSummary(summary: string, title: string, url: string, metadata?: any): Promise<TFile | null> {
         const folderPath = this.plugin.settings.notesFolder;
         const fileName = this.sanitizeFileName(title + '.md');
+        
+        // MOC Analysis and Integration
+        let mocPath: string | null = null;
+        let hierarchyData: NoteHierarchyAnalysis | null = null;
+        
+        if (this.plugin.settings.enableMOC && metadata) {
+            try {
+                console.log('[CreateNote] Analyzing content for MOC placement...');
+                hierarchyData = await this.plugin.hierarchyAnalyzer.analyzeContent(metadata, title, summary);
+                console.log('[CreateNote] Hierarchy analysis result:', hierarchyData);
+                
+                mocPath = await this.plugin.mocManager.ensureMOCExists(hierarchyData.hierarchy);
+                console.log('[CreateNote] MOC ensured at:', mocPath);
+            } catch (error) {
+                console.error('[CreateNote] MOC analysis failed:', error);
+                // Continue with note creation even if MOC fails
+            }
+        }
         
         // Create YAML frontmatter
         const frontmatter = {
@@ -937,20 +1005,35 @@ class SummaryView extends ItemView {
             },
             status: 'draft',
             created: new Date().toISOString(),
-            modified: new Date().toISOString()
+            modified: new Date().toISOString(),
+            // Add MOC-related metadata if available
+            ...(hierarchyData && {
+                hierarchy: hierarchyData.hierarchy,
+                moc: mocPath,
+                learning_context: hierarchyData.learning_context
+            })
         };
 
         // Format the content with YAML frontmatter and Obsidian-native features
         const fileContent = `---
 ${Object.entries(frontmatter)
     .map(([key, value]) => {
-        if (typeof value === 'object' && !Array.isArray(value)) {
-            // Handle nested objects (like source)
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            // Handle nested objects (like source, hierarchy, learning_context)
             return `${key}:\n${Object.entries(value)
-                .map(([k, v]) => `  ${k}: ${JSON.stringify(v)}`)
+                .map(([k, v]) => {
+                    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+                        // Handle deeply nested objects
+                        return `  ${k}:\n${Object.entries(v)
+                            .map(([dk, dv]) => `    ${dk}: ${JSON.stringify(dv)}`)
+                            .join('\n')}`;
+                    } else {
+                        return `  ${k}: ${JSON.stringify(v)}`;
+                    }
+                })
                 .join('\n')}`;
         } else {
-            // Handle simple values
+            // Handle simple values and arrays
             return `${key}: ${JSON.stringify(value)}`;
         }
     })
@@ -979,6 +1062,19 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
             }
             const newFile = await this.app.vault.create(`${folderPath}/${fileName}`, fileContent);
             console.log('[CreateNote] Note created:', `${folderPath}/${fileName}`);
+            
+            // Update MOC with the new note
+            if (mocPath && this.plugin.settings.enableMOC) {
+                try {
+                    console.log('[CreateNote] Updating MOC with new note...');
+                    await this.plugin.mocManager.updateMOC(mocPath, newFile.path, title);
+                    console.log('[CreateNote] MOC updated successfully');
+                } catch (error) {
+                    console.error('[CreateNote] Failed to update MOC:', error);
+                    // Don't fail note creation if MOC update fails
+                }
+            }
+            
             return newFile;
         } catch (error) {
             new Notice('Error creating note.');
@@ -992,12 +1088,275 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
     }
 }
 
+// MOC Management Classes
+class MOCManager {
+    private app: App;
+    private settings: PluginSettings;
+
+    constructor(app: App, settings: PluginSettings) {
+        this.app = app;
+        this.settings = settings;
+    }
+
+    async createMOCTemplate(hierarchy: MOCHierarchy): Promise<string> {
+        const timestamp = new Date().toISOString();
+        const frontmatter = {
+            type: 'moc',
+            title: hierarchy.level2,
+            domain: hierarchy.level1,
+            created: timestamp,
+            updated: timestamp,
+            tags: ['moc', hierarchy.level1.toLowerCase().replace(/\s+/g, '-')],
+            note_count: 0,
+            learning_paths: []
+        };
+
+        const content = `---
+${Object.entries(frontmatter)
+    .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+    .join('\n')}
+---
+
+# ${hierarchy.level2}
+
+## Learning Paths
+${hierarchy.level3 ? `- [[${hierarchy.level3} Learning Path]]` : ''}
+
+## Core Concepts
+${hierarchy.level3 ? `- [[${hierarchy.level3}]]` : ''}
+${hierarchy.level4 ? `- [[${hierarchy.level4}]]` : ''}
+
+## Related Topics
+<!-- Related topics will be added automatically -->
+
+## Notes
+<!-- Notes will be added automatically -->
+
+---
+*This MOC was automatically generated and will be updated as new notes are added.*`;
+
+        return content;
+    }
+
+    async getMOCPath(hierarchy: MOCHierarchy): Promise<string> {
+        const mocFolder = this.settings.mocFolder || 'MOCs';
+        const domainFolder = hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_');
+        const mocFileName = `${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')}.md`;
+        return `${mocFolder}/${domainFolder}/${mocFileName}`;
+    }
+
+    async ensureMOCExists(hierarchy: MOCHierarchy): Promise<string> {
+        const mocPath = await this.getMOCPath(hierarchy);
+        
+        try {
+            const existingFile = this.app.vault.getAbstractFileByPath(mocPath);
+            if (existingFile) {
+                console.log('[MOCManager] MOC already exists:', mocPath);
+                return mocPath;
+            }
+        } catch (error) {
+            // File doesn't exist, continue to create it
+        }
+
+        // Create MOC directory structure if needed
+        const mocFolder = this.settings.mocFolder || 'MOCs';
+        const domainFolder = hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_');
+        const fullDirPath = `${mocFolder}/${domainFolder}`;
+
+        try {
+            const folder = this.app.vault.getAbstractFileByPath(fullDirPath);
+            if (!folder) {
+                await this.app.vault.createFolder(fullDirPath);
+                console.log('[MOCManager] Created MOC directory:', fullDirPath);
+            }
+        } catch (error) {
+            console.error('[MOCManager] Error creating MOC directory:', error);
+        }
+
+        // Create MOC file
+        const mocContent = await this.createMOCTemplate(hierarchy);
+        try {
+            await this.app.vault.create(mocPath, mocContent);
+            console.log('[MOCManager] Created new MOC:', mocPath);
+            return mocPath;
+        } catch (error) {
+            console.error('[MOCManager] Error creating MOC file:', error);
+            throw error;
+        }
+    }
+
+    async updateMOC(mocPath: string, notePath: string, noteTitle: string): Promise<void> {
+        try {
+            const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
+            if (!mocFile) {
+                console.error('[MOCManager] MOC file not found:', mocPath);
+                return;
+            }
+
+            const content = await this.app.vault.read(mocFile);
+            
+            // Parse frontmatter to update note count
+            const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+            let updatedContent = content;
+            
+            if (frontmatterMatch) {
+                const frontmatterText = frontmatterMatch[1];
+                const noteCountMatch = frontmatterText.match(/note_count:\s*(\d+)/);
+                const currentCount = noteCountMatch ? parseInt(noteCountMatch[1]) : 0;
+                const newCount = currentCount + 1;
+                
+                // Update note count and timestamp
+                updatedContent = content.replace(
+                    /note_count:\s*\d+/,
+                    `note_count: ${newCount}`
+                ).replace(
+                    /updated:\s*"[^"]*"/,
+                    `updated: "${new Date().toISOString()}"`
+                );
+            }
+
+            // Add note to the Notes section
+            const noteLink = `- [[${noteTitle}]]`;
+            const notesSection = updatedContent.match(/## Notes\n([\s\S]*?)(?=\n##|\n---|\n\*|$)/);
+            
+            if (notesSection && !updatedContent.includes(`[[${noteTitle}]]`)) {
+                const existingNotes = notesSection[1].trim();
+                const newNotesSection = existingNotes 
+                    ? `${existingNotes}\n${noteLink}`
+                    : noteLink;
+                
+                updatedContent = updatedContent.replace(
+                    /## Notes\n[\s\S]*?(?=\n##|\n---|\n\*|$)/,
+                    `## Notes\n${newNotesSection}\n`
+                );
+            }
+
+            await this.app.vault.modify(mocFile, updatedContent);
+            console.log('[MOCManager] Updated MOC:', mocPath);
+        } catch (error) {
+            console.error('[MOCManager] Error updating MOC:', error);
+        }
+    }
+}
+
+class HierarchyAnalyzer {
+    async analyzeContent(metadata: any, title: string, content: string): Promise<NoteHierarchyAnalysis> {
+        // Extract knowledge domain and hierarchy from metadata and content
+        const topics = metadata.topics || [];
+        const tags = metadata.tags || [];
+        
+        // Simple heuristic-based analysis
+        let level1 = 'General Knowledge';
+        let level2 = 'Miscellaneous';
+        
+        // Try to determine domain from topics and tags
+        if (topics.length > 0) {
+            const topic = topics[0];
+            
+            // Simple domain mapping - can be enhanced with AI later
+            if (this.isComputerScience(topic, title, content)) {
+                level1 = 'Computer Science';
+                level2 = this.determineCSSubdomain(topic, title, content);
+            } else if (this.isScience(topic, title, content)) {
+                level1 = 'Science';
+                level2 = this.determineScienceSubdomain(topic, title, content);
+            } else if (this.isBusiness(topic, title, content)) {
+                level1 = 'Business';
+                level2 = this.determineBusinessSubdomain(topic, title, content);
+            } else {
+                level1 = 'General Knowledge';
+                level2 = topic;
+            }
+        }
+
+        const hierarchy: MOCHierarchy = {
+            level1,
+            level2,
+            level3: topics[1] || undefined,
+            level4: topics[2] || undefined
+        };
+
+        const learningContext: LearningContext = {
+            prerequisites: metadata.related || [],
+            related_concepts: metadata.related || [],
+            learning_path: [level2],
+            complexity_level: this.determineComplexity(content)
+        };
+
+        return {
+            hierarchy,
+            learning_context: learningContext,
+            moc_placement: {
+                primary_moc: `${level1}/${level2}`
+            }
+        };
+    }
+
+    private isComputerScience(topic: string, title: string, content: string): boolean {
+        const csKeywords = ['programming', 'software', 'algorithm', 'computer', 'coding', 'development', 'tech', 'ai', 'machine learning', 'data science'];
+        const text = `${topic} ${title} ${content}`.toLowerCase();
+        return csKeywords.some(keyword => text.includes(keyword));
+    }
+
+    private isScience(topic: string, title: string, content: string): boolean {
+        const scienceKeywords = ['research', 'study', 'experiment', 'theory', 'physics', 'chemistry', 'biology', 'mathematics'];
+        const text = `${topic} ${title} ${content}`.toLowerCase();
+        return scienceKeywords.some(keyword => text.includes(keyword));
+    }
+
+    private isBusiness(topic: string, title: string, content: string): boolean {
+        const businessKeywords = ['business', 'management', 'marketing', 'finance', 'strategy', 'leadership', 'entrepreneurship'];
+        const text = `${topic} ${title} ${content}`.toLowerCase();
+        return businessKeywords.some(keyword => text.includes(keyword));
+    }
+
+    private determineCSSubdomain(topic: string, title: string, content: string): string {
+        const text = `${topic} ${title} ${content}`.toLowerCase();
+        if (text.includes('ai') || text.includes('machine learning') || text.includes('neural')) return 'Artificial Intelligence';
+        if (text.includes('web') || text.includes('frontend') || text.includes('backend')) return 'Web Development';
+        if (text.includes('data') || text.includes('analytics')) return 'Data Science';
+        if (text.includes('mobile') || text.includes('app')) return 'Mobile Development';
+        return 'Programming';
+    }
+
+    private determineScienceSubdomain(topic: string, title: string, content: string): string {
+        const text = `${topic} ${title} ${content}`.toLowerCase();
+        if (text.includes('physics')) return 'Physics';
+        if (text.includes('chemistry')) return 'Chemistry';
+        if (text.includes('biology')) return 'Biology';
+        if (text.includes('math')) return 'Mathematics';
+        return 'General Science';
+    }
+
+    private determineBusinessSubdomain(topic: string, title: string, content: string): string {
+        const text = `${topic} ${title} ${content}`.toLowerCase();
+        if (text.includes('marketing')) return 'Marketing';
+        if (text.includes('finance')) return 'Finance';
+        if (text.includes('leadership') || text.includes('management')) return 'Management';
+        if (text.includes('entrepreneur')) return 'Entrepreneurship';
+        return 'Business Strategy';
+    }
+
+    private determineComplexity(content: string): 'beginner' | 'intermediate' | 'advanced' {
+        const wordCount = content.split(' ').length;
+        if (wordCount < 500) return 'beginner';
+        if (wordCount < 1500) return 'intermediate';
+        return 'advanced';
+    }
+}
+
 class AISummarizerPlugin extends Plugin {
     settings: PluginSettings;
     firstRun: boolean = true;
+    mocManager: MOCManager;
+    hierarchyAnalyzer: HierarchyAnalyzer;
 
     async onload() {
         await this.loadSettings();
+
+        // Initialize MOC components
+        this.mocManager = new MOCManager(this.app, this.settings);
+        this.hierarchyAnalyzer = new HierarchyAnalyzer();
 
         // Check if any API key is set
         if (!this.settings.gemini.apiKey && !this.settings.openrouter.apiKey) {
