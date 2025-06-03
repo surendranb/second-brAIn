@@ -124,5 +124,32 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                     this.plugin.settings.notesFolder = value;
                     await this.plugin.saveSettings();
                 }));
+
+        // MOC Settings Section
+        containerEl.createEl('h3', { text: 'MOC (Map of Content) Settings' });
+
+        new Setting(containerEl)
+            .setName('Enable MOC Organization')
+            .setDesc('Automatically organize notes into Maps of Content (MOCs) based on their topic and domain')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.enableMOC)
+                .onChange(async (value) => {
+                    this.plugin.settings.enableMOC = value;
+                    await this.plugin.saveSettings();
+                    this.display(); // Refresh to show/hide MOC folder setting
+                }));
+
+        if (this.plugin.settings.enableMOC) {
+            new Setting(containerEl)
+                .setName('MOC Folder')
+                .setDesc('Folder where MOCs will be created and organized')
+                .addText(text => text
+                    .setPlaceholder('MOCs')
+                    .setValue(this.plugin.settings.mocFolder)
+                    .onChange(async (value) => {
+                        this.plugin.settings.mocFolder = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
     }
 }
