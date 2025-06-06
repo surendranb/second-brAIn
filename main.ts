@@ -5,6 +5,7 @@ import { promisify } from 'util';
 import * as path from 'path';
 import { AISummarizerSettingsTab } from './settings';
 import { DEFAULT_SUMMARIZATION_PROMPT, HIERARCHY_ANALYSIS_PROMPT, ENHANCED_SUMMARIZATION_PROMPT } from './prompts';
+import { HierarchyManager } from './hierarchy-manager';
 
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
 // const execPromise = promisify(exec); // No longer using execPromise for transcript
@@ -687,13 +688,24 @@ class SummaryView extends ItemView {
     private async analyzeNoteForHierarchy(noteContent: string, noteTitle: string): Promise<{ hierarchy: MOCHierarchy, learning_context: LearningContext }> {
         console.log('[analyzeNoteForHierarchy] Analyzing note for hierarchy placement');
         
-        // Use the improved hierarchy analysis prompt
+        // Get existing MOC structure for context-aware analysis
+        const mocContext = await this.plugin.hierarchyManager.getHierarchyContextForAI();
+        
+        // Use the improved hierarchy analysis prompt with existing MOC context
         const hierarchyPrompt = `${HIERARCHY_ANALYSIS_PROMPT}
+
+EXISTING MOC STRUCTURE:
+${mocContext}
 
 Note Title: "${noteTitle}"
 
 Note Content:
-${noteContent}`;
+${noteContent}
+
+IMPORTANT: Consider the existing MOC structure above. If this content fits naturally under an existing hierarchy, place it there instead of creating a parallel structure. For example:
+- If you have "Ultrafast Phenomenon" and new content is "Ultrafast Optics", place it as: Ultrafast Phenomenon > Ultrafast Optics
+- If you have "Machine Learning" and new content is "Neural Networks", place it as: Computer Science > Machine Learning > Neural Networks
+- Only create new top-level domains when the content truly doesn't fit existing hierarchies.`;
 
         let selectedModel = '';
         
@@ -940,10 +952,14 @@ ${noteContent}`;
         let selectedModel = '';
         console.log('[SummarizeContent] Provider:', this.plugin.settings.provider);
         
+        // Get existing hierarchy context for AI awareness
+        const hierarchyContext = await this.plugin.hierarchyManager.getHierarchyContextForAI();
+        console.log('[SummarizeContent] Hierarchy context length:', hierarchyContext.length);
+        
         // Use the enhanced summarization prompt that includes learning-focused hierarchy analysis
         // If user has customized the prompt, use it; otherwise use the default
         const basePrompt = prompt === this.plugin.settings.defaultPrompt ? DEFAULT_SUMMARIZATION_PROMPT : prompt;
-        const enhancedPrompt = `${basePrompt}\n\n${ENHANCED_SUMMARIZATION_PROMPT.split('\n\n').slice(1).join('\n\n')}`;
+        const enhancedPrompt = `${basePrompt}\n\n${ENHANCED_SUMMARIZATION_PROMPT.split('\n\n').slice(1).join('\n\n')}\n\nEXISTING KNOWLEDGE HIERARCHY:\n${hierarchyContext}`;
         
         if (this.plugin.settings.provider === 'gemini') {
             selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
@@ -957,27 +973,37 @@ ${noteContent}`;
                 this.geminiClient = new GoogleGenerativeAI(this.plugin.settings.gemini.apiKey);
             }
             try {
-                const model = this.geminiClient.getGenerativeModel({ model: selectedModel });
+                // Try native JSON mode for Gemini (may not be supported by current SDK)
+                const model = this.geminiClient.getGenerativeModel({ 
+                    model: selectedModel
+                });
                 const request: GenerateContentRequest = {
                     contents: [{
                         role: 'user',
                         parts: [{ text: enhancedPrompt + "\n\n" + text }]
                     }]
                 };
-                console.log('[SummarizeContent] Sending request to Gemini API:', request);
+                console.log('[SummarizeContent] 🚀 Sending JSON mode request to Gemini API');
                 const result = await model.generateContent(request);
                 const responseText = result.response.text();
-                console.log('[SummarizeContent] Gemini API response:', responseText);
+                console.log('[SummarizeContent] ✅ Gemini JSON response length:', responseText.length);
                 
-                // Parse the response to extract all sections
-                const sections = this.parseSections(responseText);
-                console.log('[SummarizeContent] Parsed sections with hierarchy:', sections.hierarchy);
-                console.log('[SummarizeContent] Parsed sections with learning_context:', sections.learning_context);
+                // Gemini still returns JSON in markdown blocks, so we need to extract it
+                console.log('[SummarizeContent] First 100 chars of response:', responseText.substring(0, 100));
+                const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+                const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText.trim();
+                console.log('[SummarizeContent] Extracted JSON length:', jsonText.length);
+                
+                // Parse and validate JSON response structure
+                const sections = this.validateJSONResponse(JSON.parse(jsonText));
+                console.log('[SummarizeContent] ✅ Successfully parsed and validated native JSON response');
+                console.log('[SummarizeContent] Hierarchy:', sections.hierarchy);
+                console.log('[SummarizeContent] Learning context:', sections.learning_context);
                 
                 return { 
                     summary: this.formatEnhancedSummary(sections),
-                    title: sections.title || 'Untitled',
-                    metadata: sections.metadata || {},
+                    title: sections.title,
+                    metadata: sections.metadata,
                     hierarchy: sections.hierarchy,
                     learning_context: sections.learning_context
                 };
@@ -998,13 +1024,14 @@ ${noteContent}`;
                 const requestBody = {
                     model: selectedModel,
                     messages: [
-                        { role: 'system', content: 'You are a helpful AI assistant that creates detailed summaries and notes. Always structure your response with a TITLE: line followed by the SUMMARY: section.' },
+                        { role: 'system', content: 'You are a helpful AI assistant that creates detailed summaries and notes in JSON format.' },
                         { role: 'user', content: enhancedPrompt + "\n\n" + text }
                     ],
                     temperature: 0.7,
-                    max_tokens: 2000
+                    max_tokens: 2000,
+                    response_format: { type: "json_object" }
                 };
-                console.log('[SummarizeContent] Sending request to OpenRouter API:', requestBody);
+                console.log('[SummarizeContent] 🚀 Sending JSON mode request to OpenRouter API');
                 const response = await fetch(this.plugin.settings.openrouter.endpoint, {
                     method: 'POST',
                     headers: {
@@ -1020,18 +1047,19 @@ ${noteContent}`;
                     console.error('[SummarizeContent] OpenRouter API error:', data);
                     throw new Error(`OpenRouter API error: ${data.error?.message || response.statusText}`);
                 }
-                console.log('[SummarizeContent] OpenRouter API response:', data);
+                console.log('[SummarizeContent] ✅ OpenRouter JSON response length:', data.choices[0].message.content.length);
                 const responseText = data.choices[0].message.content;
                 
-                // Parse the response to extract all sections
-                const sections = this.parseSections(responseText);
-                console.log('[SummarizeContent] Parsed sections with hierarchy:', sections.hierarchy);
-                console.log('[SummarizeContent] Parsed sections with learning_context:', sections.learning_context);
+                // Parse and validate JSON response structure
+                const sections = this.validateJSONResponse(JSON.parse(responseText));
+                console.log('[SummarizeContent] ✅ Successfully parsed and validated native JSON response');
+                console.log('[SummarizeContent] Hierarchy:', sections.hierarchy);
+                console.log('[SummarizeContent] Learning context:', sections.learning_context);
                 
                 return { 
                     summary: this.formatEnhancedSummary(sections),
-                    title: sections.title || 'Untitled',
-                    metadata: sections.metadata || {},
+                    title: sections.title,
+                    metadata: sections.metadata,
                     hierarchy: sections.hierarchy,
                     learning_context: sections.learning_context
                 };
@@ -1045,17 +1073,26 @@ ${noteContent}`;
     }
 
     private parseSections(responseText: string): any {
+        // Add debug logging to see what AI actually returns
+        console.log('[parseSections] Raw AI response length:', responseText.length);
+        console.log('[parseSections] First 500 chars:', responseText.substring(0, 500));
+        console.log('[parseSections] Last 200 chars:', responseText.substring(responseText.length - 200));
+        
         // Extract and prepare JSON text
         const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
-        let jsonText = jsonMatch ? jsonMatch[1].trim() : responseText;
+        let jsonText = jsonMatch ? jsonMatch[1].trim() : responseText.trim();
+        
+        console.log('[parseSections] Extracted JSON text length:', jsonText.length);
+        console.log('[parseSections] JSON text preview:', jsonText.substring(0, 200));
         
         try {
             // Clean up common JSON issues from AI responses
             jsonText = this.cleanupJSON(jsonText);
+            console.log('[parseSections] After cleanup:', jsonText.substring(0, 200));
             
             // Try to parse the JSON
             const response = JSON.parse(jsonText);
-            console.log('[parseSections] Successfully parsed AI response');
+            console.log('[parseSections] ✅ Successfully parsed AI response');
             
             return {
                 title: response.title || 'Untitled',
@@ -1079,13 +1116,15 @@ ${noteContent}`;
                 ...response.sections
             };
         } catch (error) {
-            console.error('[parseSections] JSON parsing failed, attempting cleanup...');
+            console.error('[parseSections] ❌ JSON parsing failed:', error.message);
+            console.error('[parseSections] Failed JSON text:', jsonText.substring(0, 500));
             
             // Try one more time with aggressive cleanup
             try {
                 const aggressivelyCleanedJSON = this.aggressiveJSONCleanup(jsonText);
+                console.log('[parseSections] Aggressive cleanup result:', aggressivelyCleanedJSON.substring(0, 200));
                 const response = JSON.parse(aggressivelyCleanedJSON);
-                console.log('[parseSections] Successfully parsed with cleanup');
+                console.log('[parseSections] ✅ Successfully parsed with aggressive cleanup');
                 
                 return {
                     title: response.title || 'Untitled',
@@ -1109,79 +1148,11 @@ ${noteContent}`;
                     ...response.sections
                 };
             } catch (secondError) {
-                console.error('[parseSections] JSON cleanup failed, using fallback parsing');
+                console.error('[parseSections] ❌ Aggressive cleanup also failed:', secondError.message);
+                
+                // REMOVED FALLBACK PARSING - Now we throw an error instead
+                throw new Error(`AI returned malformed JSON response. Please regenerate with a clearer prompt. Original error: ${error.message}, Cleanup error: ${secondError.message}`);
             }
-            
-            // Fallback to text parsing method if JSON parsing fails completely
-            console.log('[parseSections] Using fallback text parsing');
-            const sections: any = {
-                title: 'Untitled',
-                metadata: {
-                    tags: ['#summary'],
-                    topics: [],
-                    related: [],
-                    speakers: []
-                },
-                hierarchy: {
-                    level1: 'General Knowledge',
-                    level2: 'Miscellaneous'
-                },
-                learning_context: {
-                    prerequisites: [],
-                    related_concepts: [],
-                    learning_path: ['Miscellaneous'],
-                    complexity_level: 'intermediate',
-                    estimated_reading_time: '5-10 minutes'
-                },
-                // Add basic content sections for fallback
-                context: 'Content analysis completed with fallback parsing.',
-                facts: ['AI response parsing encountered technical issues', 'Content was processed using fallback methods'],
-                insights: ['This content may benefit from manual review and enhancement'],
-                personal_reflection: 'The original AI response could not be fully parsed, but the content has been preserved.',
-                questions: ['What were the key points in the original content?', 'How can this information be better organized?'],
-                next_steps: ['Review and enhance the content manually', 'Consider regenerating with a different prompt'],
-                applications: ['Use as a starting point for further research', 'Expand with additional context and details']
-            };
-            
-            // Try to extract title from the response text
-            let titleMatch = responseText.match(/["']title["']:\s*["']([^"']+)["']/i);
-            if (!titleMatch) {
-                titleMatch = responseText.match(/TITLE:\s*(.*?)(?:\n|$)/i);
-            }
-            if (!titleMatch) {
-                titleMatch = responseText.match(/title[:\s]+([^\n]+)/i);
-            }
-            if (titleMatch) {
-                sections.title = titleMatch[1].trim();
-            }
-            
-            // Try to extract basic hierarchy from content patterns
-            const text = responseText.toLowerCase();
-            if (text.includes('computer') || text.includes('programming') || text.includes('software') || text.includes('ai') || text.includes('machine learning')) {
-                sections.hierarchy.level1 = 'Computer Science';
-                if (text.includes('ai') || text.includes('machine learning') || text.includes('neural')) {
-                    sections.hierarchy.level2 = 'Artificial Intelligence';
-                } else if (text.includes('web') || text.includes('frontend') || text.includes('backend')) {
-                    sections.hierarchy.level2 = 'Web Development';
-                } else {
-                    sections.hierarchy.level2 = 'Programming';
-                }
-            } else if (text.includes('business') || text.includes('marketing') || text.includes('finance') || text.includes('management')) {
-                sections.hierarchy.level1 = 'Business';
-                sections.hierarchy.level2 = 'General Business';
-            }
-            
-            // Extract metadata if it exists
-            const metadataMatch = responseText.match(/METADATA:\n([\s\S]*?)(?:\n\n|$)/i);
-            if (metadataMatch) {
-                sections.metadata = this.parseMetadata(metadataMatch[1].trim());
-            }
-            
-            // Add the original response text as raw content so nothing is lost
-            sections.raw_content = responseText;
-            
-            console.log('[parseSections] Fallback parsing completed');
-            return sections;
         }
     }
 
@@ -1375,6 +1346,40 @@ ${noteContent}`;
         }
         
         return cleaned;
+    }
+
+    private validateJSONResponse(response: any): any {
+        console.log('[validateJSONResponse] Validating response structure');
+        console.log('[validateJSONResponse] Response keys:', Object.keys(response));
+        
+        // Handle both old and new response structures
+        const sections = response.sections || response;
+        console.log('[validateJSONResponse] Sections keys:', Object.keys(sections));
+        
+        return {
+            title: response.title || 'Untitled',
+            metadata: response.metadata || {
+                tags: ['#summary'],
+                topics: [],
+                related: [],
+                speakers: []
+            },
+            hierarchy: response.hierarchy || {
+                level1: 'General Knowledge',
+                level2: 'Miscellaneous'
+            },
+            learning_context: response.learning_context || {
+                prerequisites: [],
+                related_concepts: [],
+                learning_path: [],
+                complexity_level: 'intermediate',
+                estimated_reading_time: '5-10 minutes'
+            },
+            // Pass through the sections directly for formatting
+            ...sections,
+            // Ensure we preserve metadata at root level
+            sections: sections
+        };
     }
 
     private parseMetadata(metadataText: string): any {
@@ -1602,12 +1607,27 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
     private sanitizeFileName(fileName: string): string {
         return fileName.replace(/[\\/:*?"<>|]/g, '_');
     }
+
+    private formatMOCContextForAI(existingMOCs: any[]): string {
+        if (existingMOCs.length === 0) {
+            return "No existing MOCs. Create first hierarchy.";
+        }
+
+        // Create compact summary by domain only
+        const domains = new Set<string>();
+        existingMOCs.forEach(moc => {
+            if (moc.domain) domains.add(moc.domain);
+        });
+
+        return `Existing domains: ${Array.from(domains).join(', ')}`;
+    }
 }
 
 // MOC Management Classes
 class MOCManager {
     private app: App;
     private settings: PluginSettings;
+    private hierarchyManager?: any;
 
     constructor(app: App, settings: PluginSettings) {
         this.app = app;
@@ -1684,14 +1704,14 @@ ${hierarchy.level4 ? `- [[${hierarchy.level4}]]` : ''}
         
         // Add parent navigation (if not root level)
         if (parentLevel) {
-            navigationSection += `## 🔼 Parent Level\n- [[${parentLevel.title}]] (${this.getLevelName(parentLevel.level)})\n\n`;
+            navigationSection += `## 🔼 Parent Level\n- [[00-${parentLevel.title} MOC]] (${this.getLevelName(parentLevel.level)})\n\n`;
         }
 
         // Add child navigation (if has children)
         if (childLevels.length > 0) {
             navigationSection += `## 🔽 Sub-Levels\n`;
             childLevels.forEach(child => {
-                navigationSection += `- [[${child.title}]] (${this.getLevelName(child.level)})\n`;
+                navigationSection += `- [[00-${child.title} MOC]] (${this.getLevelName(child.level)})\n`;
             });
             navigationSection += '\n';
         }
@@ -1752,9 +1772,9 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
 
     private generateCoreConcepts(hierarchy: MOCHierarchy, currentLevel: number): string {
         const concepts = [];
-        if (hierarchy.level2 && currentLevel <= 2) concepts.push(`- [[${hierarchy.level2}]]`);
-        if (hierarchy.level3 && currentLevel <= 3) concepts.push(`- [[${hierarchy.level3}]]`);
-        if (hierarchy.level4 && currentLevel <= 4) concepts.push(`- [[${hierarchy.level4}]]`);
+        if (hierarchy.level2 && currentLevel <= 2) concepts.push(`- [[00-${hierarchy.level2} MOC]]`);
+        if (hierarchy.level3 && currentLevel <= 3) concepts.push(`- [[00-${hierarchy.level3} MOC]]`);
+        if (hierarchy.level4 && currentLevel <= 4) concepts.push(`- [[00-${hierarchy.level4} MOC]]`);
         return concepts.length > 0 ? concepts.join('\n') : '<!-- Core concepts will be identified as content is added -->';
     }
 
@@ -1766,16 +1786,36 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
     }
 
     async ensureMOCExists(hierarchy: MOCHierarchy): Promise<string> {
-        console.log('[MOCManager] Creating MOC structure for:', `${hierarchy.level1} > ${hierarchy.level2}`);
+        console.log('[MOCManager] 🚀 Starting MOC creation process for:', `${hierarchy.level1} > ${hierarchy.level2}`);
+        console.log('[MOCManager] 🚀 Full hierarchy:', hierarchy);
+        
+        // Log the expected structure for debugging
+        const expectedStructure = this.createHierarchicalStructure(this.normalizeHierarchy(hierarchy));
+        console.log('[MOCManager] 🗂️ Expected MOC structure:');
+        expectedStructure.forEach(level => {
+            console.log(`[MOCManager]   Level ${level.level}: ${level.path}`);
+        });
         
         // Create all MOC levels that exist in the hierarchy
-        await this.createAllMOCLevels(hierarchy);
+        console.log('[MOCManager] 🔄 Creating all MOC levels...');
+        try {
+            await this.createAllMOCLevels(hierarchy);
+            console.log('[MOCManager] ✅ MOC level creation completed');
+        } catch (error) {
+            console.error('[MOCManager] ❌ MOC level creation failed:', error);
+            throw new Error(`MOC creation failed: ${error.message}`);
+        }
         
         // Return the path of the most specific MOC (where notes will be added)
         const mostSpecificPath = await this.getMostSpecificMOCPath(hierarchy);
-        console.log('[MOCManager] Note will be added to:', mostSpecificPath);
+        console.log('[MOCManager] 🎯 Most specific MOC path for note addition:', mostSpecificPath);
         
         return mostSpecificPath;
+    }
+    
+    // Add method to set hierarchyManager reference
+    setHierarchyManager(hierarchyManager: any): void {
+        this.hierarchyManager = hierarchyManager;
     }
 
     private async createAllMOCLevels(hierarchy: MOCHierarchy): Promise<void> {
@@ -1789,20 +1829,33 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
 
         // Create directory structure based on hierarchy levels
         const mocStructure = this.createHierarchicalStructure(normalizedHierarchy);
+        console.log('[MOCManager] MOC structure to create:', mocStructure);
         
-        for (const levelInfo of mocStructure) {
+        for (let i = 0; i < mocStructure.length; i++) {
+            const levelInfo = mocStructure[i];
+            console.log(`[MOCManager] Processing level ${levelInfo.level}:`, levelInfo);
+            
             const existingMOC = existingMOCs.find(moc => 
                 moc.level === levelInfo.level && 
                 this.isSimilarContent(moc.title, levelInfo.title)
             );
 
             if (existingMOC) {
-                console.log(`[MOCManager] Using existing MOC for level ${levelInfo.level}:`, existingMOC.path);
+                console.log(`[MOCManager] ✅ Using existing MOC for level ${levelInfo.level}:`, existingMOC.path);
                 levelInfo.path = existingMOC.path;
                 levelInfo.isExisting = true;
             } else {
+                console.log(`[MOCManager] 🔄 Creating new MOC for level ${levelInfo.level}:`, levelInfo.path);
                 await this.ensureSingleMOCExists(levelInfo, normalizedHierarchy, mocStructure);
+                console.log(`[MOCManager] ✅ Completed MOC creation for level ${levelInfo.level}`);
             }
+        }
+        console.log('[MOCManager] 🎉 All MOC levels processed');
+        
+        // Update central hierarchy
+        if (this.hierarchyManager) {
+            await this.hierarchyManager.addToHierarchy(normalizedHierarchy);
+            console.log('[MOCManager] ✅ Central hierarchy updated');
         }
     }
 
@@ -1816,12 +1869,24 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
     }
 
     private normalizeTitle(title: string): string {
-        return title
+        let normalized = title
             .trim()
             .replace(/[&]/g, 'and')  // & → and
             .replace(/[^\w\s-]/g, '') // Remove special chars except spaces and hyphens
             .replace(/\s+/g, ' ')     // Multiple spaces → single space
             .trim();
+        
+        // Handle common plural forms for academic domains
+        normalized = normalized
+            .replace(/\bSciences\b/g, 'Science')     // Sciences → Science
+            .replace(/\bStudies\b/g, 'Study')        // Studies → Study  
+            .replace(/\bTechnologies\b/g, 'Technology') // Technologies → Technology
+            .replace(/\bHistories\b/g, 'History')    // Histories → History
+            .replace(/\bMathematics\b/g, 'Mathematics') // Keep Mathematics as is (it's already standard)
+            // Add more specific domain normalizations as needed
+            ;
+        
+        return normalized;
     }
 
     private createHierarchicalStructure(hierarchy: MOCHierarchy): any[] {
@@ -1913,11 +1978,22 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
     }
 
     private isSimilarContent(title1: string, title2: string): boolean {
-        const normalize = (str: string) => str.toLowerCase()
-            .replace(/[&]/g, 'and')
-            .replace(/[^\w\s]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
+        const normalize = (str: string) => {
+            let normalized = str.toLowerCase()
+                .replace(/[&]/g, 'and')
+                .replace(/[^\w\s]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+            
+            // Handle plural variations in similarity check
+            normalized = normalized
+                .replace(/\bsciences\b/g, 'science')
+                .replace(/\bstudies\b/g, 'study')  
+                .replace(/\btechnologies\b/g, 'technology')
+                .replace(/\bhistories\b/g, 'history');
+                
+            return normalized;
+        };
         
         const norm1 = normalize(title1);
         const norm2 = normalize(title2);
@@ -1928,55 +2004,88 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
         // Check if one contains the other (for variations)
         if (norm1.includes(norm2) || norm2.includes(norm1)) return true;
         
-        // Check for similar words (simple similarity)
+        // Check for similar words with stricter criteria
         const words1 = norm1.split(' ');
         const words2 = norm2.split(' ');
         const commonWords = words1.filter(word => words2.includes(word));
         
-        // If more than 50% of words are common, consider similar
-        return commonWords.length >= Math.min(words1.length, words2.length) * 0.5;
+        // For similarity, require:
+        // 1. At least 75% of words in common (instead of 50%)
+        // 2. At least 2 words in common for multi-word titles
+        const minCommonWords = Math.max(2, Math.ceil(Math.min(words1.length, words2.length) * 0.75));
+        const hasEnoughCommon = commonWords.length >= minCommonWords;
+        
+        // Special case: if both titles have only 1 word, they must be identical
+        if (words1.length === 1 && words2.length === 1) {
+            return norm1 === norm2;
+        }
+        
+        return hasEnoughCommon;
     }
 
     private async ensureSingleMOCExists(levelInfo: any, hierarchy: MOCHierarchy, allLevels: any[]): Promise<void> {
+        console.log(`[MOCManager] 🔍 ensureSingleMOCExists called for level ${levelInfo.level}:`, levelInfo);
+        
         // Skip if this is an existing MOC we're reusing
         if (levelInfo.isExisting) {
+            console.log(`[MOCManager] ⏭️ Skipping level ${levelInfo.level} - marked as existing`);
             return;
         }
 
+        // Check if file already exists
         try {
             const existingFile = this.app.vault.getAbstractFileByPath(levelInfo.path);
             if (existingFile) {
-                console.log('[MOCManager] MOC already exists:', levelInfo.path);
+                console.log(`[MOCManager] ⏭️ MOC file already exists at: ${levelInfo.path}`);
                 return;
             }
         } catch (error) {
-            // File doesn't exist, continue to create it
+            console.log(`[MOCManager] 📁 File doesn't exist, will create: ${levelInfo.path}`);
         }
 
         // Ensure directory structure exists
+        console.log(`[MOCManager] 📂 Checking/creating directory: ${levelInfo.directory}`);
         try {
             const folder = this.app.vault.getAbstractFileByPath(levelInfo.directory);
             if (!folder) {
+                console.log(`[MOCManager] 🔨 Creating directory: ${levelInfo.directory}`);
                 await this.app.vault.createFolder(levelInfo.directory);
-                console.log('[MOCManager] Created directory:', levelInfo.directory);
+                console.log(`[MOCManager] ✅ Directory created: ${levelInfo.directory}`);
+            } else {
+                console.log(`[MOCManager] ✅ Directory already exists: ${levelInfo.directory}`);
             }
         } catch (error) {
-            console.error('[MOCManager] Error creating directory:', levelInfo.directory, error);
+            console.error(`[MOCManager] ❌ Error creating directory ${levelInfo.directory}:`, error);
+            return; // Don't proceed if directory creation fails
         }
 
         // Create MOC content with hierarchical navigation
+        console.log(`[MOCManager] 📝 Generating MOC content for level ${levelInfo.level}`);
         const mocContent = await this.createHierarchicalMOCTemplate(levelInfo, hierarchy, allLevels);
+        console.log(`[MOCManager] 📝 MOC content generated, length: ${mocContent.length}`);
+        
+        // Create the MOC file
+        console.log(`[MOCManager] 💾 Creating MOC file: ${levelInfo.path}`);
         try {
-            await this.app.vault.create(levelInfo.path, mocContent);
-            console.log('[MOCManager] Created new MOC:', levelInfo.path);
+            const createdFile = await this.app.vault.create(levelInfo.path, mocContent);
+            console.log(`[MOCManager] ✅ Successfully created MOC file:`, createdFile.path);
         } catch (error) {
-            console.error('[MOCManager] Error creating MOC file:', levelInfo.path, error);
+            console.error(`[MOCManager] ❌ Error creating MOC file ${levelInfo.path}:`, error);
+            console.error(`[MOCManager] ❌ Error details:`, {
+                message: error.message,
+                code: error.code,
+                path: levelInfo.path,
+                directory: levelInfo.directory
+            });
+            // Re-throw the error so calling code can handle it
+            throw new Error(`Failed to create MOC file at ${levelInfo.path}: ${error.message}`);
         }
     }
 
     private async getMostSpecificMOCPath(hierarchy: MOCHierarchy): Promise<string> {
-        // Use the same hierarchical structure logic as createHierarchicalStructure
-        const mocStructure = this.createHierarchicalStructure(hierarchy);
+        // Use the same normalized hierarchical structure logic as createHierarchicalStructure
+        const normalizedHierarchy = this.normalizeHierarchy(hierarchy);
+        const mocStructure = this.createHierarchicalStructure(normalizedHierarchy);
         
         // Return the path of the most specific level (highest level number)
         const mostSpecific = mocStructure[mocStructure.length - 1];
@@ -1986,8 +2095,9 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
     }
 
     getMostSpecificMOCDirectory(hierarchy: MOCHierarchy): string {
-        // Use the same hierarchical structure logic as createHierarchicalStructure
-        const mocStructure = this.createHierarchicalStructure(hierarchy);
+        // Use the same normalized hierarchical structure logic as createHierarchicalStructure
+        const normalizedHierarchy = this.normalizeHierarchy(hierarchy);
+        const mocStructure = this.createHierarchicalStructure(normalizedHierarchy);
         
         // Return the directory of the most specific level (for note placement)
         const mostSpecific = mocStructure[mocStructure.length - 1];
@@ -1998,12 +2108,30 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
 
     async updateMOC(mocPath: string, notePath: string, noteTitle: string, learningContext?: LearningContext): Promise<void> {
         console.log('[MOCManager] Adding note to MOC:', noteTitle);
+        console.log('[MOCManager] MOC path:', mocPath);
         
         try {
             const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
             if (!mocFile) {
-                console.error('[MOCManager] MOC file not found:', mocPath);
-                return;
+                console.error('[MOCManager] ❌ MOC file not found:', mocPath);
+                console.error('[MOCManager] 🔍 Available files in that directory:');
+                
+                // Debug: List files in the directory to help diagnose the issue
+                const dirPath = mocPath.substring(0, mocPath.lastIndexOf('/'));
+                try {
+                    const folder = this.app.vault.getAbstractFileByPath(dirPath) as TFolder;
+                    if (folder && folder.children) {
+                        folder.children.forEach((child: any) => {
+                            console.error('[MOCManager] 📁', child.path);
+                        });
+                    } else {
+                        console.error('[MOCManager] 📁 Directory not found:', dirPath);
+                    }
+                } catch (debugError) {
+                    console.error('[MOCManager] 🐛 Debug listing failed:', debugError);
+                }
+                
+                throw new Error(`MOC file not found at ${mocPath}. This suggests MOC creation failed silently.`);
             }
             
             const content = await this.app.vault.read(mocFile);
@@ -2081,6 +2209,21 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
 
             await this.app.vault.modify(mocFile, updatedContent);
             console.log('[MOCManager] MOC updated successfully');
+            
+            // Update note count in central hierarchy
+            if (this.hierarchyManager) {
+                // Extract hierarchy from the MOC path - this is a simplified approach
+                // In a full implementation, you'd want to store hierarchy metadata with the note
+                const pathParts = mocPath.split('/');
+                if (pathParts.length >= 2) {
+                    const domainFolder = pathParts[pathParts.length - 2];
+                    const mockHierarchy: MOCHierarchy = {
+                        level1: domainFolder.replace(/_/g, ' '),
+                        level2: 'Unknown' // This would need proper hierarchy tracking
+                    };
+                    await this.hierarchyManager.incrementNoteCount(mockHierarchy);
+                }
+            }
         } catch (error) {
             console.error('[MOCManager] Error updating MOC:', error);
         }
@@ -2097,6 +2240,55 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
         
         console.log('[MOCManager] Extracted filename for link:', fileNameWithoutExtension);
         return fileNameWithoutExtension;
+    }
+
+    async getAllExistingMOCs(): Promise<any[]> {
+        console.log('[MOCManager] Getting all existing MOCs for context');
+        const allFiles = this.app.vault.getMarkdownFiles();
+        const mocFolder = this.settings.mocFolder || 'MOCs';
+        const mocFiles = allFiles.filter(file => 
+            file.path.startsWith(mocFolder) && 
+            file.name.startsWith('00-') && 
+            file.name.endsWith(' MOC.md')
+        );
+
+        const existingMOCs = [];
+        
+        for (const file of mocFiles) {
+            try {
+                const content = await this.app.vault.read(file);
+                const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+                
+                if (frontmatterMatch) {
+                    const frontmatter = frontmatterMatch[1];
+                    const typeMatch = frontmatter.match(/type:\s*"?moc"?/);
+                    const levelMatch = frontmatter.match(/level:\s*(\d+)/);
+                    const titleMatch = frontmatter.match(/title:\s*"([^"]+)"/);
+                    const domainMatch = frontmatter.match(/domain:\s*"([^"]+)"/);
+                    
+                    if (typeMatch && levelMatch && titleMatch) {
+                        existingMOCs.push({
+                            path: file.path,
+                            level: parseInt(levelMatch[1]),
+                            title: titleMatch[1],
+                            domain: domainMatch ? domainMatch[1] : '',
+                            directory: file.path.substring(0, file.path.lastIndexOf('/'))
+                        });
+                    }
+                }
+            } catch (error) {
+                console.warn('[MOCManager] Could not read MOC file:', file.path, error);
+            }
+        }
+        
+        // Sort by level and title for better organization
+        existingMOCs.sort((a, b) => {
+            if (a.level !== b.level) return a.level - b.level;
+            return a.title.localeCompare(b.title);
+        });
+        
+        console.log('[MOCManager] Found existing MOCs:', existingMOCs.length);
+        return existingMOCs;
     }
 }
 
@@ -2211,6 +2403,7 @@ class AISummarizerPlugin extends Plugin {
     firstRun: boolean = true;
     mocManager: MOCManager;
     hierarchyAnalyzer: HierarchyAnalyzer;
+    hierarchyManager: HierarchyManager;
 
     async onload() {
         await this.loadSettings();
@@ -2218,6 +2411,10 @@ class AISummarizerPlugin extends Plugin {
         // Initialize MOC components
         this.mocManager = new MOCManager(this.app, this.settings);
         this.hierarchyAnalyzer = new HierarchyAnalyzer();
+        this.hierarchyManager = new HierarchyManager(this.app, this.settings);
+        
+        // Connect managers
+        this.mocManager.setHierarchyManager(this.hierarchyManager);
 
         // Check for migration from old structure
         await this.checkForMigrationNeeds();

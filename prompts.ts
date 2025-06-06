@@ -141,109 +141,60 @@ LEARNING CONTEXT GUIDELINES:
 
 Remember: The goal is to create a learning architecture that helps users build knowledge systematically, not just organize content for storage.`;
 
-export const ENHANCED_SUMMARIZATION_PROMPT = `${DEFAULT_SUMMARIZATION_PROMPT}
-
-Please structure your response as a JSON object with the following format:
+export const ENHANCED_SUMMARIZATION_PROMPT = `You are an expert knowledge architect creating learning-focused notes. Structure your response as a JSON object with this EXACT format:
 
 {
-    "title": "Your concise, descriptive title here",
+    "title": "Clear, descriptive title",
     "metadata": {
         "speakers": ["Speaker 1", "Speaker 2"],
-        "topics": ["Topic 1", "Topic 2", "Topic 3"],
-        "tags": ["#tag1", "#tag2", "#tag3"],
-        "related": ["Concept 1", "Concept 2", "Concept 3"]
+        "topics": ["Topic 1", "Topic 2"],
+        "tags": ["#tag1", "#tag2"],
+        "related": ["Related Concept 1", "Related Concept 2"]
     },
     "hierarchy": {
-        "level1": "Knowledge Domain (e.g., Computer Science, Physics, Business, Philosophy, etc.)",
-        "level2": "Learning Area within the domain (e.g., Machine Learning, Quantum Mechanics, Marketing, Ethics)",
-        "level3": "Specific Topic (only if content focuses on a specific, well-defined topic)",
-        "level4": "Single Key Concept (only if content focuses on ONE specific atomic concept)"
+        "level1": "Knowledge Domain (e.g., Computer Science, Business, Physics)",
+        "level2": "Learning Area (e.g., Machine Learning, Management, Quantum Mechanics)",
+        "level3": "Specific Topic (optional)",
+        "level4": "Single Atomic Concept (optional)"
     },
     "learning_context": {
-        "prerequisites": ["Foundational Concept 1", "Foundational Concept 2"],
-        "related_concepts": ["Related Topic 1", "Related Topic 2"],
-        "learning_path": ["Progressive Step 1", "Progressive Step 2", "Progressive Step 3"],
+        "prerequisites": ["Foundation 1", "Foundation 2"],
+        "related_concepts": ["Related 1", "Related 2"],
+        "learning_path": ["Step 1", "Step 2", "Step 3"],
         "complexity_level": "beginner|intermediate|advanced",
-        "estimated_reading_time": "5-10 minutes"
+        "estimated_reading_time": "X minutes"
     },
     "sections": {
-        "context": "Background and setting of the content",
-        "facts": [
-            "Key fact 1",
-            "Key fact 2",
-            "Key fact 3"
-        ],
-        "perspectives": [
-            "Different viewpoint 1",
-            "Different viewpoint 2"
-        ],
-        "insights": [
-            "Important insight 1",
-            "Important insight 2",
-            "Important insight 3"
-        ],
-        "personal_reflection": "Your thoughts and connections to existing knowledge",
-        "analogies": [
-            "Analogy 1",
-            "Analogy 2"
-        ],
-        "questions": [
-            "Question 1",
-            "Question 2"
-        ],
-        "applications": [
-            "Application 1",
-            "Application 2"
-        ],
-        "contrasts": [
-            "Contrast 1",
-            "Contrast 2"
-        ],
-        "implications": [
-            "Implication 1",
-            "Implication 2"
-        ],
-        "knowledge_gaps": [
-            "Gap 1",
-            "Gap 2"
-        ],
-        "next_steps": [
-            "Action 1",
-            "Action 2"
-        ],
-        "related_goals": [
-            "Goal 1",
-            "Goal 2"
-        ]
+        "context": "Background and setting",
+        "facts": ["Fact 1", "Fact 2", "Fact 3"],
+        "perspectives": ["Perspective 1", "Perspective 2"],
+        "insights": ["Insight 1", "Insight 2"],
+        "personal_reflection": "Your thoughts and connections",
+        "analogies": ["Analogy 1", "Analogy 2"],
+        "questions": ["Question 1", "Question 2"],
+        "applications": ["Application 1", "Application 2"],
+        "contrasts": ["Contrast 1", "Contrast 2"],
+        "implications": ["Implication 1", "Implication 2"],
+        "knowledge_gaps": ["Gap 1", "Gap 2"],
+        "next_steps": ["Action 1", "Action 2"],
+        "related_goals": ["Goal 1", "Goal 2"]
     }
 }
 
-CRITICAL HIERARCHY ANALYSIS:
+CRITICAL HIERARCHY RULES:
+- Focus on LEARNING PROGRESSION not just categorization
+- Final level must be ATOMIC (single concept only)
+- Good: "Future of Work", "Cartography", "Neural Networks"  
+- Bad: "AI & Future of Work", "Math & Cartography"
+- Each level should enable learning scaffolding
 
-**FOCUS ON LEARNING ARCHITECTURE**: Organize for optimal knowledge building and pedagogical progression, not just content categorization.
+🚨 CRITICAL JSON REQUIREMENTS:
+1. Your response MUST be ONLY valid JSON - no explanations, no markdown, no extra text
+2. Start with { and end with } - nothing else
+3. Use double quotes for ALL strings
+4. No trailing commas
+5. No comments in JSON
+6. If you add explanations, the system will FAIL
 
-**ATOMIC FINAL LEVEL PRINCIPLE**: The most specific level (level3 or level4) must represent a SINGLE, coherent concept that naturally contains this content.
-
-Examples of GOOD atomic final levels:
-✅ "Future of Work" (single concept)
-✅ "Cartography" (single discipline)  
-✅ "Neural Networks" (single technology)
-
-Examples of BAD compound final levels:
-❌ "AI & Future of Work" (two concepts)
-❌ "Mathematics & Cartography" (mixing discipline and application)
-❌ "Business and Technology" (too broad, multiple domains)
-
-**LEARNING PROGRESSION FOCUS**:
-- Level 1: Academic/practical domain that provides foundation
-- Level 2: Learning area that builds on domain knowledge  
-- Level 3: Specific topic within the area (optional)
-- Level 4: Single atomic concept (optional)
-
-**QUALITY GUIDELINES**:
-- Each level should represent a logical learning step
-- Prerequisites should be foundational, not advanced
-- Learning paths should be progressive and buildable
-- The hierarchy should help users understand "what to learn next"
-
-Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, related_goals), the items will be automatically formatted as checkboxes in the final note.`; 
+EXAMPLE RESPONSE FORMAT:
+{"title":"Example Title","metadata":{"speakers":[],"topics":["Example Topic"],"tags":["#example"],"related":[]},"hierarchy":{"level1":"Computer Science","level2":"Programming"},"learning_context":{"prerequisites":[],"related_concepts":[],"learning_path":["Programming Basics"],"complexity_level":"beginner","estimated_reading_time":"5 minutes"},"sections":{"context":"Example context","facts":["Example fact"],"insights":["Example insight"],"personal_reflection":"Example reflection","questions":["Example question?"],"applications":["Example application"],"next_steps":["Example step"],"related_goals":["Example goal"]}}`; 
