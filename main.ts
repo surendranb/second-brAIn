@@ -4,6 +4,7 @@ import { GoogleGenerativeAI, GenerateContentRequest } from '@google/generative-a
 import { promisify } from 'util';
 import * as path from 'path';
 import { AISummarizerSettingsTab } from './settings';
+import { DEFAULT_SUMMARIZATION_PROMPT, HIERARCHY_ANALYSIS_PROMPT, ENHANCED_SUMMARIZATION_PROMPT } from './prompts';
 
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
 // const execPromise = promisify(exec); // No longer using execPromise for transcript
@@ -167,76 +168,7 @@ const DEFAULT_SETTINGS: PluginSettings = {
         endpoint: 'https://openrouter.ai/api/v1/chat/completions',
         models: OPENROUTER_MODELS
     },
-    defaultPrompt: `You are an expert knowledge creator, skilled at transforming information into actionable insights for a second brain. Your goal is to create a comprehensive and well-structured note from the provided content.
-
-For each section below, provide detailed and thoughtful content:
-
-CONTEXT:
-- Provide the background and setting of the content
-- Explain why this information matters
-- Set up the framework for understanding the content
-
-FACTS:
-- Extract key factual information
-- Include specific data points, statistics, or concrete information
-- Focus on verifiable and objective information
-
-PERSPECTIVES:
-- Present different viewpoints on the topic
-- Include contrasting opinions or approaches
-- Consider cultural, historical, or theoretical perspectives
-
-INSIGHTS:
-- Identify deeper meanings and implications
-- Connect ideas to broader concepts
-- Highlight patterns and relationships
-
-PERSONAL REFLECTION:
-- Share your thoughts on the content
-- Connect it to existing knowledge
-- Identify personal relevance and applications
-
-ANALOGIES AND METAPHORS:
-- Create clear comparisons to explain complex ideas
-- Use relatable examples to illustrate concepts
-- Draw parallels to familiar situations
-
-QUESTIONS AND CURIOSITIES:
-- List important questions that arise
-- Identify areas that need further exploration
-- Note interesting points that deserve deeper investigation
-
-APPLICATIONS AND EXAMPLES:
-- Provide concrete examples of how to apply the information
-- Show real-world applications
-- Include specific use cases
-
-CONTRASTS AND COMPARISONS:
-- Compare with similar concepts or ideas
-- Highlight differences and similarities
-- Show how this fits into the broader context
-
-IMPLICATIONS:
-- Discuss potential impacts and consequences
-- Consider short-term and long-term effects
-- Explore possible future developments
-
-KNOWLEDGE GAPS:
-- Identify areas where more information is needed
-- Note assumptions that should be verified
-- List topics that require further research
-
-NEXT STEPS:
-- Suggest specific actions to take
-- Outline a plan for implementation
-- Recommend follow-up activities
-
-RELATED GOALS:
-- Connect to personal or professional objectives
-- Identify how this information supports larger goals
-- Suggest ways to integrate this knowledge into existing plans
-
-Please structure your response with clear sections, using bullet points for lists and maintaining a professional yet engaging tone. Focus on creating actionable insights that can be easily referenced and applied.`,
+    defaultPrompt: DEFAULT_SUMMARIZATION_PROMPT,
     mocFolder: 'MOCs',
     enableMOC: true
 };
@@ -755,26 +687,8 @@ class SummaryView extends ItemView {
     private async analyzeNoteForHierarchy(noteContent: string, noteTitle: string): Promise<{ hierarchy: MOCHierarchy, learning_context: LearningContext }> {
         console.log('[analyzeNoteForHierarchy] Analyzing note for hierarchy placement');
         
-        // Create a simplified prompt focused on hierarchy analysis
-        const hierarchyPrompt = `Analyze the following note content and determine the best knowledge hierarchy placement. 
-
-Please respond with ONLY a JSON object in this exact format:
-
-{
-    "hierarchy": {
-        "level1": "Knowledge Domain (e.g., Computer Science, Physics, Business, Philosophy, etc.)",
-        "level2": "Learning Area within the domain (e.g., Machine Learning, Quantum Mechanics, Marketing, Ethics)",
-        "level3": "Specific Topic (optional)",
-        "level4": "Key Concept (optional)"
-    },
-    "learning_context": {
-        "prerequisites": ["Concept 1", "Concept 2"],
-        "related_concepts": ["Related Topic 1", "Related Topic 2"],
-        "learning_path": ["Step 1", "Step 2", "Step 3"],
-        "complexity_level": "beginner|intermediate|advanced",
-        "estimated_reading_time": "X minutes"
-    }
-}
+        // Use the improved hierarchy analysis prompt
+        const hierarchyPrompt = `${HIERARCHY_ANALYSIS_PROMPT}
 
 Note Title: "${noteTitle}"
 
@@ -1026,102 +940,10 @@ ${noteContent}`;
         let selectedModel = '';
         console.log('[SummarizeContent] Provider:', this.plugin.settings.provider);
         
-        // Enhanced prompt that includes comprehensive note structure and MOC hierarchy analysis
-        const enhancedPrompt = `${prompt}\n\nPlease structure your response as a JSON object with the following format:\n\n{
-    "title": "Your concise, descriptive title here",
-    "metadata": {
-        "speakers": ["Speaker 1", "Speaker 2"],
-        "topics": ["Topic 1", "Topic 2", "Topic 3"],
-        "tags": ["#tag1", "#tag2", "#tag3"],
-        "related": ["Concept 1", "Concept 2", "Concept 3"]
-    },
-    "hierarchy": {
-        "level1": "Knowledge Domain (e.g., Computer Science, Physics, Business, Philosophy, etc.)",
-        "level2": "Learning Area within the domain (e.g., Machine Learning, Quantum Mechanics, Marketing, Ethics)",
-        "level3": "Specific Topic (e.g., Neural Networks, Wave Functions, Digital Marketing, Applied Ethics)",
-        "level4": "Key Concept (e.g., Backpropagation, Schrödinger Equation, SEO, Moral Reasoning)"
-    },
-    "learning_context": {
-        "prerequisites": ["Concept 1", "Concept 2"],
-        "related_concepts": ["Related Topic 1", "Related Topic 2"],
-        "learning_path": ["Step 1", "Step 2", "Step 3"],
-        "complexity_level": "beginner|intermediate|advanced",
-        "estimated_reading_time": "5-10 minutes"
-    },
-    "sections": {
-        "context": "Background and setting of the content",
-        "facts": [
-            "Key fact 1",
-            "Key fact 2",
-            "Key fact 3"
-        ],
-        "perspectives": [
-            "Different viewpoint 1",
-            "Different viewpoint 2"
-        ],
-        "insights": [
-            "Important insight 1",
-            "Important insight 2",
-            "Important insight 3"
-        ],
-        "personal_reflection": "Your thoughts and connections to existing knowledge",
-        "analogies": [
-            "Analogy 1",
-            "Analogy 2"
-        ],
-        "questions": [
-            "Question 1",
-            "Question 2"
-        ],
-        "applications": [
-            "Application 1",
-            "Application 2"
-        ],
-        "contrasts": [
-            "Contrast 1",
-            "Contrast 2"
-        ],
-        "implications": [
-            "Implication 1",
-            "Implication 2"
-        ],
-        "knowledge_gaps": [
-            "Gap 1",
-            "Gap 2"
-        ],
-        "next_steps": [
-            "Action 1",
-            "Action 2"
-        ],
-        "related_goals": [
-            "Goal 1",
-            "Goal 2"
-        ]
-    }
-}
-
-IMPORTANT INSTRUCTIONS FOR HIERARCHY AND LEARNING CONTEXT:
-
-1. HIERARCHY ANALYSIS:
-   - level1: Identify the broad knowledge domain (e.g., Computer Science, Physics, Business, Philosophy, History, Biology, etc.)
-   - level2: Determine the specific learning area within that domain (e.g., Artificial Intelligence, Quantum Mechanics, Digital Marketing)
-   - level3: Identify the specific topic being discussed (e.g., Neural Networks, Quantum Entanglement, SEO Strategy)
-   - level4: Extract the key concept or technique (e.g., Backpropagation, Bell's Theorem, Keyword Research)
-
-2. LEARNING CONTEXT:
-   - prerequisites: What knowledge should someone have before learning this?
-   - related_concepts: What other topics connect to this content?
-   - learning_path: What sequence of topics would help someone master this area?
-   - complexity_level: Assess based on technical depth, prerequisite knowledge, and cognitive load
-   - estimated_reading_time: Based on content length and complexity
-
-3. QUALITY GUIDELINES:
-   - Be specific and accurate with domain classification
-   - Ensure hierarchy levels make logical sense (general → specific)
-   - Prerequisites should be foundational concepts, not advanced topics
-   - Learning paths should be progressive and logical
-
-Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, related_goals), the items will be automatically formatted as checkboxes in the final note.`;
+        // Use the enhanced summarization prompt that includes learning-focused hierarchy analysis
+        // If user has customized the prompt, use it; otherwise use the default
+        const basePrompt = prompt === this.plugin.settings.defaultPrompt ? DEFAULT_SUMMARIZATION_PROMPT : prompt;
+        const enhancedPrompt = `${basePrompt}\n\n${ENHANCED_SUMMARIZATION_PROMPT.split('\n\n').slice(1).join('\n\n')}`;
         
         if (this.plugin.settings.provider === 'gemini') {
             selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
