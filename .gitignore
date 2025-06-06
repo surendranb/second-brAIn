@@ -1,3 +1,6 @@
+# Documentation (internal development docs)
+docs/
+
 # Compiled output
 main.js
 *.js.map
@@ -22,6 +25,7 @@ Thumbs.db
 *.pyc
 __pycache__/
 myenv/
+venv/
 
 # Temporary files
 *.tmp
@@ -35,6 +39,14 @@ myenv/
 *.njsproj
 *.sln
 *.swp
-PROJECT_RULES.md
-FEATURE_DEVELOPMENT.md
-*.md
+
+# Markdown files
+INTERNAL_README.md
+IMPLEMENTATION_README.md
+MVP_README.md
+VISION_AND_MISSION_README.md
+
+# Internal Documentation (not for public repo)
+VISION_AND_MISSION.md
+IMPLEMENTATION_PLAN.md
+MVP_ROADMAP.md

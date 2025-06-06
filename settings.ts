@@ -114,23 +114,14 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(containerEl)
-            .setName('Notes Folder')
-            .setDesc('Folder where summarized notes will be saved')
-            .addText(text => text
-                .setPlaceholder('Enter folder path')
-                .setValue(this.plugin.settings.notesFolder)
-                .onChange(async (value) => {
-                    this.plugin.settings.notesFolder = value;
-                    await this.plugin.saveSettings();
-                }));
+
 
         // MOC Settings Section
         containerEl.createEl('h3', { text: 'MOC (Map of Content) Settings' });
 
         new Setting(containerEl)
             .setName('Enable MOC Organization')
-            .setDesc('Automatically organize notes into Maps of Content (MOCs) based on their topic and domain')
+            .setDesc('Automatically organize notes into knowledge hierarchies (Maps of Content). Notes will be saved alongside MOCs in organized folder structures.')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.enableMOC)
                 .onChange(async (value) => {
@@ -141,8 +132,8 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
 
         if (this.plugin.settings.enableMOC) {
             new Setting(containerEl)
-                .setName('MOC Folder')
-                .setDesc('Folder where MOCs will be created and organized')
+                .setName('Knowledge Base Folder')
+                .setDesc('Root folder for knowledge organization. Both notes and MOCs will be saved in hierarchical subfolders within this directory.')
                 .addText(text => text
                     .setPlaceholder('MOCs')
                     .setValue(this.plugin.settings.mocFolder)

@@ -1,151 +1,171 @@
-# brAIn: Your AI-Powered Knowledge Archive in Obsidian
+# brAIn: AI-Powered Knowledge Organization for Obsidian
 
-![brAIn Logo or Banner](https://placehold.co/800x200/3498db/ffffff?text=brAIn+AI+Summarizer)
+Transform any web content or YouTube video into organized, actionable knowledge that automatically integrates into your personal knowledge hierarchy.
 
-**brAIn** is an Obsidian plugin designed to help you build a powerful second brain by effortlessly capturing and summarizing knowledge from the web and YouTube. Currently it leverages the Gemini API and allows you to quickly transform content into actionable notes, fostering a dynamic and interconnected knowledge archive within Obsidian.
+## What does brAIn do?
+
+**brAIn doesn't just summarize content — it transforms information into structured knowledge and organizes it for you.**
+
+- 🌐 **Smart Content Processing**: Turn any web article or YouTube video into comprehensive notes
+- 🧠 **AI-Powered Analysis**: Extract insights, analogies, and actionable steps using advanced AI
+- 🗂️ **Automatic Organization**: Creates hierarchical knowledge maps (MOCs) that connect your learning
+- 🔗 **Intelligent Linking**: Automatically connects new knowledge to your existing notes
+- 📚 **Learning Enhancement**: Identifies knowledge gaps and suggests learning paths
 
 ## Why brAIn?
 
-In today's information-rich world, it's easy to get overwhelmed. brAIn helps you cut through the noise and focus on what truly matters by:
+**Problem**: Information overload leads to shallow learning and disconnected knowledge.
 
-*   **Effortless Knowledge Capture:** Quickly summarize articles, blog posts, and YouTube videos without tedious manual note-taking.
-*   **Enhanced Comprehension:** Condense complex information into concise summaries, improving your understanding and retention.
-*   **Seamless Integration:** Create new notes directly within Obsidian, seamlessly integrating your summarized knowledge into your existing workflow.
-*   **Dynamic Knowledge Base:** Build a dynamic and interconnected knowledge archive that grows with your learning.
-*   **AI-Powered Insights:** Leverage the power of the Gemini API to extract key insights and generate meaningful summaries.
+**Solution**: brAIn transforms passive content consumption into active knowledge building by:
+- Converting complex content into 13 structured knowledge dimensions
+- Automatically organizing information into Domain → Area → Topic → Concept hierarchies  
+- Creating meaningful connections between new and existing knowledge
+- Preserving context and enabling easy retrieval
 
-## Key Features
+## Quick Start
 
-*   **Web Page Summarization:** Summarize content from any web page, including blogs, articles, and online documentation.
-*   **YouTube Transcript Summarization:** Extract and summarize transcripts from YouTube videos, capturing valuable insights from video content.
-*   **Customizable Prompts:** Tailor the summarization process with custom prompts to focus on specific aspects of the content.
-*   **Flexible Note Creation:** Create new notes directly within Obsidian, with the summary and source URL included.
-*   **Configurable Settings:** Easily configure your Gemini API key, model, default prompt, and notes folder.
-*   **Knowledge Graph Integration:** Automatically creates internal links for speakers, topics, and related concepts, building a rich knowledge graph.
+### Prerequisites
+- Obsidian (v1.0.0+)
+- Node.js (v16+) 
+- Python (v3.8+)
+- Google Gemini API key ([Get one free](https://ai.google.dev/))
 
-## Prerequisites
+### Installation
 
-*   [Node.js](https://nodejs.org/) (v16 or higher)
-*   [Python](https://www.python.org/) (v3.8 or higher)
-*   [Obsidian](https://obsidian.md/) (v1.0.0 or higher)
-*   A [Gemini API key](https://ai.google.dev/) from Google Cloud
-
-## Installation
-
-### For Users
-
-1.  Download the latest release from the [GitHub releases page](https://github.com/surendranb/second-brAIn/releases).
-2.  Extract the downloaded ZIP file into your Obsidian vault's plugins folder (usually `.obsidian/plugins`).
-3.  Enable the plugin in Obsidian's settings under "Community plugins".
-
-### For Developers
-
-1. Clone the repository:
+1. **Download the plugin**:
    ```bash
+   # Clone or download from GitHub
    git clone https://github.com/surendranb/second-brAIn.git
+   ```
+
+2. **Install dependencies**:
+   ```bash
    cd second-brAIn
-   ```
-
-2. Install Node.js dependencies:
-   ```bash
    npm install
-   ```
-
-3. Set up Python virtual environment and install dependencies:
-   ```bash
+   
+   # Set up Python environment
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   source venv/bin/activate  # Windows: venv\Scripts\activate
    pip install -r requirements.txt
    ```
 
-4. Build the plugin:
+3. **Build the plugin**:
    ```bash
    npm run build
    ```
 
-5. Enable developer mode in Obsidian:
-   - Open Obsidian Settings
-   - Go to "Community plugins"
-   - Turn on "Developer mode"
-   - Click "Open plugins folder"
-   - Copy the entire `second-brAIn` folder to the plugins directory
+4. **Install in Obsidian**:
+   - Copy the entire folder to `.obsidian/plugins/` in your vault
+   - Enable "Community plugins" in Obsidian settings
+   - Enable "brAIn" in the plugins list
 
-## Setup
+### Setup
 
-1.  **Obtain a Gemini API Key:**
-    - Go to [Google AI Studio](https://ai.google.dev/)
-    - Create a new project or select an existing one
-    - Enable the Gemini API
-    - Create an API key
+1. **Get your Gemini API key**:
+   - Go to [Google AI Studio](https://ai.google.dev/)
+   - Create a new project and generate an API key
 
-2.  **Configure Plugin Settings:**
-    *   Open the "AI Summarizer" view from the ribbon icon
-    *   Enter your Gemini API key in the settings
-    *   Choose your preferred Gemini model
-    *   Customize the default summarization prompt (optional)
-    *   Specify the folder where new notes will be saved
+2. **Configure brAIn**:
+   - Click the brAIn icon in Obsidian's ribbon
+   - Enter your Gemini API key
+   - Choose your preferred model (gemini-pro recommended)
+   - Set your knowledge organization folder (default: "MOCs")
 
-## Usage
+## How to Use
 
-1.  Open the "AI Summarizer" view from the ribbon icon
-2.  Enter the URL of the web page or YouTube video you want to summarize
-3.  Enter your desired prompt (or use the default prompt)
-4.  Click the "Summarize" button
-5.  Review the generated summary
-6.  Click the "Create Note" button to save the summary as a new note in Obsidian
+### Option 1: Create Notes from URLs
+1. Click the brAIn icon in the ribbon
+2. Select "Create new note from URL"
+3. Paste any web URL or YouTube link
+4. Click "Generate Note"
+5. Watch as brAIn creates and organizes your knowledge!
 
-The generated note will include:
-- YAML frontmatter with metadata
-- Structured summary with Obsidian callouts
-- Internal links for speakers, topics, and related concepts
-- Tags for easy categorization
-- Source information and links
+### Option 2: Organize Existing Notes
+1. Click the brAIn icon in the ribbon  
+2. Select "Organize existing note"
+3. Choose a note from the dropdown
+4. Click "Organize Note"
+5. Your note gets integrated into the knowledge hierarchy
 
-## Development
+## What You Get
 
-### Project Structure
-- `main.ts`: Main plugin code
-- `settings.ts`: Plugin settings and configuration
-- `fetch_content.py`: Python script for web content extraction
-- `fetch_transcript.py`: Python script for YouTube transcript fetching
-- `styles.css`: Plugin styling
+### Comprehensive Knowledge Structure
+Each processed piece of content becomes a structured note with:
 
-### Building
-```bash
-npm run build
+- **Context & Background**: Why this information matters
+- **Key Facts**: Essential information and data points
+- **Multiple Perspectives**: Different viewpoints and opinions
+- **Deep Insights**: Patterns, connections, and implications
+- **Personal Reflection Space**: Areas for your own thoughts
+- **Analogies & Examples**: Clear comparisons and real-world applications
+- **Questions for Exploration**: Areas to investigate further
+- **Actionable Next Steps**: Specific things you can do
+- **Knowledge Connections**: Links to related concepts
+
+### Automatic Knowledge Organization
+brAIn creates a hierarchical Map of Contents (MOC) system:
+
+```
+📁 Computer Science (Domain)
+  📁 Artificial Intelligence (Area)
+    📁 Machine Learning (Topic)
+      📄 Your Note (Concept)
+      📄 Related Notes
+    📁 Natural Language Processing (Topic)
+  📁 Software Engineering (Area)
 ```
 
-### Development Mode
-```bash
-npm run dev
-```
+### Smart Features
+- **Error Recovery**: Never loses your content, even if AI processing fails
+- **Progress Tracking**: Clear status updates throughout processing
+- **Customizable Prompts**: Tailor the AI analysis to your needs
+- **Dual-Mode Interface**: Handle both new URLs and existing notes
 
 ## Troubleshooting
 
-*   **Python Script Errors:**
-    - Ensure Python 3.8+ is installed
-    - Verify the virtual environment is activated
-    - Check that all Python dependencies are installed
-    - Ensure the scripts have execute permissions
+### Common Issues
 
-*   **Gemini API Errors:**
-    - Verify your API key is valid
-    - Check your API quota and limits
-    - Ensure you've selected a valid model
+**Python Script Errors**:
+- Ensure Python 3.8+ is installed and in your PATH
+- Activate the virtual environment: `source venv/bin/activate`
+- Reinstall dependencies: `pip install -r requirements.txt`
 
-*   **Plugin Not Loading:**
-    - Verify the plugin is in the correct directory
-    - Check that developer mode is enabled
-    - Look for errors in the developer console (Ctrl+Shift+I)
+**Gemini API Errors**:
+- Verify your API key is valid and active
+- Check your API quota at [Google AI Studio](https://ai.google.dev/)
+- Try switching to a different Gemini model in settings
 
-## Reporting Issues
+**Plugin Not Loading**:
+- Ensure the plugin folder is in `.obsidian/plugins/`
+- Check that "Community plugins" is enabled in Obsidian
+- Look for errors in Developer Console (Ctrl+Shift+I)
 
-If you encounter any bugs or have feature requests, please submit an issue on the [GitHub issues page](https://github.com/surendranb/second-brAIn/issues).
+**Slow Processing**:
+- Large content may take 30-60 seconds to process
+- YouTube videos with long transcripts take longer
+- Check your internet connection
+
+### Getting Help
+- Check the [GitHub Issues](https://github.com/surendranb/second-brAIn/issues)
+- Join the discussion in [GitHub Discussions](https://github.com/surendranb/second-brAIn/discussions)
+
+## Privacy & Security
+
+- Your API key is stored locally in Obsidian settings
+- Content is processed through Google's Gemini API (see their privacy policy)
+- No personal data is stored on external servers
+- All notes remain in your local Obsidian vault
 
 ## Contributing
 
-Contributions are welcome! Please submit a pull request with your changes.
+We welcome contributions! See [Contributing Guidelines](CONTRIBUTING.md) for details.
 
 ## License
 
-This project is licensed under the MIT License.
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+**Built for knowledge workers who want to learn faster and think deeper.**
+
+Transform your information consumption into knowledge building with brAIn.

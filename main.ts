@@ -92,8 +92,7 @@ export interface PluginSettings {
     gemini: GeminiSettings;
     openrouter: OpenRouterSettings;
     defaultPrompt: string;
-    notesFolder: string;
-    mocFolder: string; // New setting for MOC folder
+    mocFolder: string; // Root folder for knowledge organization (both notes and MOCs)
     enableMOC: boolean; // Toggle for MOC functionality
 }
 
@@ -238,7 +237,6 @@ RELATED GOALS:
 - Suggest ways to integrate this knowledge into existing plans
 
 Please structure your response with clear sections, using bullet points for lists and maintaining a professional yet engaging tone. Focus on creating actionable insights that can be easily referenced and applied.`,
-    notesFolder: 'Summaries',
     mocFolder: 'MOCs',
     enableMOC: true
 };
@@ -1620,8 +1618,8 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
     }
 
     private async createNoteWithSummary(summary: string, title: string, url: string, metadata?: any, fullResult?: any): Promise<TFile | null> {
-        const folderPath = this.plugin.settings.notesFolder;
         const fileName = this.sanitizeFileName(title + '.md');
+        let folderPath = this.plugin.settings.mocFolder; // fallback to root MOC folder
         
         // MOC Analysis and Integration
         let mocPath: string | null = null;
@@ -1660,6 +1658,11 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
                     updateMOCStatus('Creating knowledge map structure...');
                     mocPath = await this.plugin.mocManager.ensureMOCExists(hierarchyData.hierarchy);
                     console.log('[CreateNote] MOC path:', mocPath);
+                    
+                    // Update folder path to place note in MOC hierarchy directory
+                    folderPath = this.plugin.mocManager.getMostSpecificMOCDirectory(hierarchyData.hierarchy);
+                    console.log('[CreateNote] Note will be saved in:', folderPath);
+                    
                     updateMOCStatus('Knowledge map ready');
                 } else {
                     console.log('[CreateNote] No AI hierarchy found, falling back to heuristic analysis...');
@@ -1667,6 +1670,11 @@ Note: For sections with checkboxes (questions, knowledge_gaps, next_steps, relat
                     hierarchyData = await this.plugin.hierarchyAnalyzer.analyzeContent(metadata, title, summary);
                     updateMOCStatus('Creating knowledge map...');
                     mocPath = await this.plugin.mocManager.ensureMOCExists(hierarchyData.hierarchy);
+                    
+                    // Update folder path to place note in MOC hierarchy directory
+                    folderPath = this.plugin.mocManager.getMostSpecificMOCDirectory(hierarchyData.hierarchy);
+                    console.log('[CreateNote] Note will be saved in:', folderPath);
+                    
                     updateMOCStatus('Knowledge map ready');
                 }
             } catch (error) {
@@ -2002,7 +2010,7 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
         levels.push({
             level: 1,
             title: hierarchy.level1,
-            path: `${mocFolder}/${hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_')}.md`,
+            path: `${mocFolder}/00-${hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_')} MOC.md`,
             directory: mocFolder
         });
 
@@ -2011,7 +2019,7 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
         levels.push({
             level: 2,
             title: hierarchy.level2,
-            path: `${domainDir}/${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')}.md`,
+            path: `${domainDir}/00-${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')} MOC.md`,
             directory: domainDir
         });
 
@@ -2021,7 +2029,7 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
             levels.push({
                 level: 3,
                 title: hierarchy.level3,
-                path: `${areaDir}/${hierarchy.level3.replace(/[\\/:*?"<>|]/g, '_')}.md`,
+                path: `${areaDir}/00-${hierarchy.level3.replace(/[\\/:*?"<>|]/g, '_')} MOC.md`,
                 directory: areaDir
             });
         }
@@ -2034,7 +2042,7 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
             levels.push({
                 level: 4,
                 title: hierarchy.level4,
-                path: `${topicDir}/${hierarchy.level4.replace(/[\\/:*?"<>|]/g, '_')}.md`,
+                path: `${topicDir}/00-${hierarchy.level4.replace(/[\\/:*?"<>|]/g, '_')} MOC.md`,
                 directory: topicDir
             });
         }
@@ -2153,6 +2161,17 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
         console.log('[MOCManager] Most specific MOC path:', mostSpecific.path);
         
         return mostSpecific.path;
+    }
+
+    getMostSpecificMOCDirectory(hierarchy: MOCHierarchy): string {
+        // Use the same hierarchical structure logic as createHierarchicalStructure
+        const mocStructure = this.createHierarchicalStructure(hierarchy);
+        
+        // Return the directory of the most specific level (for note placement)
+        const mostSpecific = mocStructure[mocStructure.length - 1];
+        console.log('[MOCManager] Most specific MOC directory for notes:', mostSpecific.directory);
+        
+        return mostSpecific.directory;
     }
 
     async updateMOC(mocPath: string, notePath: string, noteTitle: string, learningContext?: LearningContext): Promise<void> {
@@ -2378,6 +2397,9 @@ class AISummarizerPlugin extends Plugin {
         this.mocManager = new MOCManager(this.app, this.settings);
         this.hierarchyAnalyzer = new HierarchyAnalyzer();
 
+        // Check for migration from old structure
+        await this.checkForMigrationNeeds();
+
         // Check if any API key is set
         if (!this.settings.gemini.apiKey && !this.settings.openrouter.apiKey) {
             this.promptForSettings();
@@ -2404,6 +2426,32 @@ class AISummarizerPlugin extends Plugin {
 
     async saveSettings() {
         await this.saveData(this.settings);
+    }
+
+    private async checkForMigrationNeeds(): Promise<void> {
+        try {
+            // Check if there's a legacy "Summaries" folder with notes
+            const summariesFolder = this.app.vault.getAbstractFileByPath('Summaries');
+            if (summariesFolder) {
+                const summaryFiles = this.app.vault.getMarkdownFiles().filter(file => 
+                    file.path.startsWith('Summaries/')
+                );
+                
+                if (summaryFiles.length > 0) {
+                    console.log(`[Migration] Found ${summaryFiles.length} notes in legacy Summaries folder`);
+                    
+                    // Show migration notice
+                    new Notice(
+                        `Found ${summaryFiles.length} notes in the old "Summaries" folder. ` +
+                        'New notes will now be organized within the knowledge hierarchy. ' +
+                        'Your existing notes remain accessible.',
+                        10000
+                    );
+                }
+            }
+        } catch (error) {
+            console.warn('[Migration] Migration check failed:', error);
+        }
     }
 
     async activateView() {
@@ -2534,15 +2582,7 @@ class SettingModal extends Modal {
                     this.settings.defaultPrompt = value;
                 }));
 
-        new Setting(contentEl)
-            .setName('Notes Folder')
-            .setDesc('Folder where summarized notes will be saved')
-            .addText(text => text
-                .setPlaceholder('Enter folder path')
-                .setValue(this.settings.notesFolder)
-                .onChange(value => {
-                    this.settings.notesFolder = value;
-                }));
+
 
         new Setting(contentEl)
             .addButton((btn) =>
