@@ -951,10 +951,531 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     private async summarizeContent(text: string, prompt: string, url: string): Promise<{ summary: string, title: string, metadata: any, hierarchy?: any, learning_context?: any }> {
         let selectedModel = '';
         console.log('[SummarizeContent] Provider:', this.plugin.settings.provider);
+        console.log('[SummarizeContent] 🚀 Starting comprehensive multi-pass analysis...');
         
         // Get existing hierarchy context for AI awareness
         const hierarchyContext = await this.plugin.hierarchyManager.getHierarchyContextForAI();
         console.log('[SummarizeContent] Hierarchy context length:', hierarchyContext.length);
+        
+        try {
+            // Multi-pass comprehensive analysis
+            const comprehensiveResult = await this.generateComprehensiveNote(text, prompt, url, hierarchyContext);
+            
+            return {
+                summary: this.formatComprehensiveNote(comprehensiveResult),
+                title: comprehensiveResult.title,
+                metadata: comprehensiveResult.metadata,
+                hierarchy: comprehensiveResult.hierarchy,
+                learning_context: comprehensiveResult.learning_context
+            };
+        } catch (error) {
+            console.error('[SummarizeContent] Multi-pass analysis failed:', error);
+            // Fallback to single-pass for error recovery
+            return await this.fallbackSinglePassAnalysis(text, prompt, url, hierarchyContext);
+        }
+    }
+
+    private async generateComprehensiveNote(text: string, prompt: string, url: string, hierarchyContext: string): Promise<any> {
+        console.log('[GenerateComprehensiveNote] 🎯 Starting multi-pass comprehensive analysis');
+        
+        // Pass 1: Structure & Metadata (Essential Foundation)
+        console.log('[GenerateComprehensiveNote] 📋 Pass 1: Analyzing structure and metadata...');
+        const structure = await this.analyzeStructureAndMetadata(text, hierarchyContext);
+        
+        // Pass 2: Deep Content Analysis (Core Knowledge)
+        console.log('[GenerateComprehensiveNote] 🧠 Pass 2: Deep content analysis...');
+        const coreAnalysis = await this.analyzeContentDepth(text, structure);
+        
+        // Pass 3: Perspectives & Examples (Multiple Viewpoints)
+        console.log('[GenerateComprehensiveNote] 👁️ Pass 3: Multiple perspectives and examples...');
+        const perspectives = await this.analyzePerspectivesAndExamples(text, structure);
+        
+        // Pass 4: Connections & Applications (Knowledge Integration)
+        console.log('[GenerateComprehensiveNote] 🔗 Pass 4: Connections and applications...');
+        const connections = await this.analyzeConnectionsAndApplications(text, structure);
+        
+        // Pass 5: Learning & Next Steps (Actionable Knowledge)
+        console.log('[GenerateComprehensiveNote] 🎯 Pass 5: Learning paths and next steps...');
+        const learning = await this.analyzeLearningAndNextSteps(text, structure);
+        
+        // Merge all passes into comprehensive result
+        const comprehensiveResult = this.mergeMultiPassResults(structure, coreAnalysis, perspectives, connections, learning);
+        console.log('[GenerateComprehensiveNote] ✅ Multi-pass analysis complete - comprehensive note generated');
+        
+        return comprehensiveResult;
+    }
+
+    private async analyzeStructureAndMetadata(text: string, hierarchyContext: string): Promise<any> {
+        const structurePrompt = `You are an expert knowledge organizer. Analyze this content and return comprehensive structure and metadata.
+
+EXISTING KNOWLEDGE HIERARCHY:
+${hierarchyContext}
+
+INSTRUCTIONS:
+1. Create an optimal title that captures the essence
+2. Determine the best hierarchy placement (avoid duplicates, use existing when appropriate)
+3. Extract comprehensive metadata (speakers, topics, key concepts, tags)
+4. Assess learning context (prerequisites, complexity, reading time)
+5. Provide a concise overview (2-3 sentences)
+
+Content to analyze:
+${text.substring(0, 6000)}
+
+Return ONLY valid JSON:
+{
+  "title": "Comprehensive title",
+  "hierarchy": {
+    "level1": "Domain",
+    "level2": "Area", 
+    "level3": "Topic",
+    "level4": "Concept"
+  },
+  "metadata": {
+    "speakers": ["speaker1", "speaker2"],
+    "topics": ["topic1", "topic2"],
+    "key_concepts": ["concept1", "concept2"],
+    "tags": ["#tag1", "#tag2"],
+    "related": ["related1", "related2"]
+  },
+  "learning_context": {
+    "prerequisites": ["prereq1", "prereq2"],
+    "related_concepts": ["concept1", "concept2"],
+    "learning_path": ["step1", "step2"],
+    "complexity_level": "beginner|intermediate|advanced",
+    "estimated_reading_time": "X minutes"
+  },
+  "overview": "Brief 2-3 sentence overview of the content"
+}`;
+
+        return await this.makeAIRequest(structurePrompt);
+    }
+
+    private async analyzeContentDepth(text: string, structure: any): Promise<any> {
+        const depthPrompt = `You are an expert content analyst. Provide deep, comprehensive analysis of this content.
+
+CONTENT CONTEXT:
+Title: ${structure.title || 'Unknown'}
+Domain: ${structure.hierarchy?.level1 || 'General'}
+Topic: ${structure.hierarchy?.level2 || 'Miscellaneous'}
+
+INSTRUCTIONS:
+Create comprehensive analysis sections. Be thorough and detailed - there are no length limits.
+
+Content to analyze:
+${text}
+
+Return ONLY valid JSON:
+{
+  "context": "Detailed background and why this matters (200+ words)",
+  "key_facts": [
+    "Fact 1 with detailed explanation",
+    "Fact 2 with detailed explanation",
+    "Fact 3 with detailed explanation"
+  ],
+  "deep_insights": [
+    "Insight 1: Deep analysis of patterns, implications, connections",
+    "Insight 2: Another profound insight with reasoning",
+    "Insight 3: Third insight connecting to broader themes"
+  ],
+  "core_concepts": [
+    "Concept 1: Detailed explanation and significance", 
+    "Concept 2: Another key concept with context",
+    "Concept 3: Third important concept"
+  ],
+  "detailed_summary": "Comprehensive 300+ word summary covering all major points"
+}`;
+
+        return await this.makeAIRequest(depthPrompt);
+    }
+
+    private async analyzePerspectivesAndExamples(text: string, structure: any): Promise<any> {
+        const perspectivesPrompt = `You are an expert at analyzing multiple viewpoints and creating practical examples.
+
+CONTENT CONTEXT:
+Title: ${structure.title || 'Unknown'}
+Overview: ${structure.overview || 'No overview available'}
+
+INSTRUCTIONS:
+Analyze different perspectives and create rich examples. Be comprehensive and detailed.
+
+Content to analyze:
+${text}
+
+Return ONLY valid JSON:
+{
+  "multiple_perspectives": [
+    {
+      "viewpoint": "Academic/Research Perspective",
+      "analysis": "Detailed analysis from this viewpoint (100+ words)"
+    },
+    {
+      "viewpoint": "Industry/Practical Perspective", 
+      "analysis": "Detailed analysis from this viewpoint (100+ words)"
+    },
+    {
+      "viewpoint": "Critical/Skeptical Perspective",
+      "analysis": "Detailed analysis from this viewpoint (100+ words)"
+    }
+  ],
+  "analogies_examples": [
+    {
+      "concept": "Key concept being explained",
+      "analogy": "Detailed analogy with clear explanation",
+      "real_world_example": "Concrete real-world example with context"
+    },
+    {
+      "concept": "Another key concept",
+      "analogy": "Another detailed analogy",
+      "real_world_example": "Another concrete example"
+    }
+  ],
+  "case_studies": [
+    "Detailed case study 1 showing practical application",
+    "Detailed case study 2 with different context",
+    "Detailed case study 3 highlighting challenges"
+  ]
+}`;
+
+        return await this.makeAIRequest(perspectivesPrompt);
+    }
+
+    private async analyzeConnectionsAndApplications(text: string, structure: any): Promise<any> {
+        const connectionsPrompt = `You are an expert at finding connections and practical applications.
+
+CONTENT CONTEXT:
+Title: ${structure.title || 'Unknown'}
+Domain: ${structure.hierarchy?.level1 || 'General'}
+Key Concepts: ${structure.metadata?.key_concepts?.join(', ') || 'None identified'}
+
+INSTRUCTIONS:
+Find deep connections and practical applications. Be thorough and specific.
+
+Content to analyze:
+${text}
+
+Return ONLY valid JSON:
+{
+  "knowledge_connections": [
+    {
+      "related_field": "Connected field/domain",
+      "connection_type": "How they connect",
+      "detailed_explanation": "Deep explanation of the connection (100+ words)"
+    },
+    {
+      "related_field": "Another connected field",
+      "connection_type": "Type of connection",
+      "detailed_explanation": "Another detailed explanation"
+    }
+  ],
+  "practical_applications": [
+    {
+      "domain": "Application domain",
+      "application": "Specific application",
+      "implementation": "How to implement/use this (100+ words)",
+      "benefits": "Expected benefits and outcomes"
+    },
+    {
+      "domain": "Another domain",
+      "application": "Another application", 
+      "implementation": "Implementation details",
+      "benefits": "Benefits and outcomes"
+    }
+  ],
+  "implications_consequences": [
+    "Long-term implication 1 with detailed reasoning",
+    "Long-term implication 2 with analysis",
+    "Potential unintended consequence with explanation"
+  ]
+}`;
+
+        return await this.makeAIRequest(connectionsPrompt);
+    }
+
+    private async analyzeLearningAndNextSteps(text: string, structure: any): Promise<any> {
+        const learningPrompt = `You are an expert learning designer and action planner.
+
+CONTENT CONTEXT:
+Title: ${structure.title || 'Unknown'}
+Complexity: ${structure.learning_context?.complexity_level || 'intermediate'}
+Prerequisites: ${structure.learning_context?.prerequisites?.join(', ') || 'None specified'}
+
+INSTRUCTIONS:
+Create comprehensive learning paths and actionable next steps.
+
+Content to analyze:
+${text}
+
+Return ONLY valid JSON:
+{
+  "knowledge_gaps": [
+    "Specific gap 1 with explanation of why it matters",
+    "Specific gap 2 with learning strategy",
+    "Specific gap 3 with resources needed"
+  ],
+  "learning_pathways": [
+    {
+      "pathway_name": "Beginner Path",
+      "steps": [
+        "Step 1: Detailed description and resources",
+        "Step 2: Next step with specific actions",
+        "Step 3: Advanced step with outcomes"
+      ],
+      "estimated_time": "Time estimate",
+      "difficulty": "difficulty level"
+    },
+    {
+      "pathway_name": "Advanced Path",
+      "steps": [
+        "Advanced step 1 with details",
+        "Advanced step 2 with specifics",
+        "Advanced step 3 with outcomes"
+      ],
+      "estimated_time": "Time estimate", 
+      "difficulty": "difficulty level"
+    }
+  ],
+  "actionable_next_steps": [
+    {
+      "category": "Immediate Actions",
+      "actions": [
+        "Specific action 1 with clear instructions",
+        "Specific action 2 with expected outcomes",
+        "Specific action 3 with timeline"
+      ]
+    },
+    {
+      "category": "Medium-term Goals",
+      "actions": [
+        "Goal 1 with strategy and metrics",
+        "Goal 2 with approach and timeline",
+        "Goal 3 with resources needed"
+      ]
+    }
+  ],
+  "reflection_questions": [
+    "Deep question 1 to promote critical thinking",
+    "Deep question 2 to connect to personal experience", 
+    "Deep question 3 to explore implications"
+  ]
+}`;
+
+        return await this.makeAIRequest(learningPrompt);
+    }
+
+    private async makeAIRequest(prompt: string): Promise<any> {
+        if (this.plugin.settings.provider === 'gemini') {
+            const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
+            const model = this.geminiClient!.getGenerativeModel({ model: selectedModel });
+            
+            const result = await model.generateContent(prompt);
+            const responseText = result.response.text();
+            
+            // Extract JSON from markdown blocks
+            const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+            const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText.trim();
+            
+            return JSON.parse(jsonText);
+        } else if (this.plugin.settings.provider === 'openrouter') {
+            const selectedModel = this.modelDropdown?.value || this.plugin.settings.openrouter.model;
+            const response = await fetch(this.plugin.settings.openrouter.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.plugin.settings.openrouter.apiKey}`,
+                    'HTTP-Referer': 'https://github.com/yourusername/second-brAIn',
+                    'X-Title': 'second-brAIn'
+                },
+                body: JSON.stringify({
+                    model: selectedModel,
+                    messages: [
+                        { role: 'system', content: 'You are a helpful AI assistant that creates detailed analysis in JSON format.' },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 8000,
+                    response_format: { type: "json_object" }
+                })
+            });
+            
+            const data = await response.json();
+            return JSON.parse(data.choices[0].message.content);
+        }
+        
+        throw new Error('No valid AI provider configured');
+    }
+
+    private mergeMultiPassResults(structure: any, coreAnalysis: any, perspectives: any, connections: any, learning: any): any {
+        return {
+            title: structure.title,
+            metadata: structure.metadata,
+            hierarchy: structure.hierarchy, 
+            learning_context: structure.learning_context,
+            overview: structure.overview,
+            
+            // Core content
+            context: coreAnalysis.context,
+            detailed_summary: coreAnalysis.detailed_summary,
+            key_facts: coreAnalysis.key_facts,
+            deep_insights: coreAnalysis.deep_insights,
+            core_concepts: coreAnalysis.core_concepts,
+            
+            // Perspectives and examples
+            multiple_perspectives: perspectives.multiple_perspectives,
+            analogies_examples: perspectives.analogies_examples,
+            case_studies: perspectives.case_studies,
+            
+            // Connections and applications
+            knowledge_connections: connections.knowledge_connections,
+            practical_applications: connections.practical_applications,
+            implications_consequences: connections.implications_consequences,
+            
+            // Learning and action
+            knowledge_gaps: learning.knowledge_gaps,
+            learning_pathways: learning.learning_pathways,
+            actionable_next_steps: learning.actionable_next_steps,
+            reflection_questions: learning.reflection_questions
+        };
+    }
+
+    private formatComprehensiveNote(result: any): string {
+        let content = `# ${result.title}\n\n`;
+        
+        // Overview
+        if (result.overview) {
+            content += `## Overview\n${result.overview}\n\n`;
+        }
+        
+        // Context
+        if (result.context) {
+            content += `## Context & Background\n${result.context}\n\n`;
+        }
+        
+        // Detailed Summary
+        if (result.detailed_summary) {
+            content += `## Comprehensive Summary\n${result.detailed_summary}\n\n`;
+        }
+        
+        // Key Facts
+        if (result.key_facts?.length) {
+            content += `## Key Facts\n`;
+            result.key_facts.forEach((fact: string) => {
+                content += `- ${fact}\n`;
+            });
+            content += '\n';
+        }
+        
+        // Deep Insights
+        if (result.deep_insights?.length) {
+            content += `## Deep Insights\n`;
+            result.deep_insights.forEach((insight: string, index: number) => {
+                content += `### ${index + 1}. ${insight.split(':')[0]}\n${insight}\n\n`;
+            });
+        }
+        
+        // Core Concepts
+        if (result.core_concepts?.length) {
+            content += `## Core Concepts\n`;
+            result.core_concepts.forEach((concept: string) => {
+                content += `### ${concept.split(':')[0]}\n${concept}\n\n`;
+            });
+        }
+        
+        // Multiple Perspectives
+        if (result.multiple_perspectives?.length) {
+            content += `## Multiple Perspectives\n`;
+            result.multiple_perspectives.forEach((perspective: any) => {
+                content += `### ${perspective.viewpoint}\n${perspective.analysis}\n\n`;
+            });
+        }
+        
+        // Analogies and Examples
+        if (result.analogies_examples?.length) {
+            content += `## Analogies & Examples\n`;
+            result.analogies_examples.forEach((example: any) => {
+                content += `### ${example.concept}\n**Analogy**: ${example.analogy}\n\n**Real-World Example**: ${example.real_world_example}\n\n`;
+            });
+        }
+        
+        // Case Studies
+        if (result.case_studies?.length) {
+            content += `## Case Studies\n`;
+            result.case_studies.forEach((study: string, index: number) => {
+                content += `### Case Study ${index + 1}\n${study}\n\n`;
+            });
+        }
+        
+        // Knowledge Connections
+        if (result.knowledge_connections?.length) {
+            content += `## Knowledge Connections\n`;
+            result.knowledge_connections.forEach((connection: any) => {
+                content += `### ${connection.related_field}\n**Connection Type**: ${connection.connection_type}\n\n${connection.detailed_explanation}\n\n`;
+            });
+        }
+        
+        // Practical Applications
+        if (result.practical_applications?.length) {
+            content += `## Practical Applications\n`;
+            result.practical_applications.forEach((application: any) => {
+                content += `### ${application.domain}: ${application.application}\n**Implementation**: ${application.implementation}\n\n**Benefits**: ${application.benefits}\n\n`;
+            });
+        }
+        
+        // Implications and Consequences
+        if (result.implications_consequences?.length) {
+            content += `## Implications & Consequences\n`;
+            result.implications_consequences.forEach((implication: string) => {
+                content += `- ${implication}\n`;
+            });
+            content += '\n';
+        }
+        
+        // Learning Pathways
+        if (result.learning_pathways?.length) {
+            content += `## Learning Pathways\n`;
+            result.learning_pathways.forEach((pathway: any) => {
+                content += `### ${pathway.pathway_name}\n**Estimated Time**: ${pathway.estimated_time} | **Difficulty**: ${pathway.difficulty}\n\n`;
+                pathway.steps.forEach((step: string, index: number) => {
+                    content += `${index + 1}. ${step}\n`;
+                });
+                content += '\n';
+            });
+        }
+        
+        // Actionable Next Steps  
+        if (result.actionable_next_steps?.length) {
+            content += `## Actionable Next Steps\n`;
+            result.actionable_next_steps.forEach((category: any) => {
+                content += `### ${category.category}\n`;
+                category.actions.forEach((action: string) => {
+                    content += `- [ ] ${action}\n`;
+                });
+                content += '\n';
+            });
+        }
+        
+        // Knowledge Gaps
+        if (result.knowledge_gaps?.length) {
+            content += `> [!gap] Knowledge Gaps to Explore\n`;
+            result.knowledge_gaps.forEach((gap: string) => {
+                content += `> - [ ] ${gap}\n`;
+            });
+            content += '\n';
+        }
+        
+        // Reflection Questions
+        if (result.reflection_questions?.length) {
+            content += `## Reflection Questions\n`;
+            result.reflection_questions.forEach((question: string, index: number) => {
+                content += `${index + 1}. ${question}\n`;
+            });
+            content += '\n';
+        }
+        
+        return content;
+    }
+
+    private async fallbackSinglePassAnalysis(text: string, prompt: string, url: string, hierarchyContext: string): Promise<any> {
+        console.log('[SummarizeContent] 🔄 Using fallback single-pass analysis...');
         
         // Use the enhanced summarization prompt that includes learning-focused hierarchy analysis
         // If user has customized the prompt, use it; otherwise use the default
@@ -962,7 +1483,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const enhancedPrompt = `${basePrompt}\n\n${ENHANCED_SUMMARIZATION_PROMPT.split('\n\n').slice(1).join('\n\n')}\n\nEXISTING KNOWLEDGE HIERARCHY:\n${hierarchyContext}`;
         
         if (this.plugin.settings.provider === 'gemini') {
-            selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
+            const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
             console.log('[SummarizeContent] Using Gemini model:', selectedModel);
             if (!this.plugin.settings.gemini.apiKey) {
                 new Notice('Please set your Gemini API key in the settings.');
@@ -995,8 +1516,62 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 console.log('[SummarizeContent] Extracted JSON length:', jsonText.length);
                 
                 // Parse and validate JSON response structure
-                const sections = this.validateJSONResponse(JSON.parse(jsonText));
-                console.log('[SummarizeContent] ✅ Successfully parsed and validated native JSON response');
+                let sections;
+                try {
+                    sections = this.validateJSONResponse(JSON.parse(jsonText));
+                    console.log('[SummarizeContent] ✅ Successfully parsed and validated native JSON response');
+                } catch (jsonError) {
+                    console.error('[SummarizeContent] ❌ JSON parsing failed:', jsonError.message);
+                    console.error('[SummarizeContent] 🔍 Problematic JSON around position', jsonError.message.match(/position (\d+)/)?.[1] || 'unknown');
+                    
+                    // Show context around the error position
+                    if (jsonError.message.includes('position')) {
+                        const position = parseInt(jsonError.message.match(/position (\d+)/)?.[1] || '0');
+                        const start = Math.max(0, position - 100);
+                        const end = Math.min(jsonText.length, position + 100);
+                        console.error('[SummarizeContent] 📄 JSON context around error:');
+                        console.error('[SummarizeContent] 📄 "...' + jsonText.substring(start, end) + '..."');
+                    }
+                    
+                    // Try to fix common JSON issues
+                    console.log('[SummarizeContent] 🔧 Attempting JSON cleanup...');
+                    try {
+                        const cleanedJson = this.cleanupJSON(jsonText);
+                        sections = this.validateJSONResponse(JSON.parse(cleanedJson));
+                        console.log('[SummarizeContent] ✅ JSON cleanup successful!');
+                    } catch (cleanupError) {
+                        console.error('[SummarizeContent] ❌ JSON cleanup also failed:', cleanupError.message);
+                        console.log('[SummarizeContent] 🔄 Falling back to raw content preservation...');
+                        
+                        // Create a fallback structured response to preserve the content
+                        sections = {
+                            title: 'AI Generated Summary',
+                            metadata: {
+                                tags: ['#ai-summary'],
+                                topics: [],
+                                related: [],
+                                speakers: []
+                            },
+                            hierarchy: {
+                                level1: 'General Knowledge',
+                                level2: 'Miscellaneous'
+                            },
+                            learning_context: {
+                                prerequisites: [],
+                                related_concepts: [],
+                                learning_path: [],
+                                complexity_level: 'intermediate',
+                                estimated_reading_time: '5-10 minutes'
+                            },
+                            context: 'AI-generated content with parsing issues',
+                            summary: jsonText.substring(0, 2000) + '...\n\n> [!warning] JSON Parsing Issue\n> The AI response had formatting issues but content has been preserved.',
+                            sections: {
+                                raw_ai_response: jsonText
+                            }
+                        };
+                        console.log('[SummarizeContent] ✅ Fallback response created - content preserved');
+                    }
+                }
                 console.log('[SummarizeContent] Hierarchy:', sections.hierarchy);
                 console.log('[SummarizeContent] Learning context:', sections.learning_context);
                 
@@ -1013,7 +1588,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 return { summary: '', title: 'Untitled', metadata: {}, hierarchy: undefined, learning_context: undefined };
             }
         } else if (this.plugin.settings.provider === 'openrouter') {
-            selectedModel = this.modelDropdown?.value || this.plugin.settings.openrouter.model;
+            const selectedModel = this.modelDropdown?.value || this.plugin.settings.openrouter.model;
             console.log('[SummarizeContent] Using OpenRouter model:', selectedModel);
             if (!this.plugin.settings.openrouter.apiKey) {
                 new Notice('Please set your OpenRouter API key in the settings.');
@@ -1051,7 +1626,13 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 const responseText = data.choices[0].message.content;
                 
                 // Parse and validate JSON response structure
-                const sections = this.validateJSONResponse(JSON.parse(responseText));
+                let sections;
+                try {
+                    sections = this.validateJSONResponse(JSON.parse(responseText));
+                } catch (jsonError) {
+                    console.error('[SummarizeContent] ❌ OpenRouter JSON parsing failed:', jsonError.message);
+                    throw new Error(`OpenRouter returned malformed JSON: ${jsonError.message}`);
+                }
                 console.log('[SummarizeContent] ✅ Successfully parsed and validated native JSON response');
                 console.log('[SummarizeContent] Hierarchy:', sections.hierarchy);
                 console.log('[SummarizeContent] Learning context:', sections.learning_context);
@@ -1286,8 +1867,12 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
             // Remove any markdown formatting if it leaked through
             .replace(/```json\s*|\s*```/g, '')
-            // Remove trailing commas before closing brackets/braces
-            .replace(/,(\s*[}\]])/g, '$1')
+            // Fix array element issues (common JSON error)
+            .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas before closing brackets/braces
+            .replace(/](\s*[^,}\]\s])/g, '],$1') // Add missing comma after array close
+            .replace(/}(\s*[^,}\]\s])/g, '},$1') // Add missing comma after object close
+            .replace(/(\w|"|})(\s*\[)/g, '$1,$2') // Add missing comma before array start
+            .replace(/(\w|"|})(\s*{)/g, '$1,$2') // Add missing comma before object start
             // Fix escaped quotes in content
             .replace(/\\"/g, '"')
             // Remove any stray backslashes before quotes
@@ -1296,6 +1881,8 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             .replace(/\\\\"/g, '\\"')
             // Fix unescaped quotes inside strings (basic attempt)
             .replace(/:\s*"([^"]*)"([^",}\]]*)"([^",}\]]*)/g, ': "$1\\"$2\\"$3')
+            // Fix missing quotes around keys
+            .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
             // Clean up any extra spaces around JSON elements
             .trim();
             
@@ -1305,6 +1892,49 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             if (braceIndex > -1) {
                 cleaned = cleaned.substring(braceIndex);
             }
+        }
+        
+        // Try to find and fix the most common array issues
+        try {
+            // Test if we can parse it, if not, try more aggressive fixes
+            JSON.parse(cleaned);
+        } catch (e) {
+            console.log('[cleanupJSON] Initial cleanup failed, trying quote-specific fixes...');
+            // Fix the specific issue seen in the error: unescaped quotes in strings
+            // Based on the error: "slow training times.",""Machine Learning is the Second Best Solution\" Quote:"
+            
+            // Step 1: Fix double quotes that start array elements
+            cleaned = cleaned.replace(/,\s*""/g, ',"');
+            
+            // Step 2: Find and fix unescaped quotes in string content
+            // This is tricky, so let's use a more conservative approach
+            const lines = cleaned.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                
+                // Look for problematic patterns like: "text"unescaped content"more text"
+                // and replace with: "text\"unescaped content\"more text"
+                if (line.includes('"') && !line.match(/^[\s]*["}]/)) {
+                    // Count quotes to find unbalanced strings
+                    const quoteCount = (line.match(/"/g) || []).length;
+                    if (quoteCount > 2 && quoteCount % 2 === 0) {
+                        // Even number of quotes > 2 suggests embedded quotes
+                        // Simple heuristic: escape quotes that aren't at start/end of values
+                        line = line.replace(/([^:,\[\{]\s*)"([^"]*)"([^,\]\}])/g, '$1\\"$2\\"$3');
+                    }
+                }
+                lines[i] = line;
+            }
+            cleaned = lines.join('\n');
+            
+            // Step 3: Basic structural fixes
+            cleaned = cleaned
+                .replace(/]\s*"/g, '],"') // Fix missing comma after array
+                .replace(/}\s*"/g, '},"') // Fix missing comma after object
+                .replace(/\[\s*,/g, '[')  // Remove leading comma in arrays
+                .replace(/,\s*,/g, ',')   // Remove duplicate commas
+                .replace(/,\s*]/g, ']')   // Remove trailing comma before array close
+                .replace(/,\s*}/g, '}');  // Remove trailing comma before object close
         }
         
         return cleaned;
@@ -1578,8 +2208,15 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
                 await this.app.vault.createFolder(folderPath);
                 console.log('[CreateNote] Folder created:', folderPath);
             }
-            const newFile = await this.app.vault.create(`${folderPath}/${fileName}`, fileContent);
-            console.log('[CreateNote] Note created:', `${folderPath}/${fileName}`);
+            
+            // Handle file name conflicts by finding a unique name
+            const finalFileName = await this.findUniqueFileName(folderPath, fileName);
+            if (finalFileName !== fileName) {
+                console.log('[CreateNote] File name conflict resolved:', fileName, '→', finalFileName);
+            }
+            
+            const newFile = await this.app.vault.create(`${folderPath}/${finalFileName}`, fileContent);
+            console.log('[CreateNote] Note created:', `${folderPath}/${finalFileName}`);
             
             // Update MOC with the new note
             if (mocPath && this.plugin.settings.enableMOC) {
@@ -1606,6 +2243,42 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
 
     private sanitizeFileName(fileName: string): string {
         return fileName.replace(/[\\/:*?"<>|]/g, '_');
+    }
+
+    private async findUniqueFileName(folderPath: string, fileName: string): Promise<string> {
+        // Check if the original filename is available
+        const originalPath = `${folderPath}/${fileName}`;
+        const existingFile = this.app.vault.getAbstractFileByPath(originalPath);
+        
+        if (!existingFile) {
+            return fileName; // Original name is available
+        }
+
+        // Extract name and extension
+        const nameParts = fileName.split('.');
+        const extension = nameParts.pop() || '';
+        const baseName = nameParts.join('.');
+
+        // Try numbered variants
+        let counter = 1;
+        while (counter <= 999) { // Prevent infinite loops
+            const numberedName = `${baseName} (${counter}).${extension}`;
+            const numberedPath = `${folderPath}/${numberedName}`;
+            const conflictFile = this.app.vault.getAbstractFileByPath(numberedPath);
+            
+            if (!conflictFile) {
+                console.log('[CreateNote] Found unique filename:', numberedName);
+                return numberedName;
+            }
+            
+            counter++;
+        }
+
+        // If we get here, fall back to timestamp-based naming
+        const timestamp = new Date().getTime();
+        const timestampName = `${baseName}_${timestamp}.${extension}`;
+        console.log('[CreateNote] Using timestamp-based filename:', timestampName);
+        return timestampName;
     }
 
     private formatMOCContextForAI(existingMOCs: any[]): string {
@@ -1789,6 +2462,11 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
         console.log('[MOCManager] 🚀 Starting MOC creation process for:', `${hierarchy.level1} > ${hierarchy.level2}`);
         console.log('[MOCManager] 🚀 Full hierarchy:', hierarchy);
         
+        // Validate hierarchy first
+        if (!hierarchy.level1 || !hierarchy.level2) {
+            throw new Error(`Invalid hierarchy - missing required levels. Level1: ${hierarchy.level1}, Level2: ${hierarchy.level2}`);
+        }
+        
         // Log the expected structure for debugging
         const expectedStructure = this.createHierarchicalStructure(this.normalizeHierarchy(hierarchy));
         console.log('[MOCManager] 🗂️ Expected MOC structure:');
@@ -1801,18 +2479,119 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
         try {
             await this.createAllMOCLevels(hierarchy);
             console.log('[MOCManager] ✅ MOC level creation completed');
+            
+            // CRITICAL: Verify that the expected files actually exist after creation
+            console.log('[MOCManager] 🔍 Post-creation verification...');
+            for (const level of expectedStructure) {
+                const file = this.app.vault.getAbstractFileByPath(level.path);
+                console.log(`[MOCManager] 📋 Level ${level.level} file check:`, {
+                    expectedPath: level.path,
+                    fileExists: !!file,
+                    fileName: file?.name || 'NOT FOUND'
+                });
+                
+                if (!file) {
+                    console.error(`[MOCManager] ❌ CRITICAL: Expected MOC file missing after creation: ${level.path}`);
+                    
+                    // Try to create the missing file now
+                    console.log(`[MOCManager] 🛠️ Attempting emergency MOC creation for level ${level.level}...`);
+                    try {
+                        await this.emergencyCreateMOC(level, hierarchy, expectedStructure);
+                        console.log(`[MOCManager] ✅ Emergency MOC creation successful for level ${level.level}`);
+                    } catch (emergencyError) {
+                        console.error(`[MOCManager] ❌ Emergency MOC creation failed:`, emergencyError);
+                        throw new Error(`MOC creation completely failed for level ${level.level}: ${emergencyError.message}`);
+                    }
+                }
+            }
+            
         } catch (error) {
             console.error('[MOCManager] ❌ MOC level creation failed:', error);
-            throw new Error(`MOC creation failed: ${error.message}`);
+            console.error('[MOCManager] ❌ Full error details:', {
+                message: error.message,
+                stack: error.stack,
+                hierarchy: hierarchy,
+                expectedStructure: expectedStructure
+            });
+            throw new Error(`MOC creation failed for hierarchy "${hierarchy.level1} > ${hierarchy.level2}": ${error.message}`);
         }
         
         // Return the path of the most specific MOC (where notes will be added)
-        const mostSpecificPath = await this.getMostSpecificMOCPath(hierarchy);
-        console.log('[MOCManager] 🎯 Most specific MOC path for note addition:', mostSpecificPath);
+        let mostSpecificPath: string;
+        try {
+            mostSpecificPath = await this.getMostSpecificMOCPath(hierarchy);
+            console.log('[MOCManager] 🎯 Most specific MOC path for note addition:', mostSpecificPath);
+            
+            // CRITICAL: Final verification that the MOC file actually exists before returning the path
+            const finalMocFile = this.app.vault.getAbstractFileByPath(mostSpecificPath);
+            if (!finalMocFile) {
+                console.error('[MOCManager] ❌ FINAL CHECK FAILED: MOC file not found after successful creation:', mostSpecificPath);
+                
+                // List what's actually in the directory
+                const dirPath = mostSpecificPath.substring(0, mostSpecificPath.lastIndexOf('/'));
+                console.log('[MOCManager] 📁 Directory contents:', dirPath);
+                try {
+                    const folder = this.app.vault.getAbstractFileByPath(dirPath) as TFolder;
+                    if (folder && folder.children) {
+                        folder.children.forEach((child: any) => {
+                            console.log(`[MOCManager] 📄 Found file: ${child.path}`);
+                        });
+                    }
+                } catch (listError) {
+                    console.error('[MOCManager] ❌ Could not list directory contents:', listError);
+                }
+                
+                throw new Error(`CRITICAL: MOC file not found after creation: ${mostSpecificPath}`);
+            }
+            
+            console.log('[MOCManager] ✅ Final verification passed - MOC file exists and is accessible');
+            
+        } catch (error) {
+            console.error('[MOCManager] ❌ Error getting most specific MOC path:', error);
+            throw new Error(`Failed to get most specific MOC path: ${error.message}`);
+        }
         
         return mostSpecificPath;
     }
-    
+
+    private async emergencyCreateMOC(levelInfo: any, hierarchy: MOCHierarchy, allLevels: any[]): Promise<void> {
+        console.log(`[MOCManager] 🚨 Emergency MOC creation for level ${levelInfo.level}:`, levelInfo.path);
+        
+        // Ensure directory exists
+        try {
+            const dirPath = levelInfo.directory;
+            const folder = this.app.vault.getAbstractFileByPath(dirPath);
+            if (!folder) {
+                console.log(`[MOCManager] 📁 Creating missing directory: ${dirPath}`);
+                await this.app.vault.createFolder(dirPath);
+            }
+        } catch (dirError) {
+            console.error(`[MOCManager] ❌ Emergency directory creation failed:`, dirError);
+            throw dirError;
+        }
+        
+        // Create fallback MOC content
+        const mocContent = this.createFallbackMOCContent(levelInfo, hierarchy);
+        console.log(`[MOCManager] 📝 Emergency MOC content length: ${mocContent.length}`);
+        
+        // Create the file
+        try {
+            console.log(`[MOCManager] 💾 Creating emergency MOC file: ${levelInfo.path}`);
+            const createdFile = await this.app.vault.create(levelInfo.path, mocContent);
+            console.log(`[MOCManager] ✅ Emergency MOC file created successfully:`, createdFile.path);
+            
+            // Verify it exists
+            const verifyFile = this.app.vault.getAbstractFileByPath(levelInfo.path);
+            if (!verifyFile) {
+                throw new Error('File creation reported success but file not found');
+            }
+            
+        } catch (createError) {
+            console.error(`[MOCManager] ❌ Emergency file creation failed:`, createError);
+            throw new Error(`Emergency MOC creation failed: ${createError.message}`);
+        }
+    }
+
     // Add method to set hierarchyManager reference
     setHierarchyManager(hierarchyManager: any): void {
         this.hierarchyManager = hierarchyManager;
@@ -1833,11 +2612,18 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
         
         for (let i = 0; i < mocStructure.length; i++) {
             const levelInfo = mocStructure[i];
-            console.log(`[MOCManager] Processing level ${levelInfo.level}:`, levelInfo);
+            console.log(`[MOCManager] 🔄 Processing level ${levelInfo.level}/${mocStructure.length}:`, levelInfo);
+            console.log(`[MOCManager] 🔍 Level details:`, {
+                level: levelInfo.level,
+                title: levelInfo.title,
+                path: levelInfo.path,
+                directory: levelInfo.directory
+            });
             
             const existingMOC = existingMOCs.find(moc => 
                 moc.level === levelInfo.level && 
-                this.isSimilarContent(moc.title, levelInfo.title)
+                this.isSimilarContent(moc.title, levelInfo.title) &&
+                this.isInCorrectHierarchyPath(moc.path, levelInfo, normalizedHierarchy)
             );
 
             if (existingMOC) {
@@ -1846,8 +2632,22 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
                 levelInfo.isExisting = true;
             } else {
                 console.log(`[MOCManager] 🔄 Creating new MOC for level ${levelInfo.level}:`, levelInfo.path);
-                await this.ensureSingleMOCExists(levelInfo, normalizedHierarchy, mocStructure);
-                console.log(`[MOCManager] ✅ Completed MOC creation for level ${levelInfo.level}`);
+                try {
+                    await this.ensureSingleMOCExists(levelInfo, normalizedHierarchy, mocStructure);
+                    console.log(`[MOCManager] ✅ Completed MOC creation for level ${levelInfo.level}`);
+                    
+                    // Immediately verify the file was created
+                    const verifyFile = this.app.vault.getAbstractFileByPath(levelInfo.path);
+                    if (verifyFile) {
+                        console.log(`[MOCManager] ✅ Verification: MOC file exists for level ${levelInfo.level}`);
+                    } else {
+                        console.error(`[MOCManager] ❌ Verification FAILED: MOC file missing for level ${levelInfo.level}: ${levelInfo.path}`);
+                        throw new Error(`MOC file creation verification failed for level ${levelInfo.level}`);
+                    }
+                } catch (levelError) {
+                    console.error(`[MOCManager] ❌ MOC creation failed for level ${levelInfo.level}:`, levelError);
+                    throw new Error(`Level ${levelInfo.level} MOC creation failed: ${levelError.message}`);
+                }
             }
         }
         console.log('[MOCManager] 🎉 All MOC levels processed');
@@ -2023,8 +2823,58 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
         return hasEnoughCommon;
     }
 
+    private isInCorrectHierarchyPath(existingPath: string, targetLevelInfo: any, hierarchy: MOCHierarchy): boolean {
+        console.log(`[MOCManager] 🔍 Checking hierarchy path match:`);
+        console.log(`[MOCManager] 🔍   Existing path: ${existingPath}`);
+        console.log(`[MOCManager] 🔍   Target path: ${targetLevelInfo.path}`);
+        console.log(`[MOCManager] 🔍   Target level: ${targetLevelInfo.level}`);
+        
+        // For level 1 (domain), just check if it's in the MOCs root
+        if (targetLevelInfo.level === 1) {
+            const isRootLevel = existingPath.split('/').length === 2; // MOCs/00-Domain MOC.md
+            const domainMatch = existingPath.includes(hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_'));
+            console.log(`[MOCManager] 🔍   Level 1 check: isRootLevel=${isRootLevel}, domainMatch=${domainMatch}`);
+            return isRootLevel && domainMatch;
+        }
+        
+        // For level 2 (area), check if it's under the correct domain
+        if (targetLevelInfo.level === 2) {
+            const expectedDomainPath = `MOCs/${hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_')}/`;
+            const isCorrectDomain = existingPath.startsWith(expectedDomainPath);
+            const pathDepth = existingPath.split('/').length;
+            const isCorrectDepth = pathDepth === 3; // MOCs/Domain/00-Area MOC.md
+            console.log(`[MOCManager] 🔍   Level 2 check: isCorrectDomain=${isCorrectDomain}, isCorrectDepth=${isCorrectDepth}`);
+            return isCorrectDomain && isCorrectDepth;
+        }
+        
+        // For level 3 (topic), check if it's under the correct domain/area
+        if (targetLevelInfo.level === 3) {
+            const expectedAreaPath = `MOCs/${hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_')}/${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')}/`;
+            const isCorrectArea = existingPath.startsWith(expectedAreaPath);
+            const pathDepth = existingPath.split('/').length;
+            const isCorrectDepth = pathDepth === 4; // MOCs/Domain/Area/00-Topic MOC.md
+            console.log(`[MOCManager] 🔍   Level 3 check: isCorrectArea=${isCorrectArea}, isCorrectDepth=${isCorrectDepth}`);
+            return isCorrectArea && isCorrectDepth;
+        }
+        
+        // For level 4 (concept), check if it's under the correct domain/area/topic
+        if (targetLevelInfo.level === 4) {
+            const expectedTopicPath = `MOCs/${hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_')}/${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')}/${hierarchy.level3?.replace(/[\\/:*?"<>|]/g, '_') || 'Unknown'}/`;
+            const isCorrectTopic = existingPath.startsWith(expectedTopicPath);
+            const pathDepth = existingPath.split('/').length;
+            const isCorrectDepth = pathDepth === 5; // MOCs/Domain/Area/Topic/00-Concept MOC.md
+            console.log(`[MOCManager] 🔍   Level 4 check: isCorrectTopic=${isCorrectTopic}, isCorrectDepth=${isCorrectDepth}`);
+            return isCorrectTopic && isCorrectDepth;
+        }
+        
+        console.log(`[MOCManager] 🔍   Unknown level: ${targetLevelInfo.level}, defaulting to false`);
+        return false;
+    }
+
     private async ensureSingleMOCExists(levelInfo: any, hierarchy: MOCHierarchy, allLevels: any[]): Promise<void> {
         console.log(`[MOCManager] 🔍 ensureSingleMOCExists called for level ${levelInfo.level}:`, levelInfo);
+        console.log(`[MOCManager] 🔍 Target path: ${levelInfo.path}`);
+        console.log(`[MOCManager] 🔍 Target directory: ${levelInfo.directory}`);
         
         // Skip if this is an existing MOC we're reusing
         if (levelInfo.isExisting) {
@@ -2039,11 +2889,12 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
                 console.log(`[MOCManager] ⏭️ MOC file already exists at: ${levelInfo.path}`);
                 return;
             }
+            console.log(`[MOCManager] 📁 File doesn't exist, proceeding with creation: ${levelInfo.path}`);
         } catch (error) {
-            console.log(`[MOCManager] 📁 File doesn't exist, will create: ${levelInfo.path}`);
+            console.log(`[MOCManager] 📁 File check error (likely doesn't exist), will create: ${levelInfo.path}`, error.message);
         }
 
-        // Ensure directory structure exists
+        // Ensure directory structure exists with comprehensive error handling
         console.log(`[MOCManager] 📂 Checking/creating directory: ${levelInfo.directory}`);
         try {
             const folder = this.app.vault.getAbstractFileByPath(levelInfo.directory);
@@ -2051,35 +2902,225 @@ ${this.generateCoreConcepts(hierarchy, levelInfo.level)}
                 console.log(`[MOCManager] 🔨 Creating directory: ${levelInfo.directory}`);
                 await this.app.vault.createFolder(levelInfo.directory);
                 console.log(`[MOCManager] ✅ Directory created: ${levelInfo.directory}`);
+                
+                // Verify directory was actually created
+                const verifyFolder = this.app.vault.getAbstractFileByPath(levelInfo.directory);
+                if (!verifyFolder) {
+                    throw new Error(`Directory creation failed - folder not found after creation: ${levelInfo.directory}`);
+                }
             } else {
                 console.log(`[MOCManager] ✅ Directory already exists: ${levelInfo.directory}`);
             }
         } catch (error) {
             console.error(`[MOCManager] ❌ Error creating directory ${levelInfo.directory}:`, error);
-            return; // Don't proceed if directory creation fails
+            
+            // Try alternative directory creation strategies
+            try {
+                console.log(`[MOCManager] 🔄 Attempting alternative directory creation strategy...`);
+                await this.createDirectoryRecursively(levelInfo.directory);
+                console.log(`[MOCManager] ✅ Alternative directory creation successful`);
+            } catch (altError) {
+                console.error(`[MOCManager] ❌ Alternative directory creation also failed:`, altError);
+                throw new Error(`Failed to create directory ${levelInfo.directory}: ${error.message}. Alternative strategy also failed: ${altError.message}`);
+            }
         }
 
         // Create MOC content with hierarchical navigation
         console.log(`[MOCManager] 📝 Generating MOC content for level ${levelInfo.level}`);
-        const mocContent = await this.createHierarchicalMOCTemplate(levelInfo, hierarchy, allLevels);
-        console.log(`[MOCManager] 📝 MOC content generated, length: ${mocContent.length}`);
-        
-        // Create the MOC file
-        console.log(`[MOCManager] 💾 Creating MOC file: ${levelInfo.path}`);
+        let mocContent: string;
         try {
-            const createdFile = await this.app.vault.create(levelInfo.path, mocContent);
-            console.log(`[MOCManager] ✅ Successfully created MOC file:`, createdFile.path);
-        } catch (error) {
-            console.error(`[MOCManager] ❌ Error creating MOC file ${levelInfo.path}:`, error);
-            console.error(`[MOCManager] ❌ Error details:`, {
-                message: error.message,
-                code: error.code,
-                path: levelInfo.path,
-                directory: levelInfo.directory
-            });
-            // Re-throw the error so calling code can handle it
-            throw new Error(`Failed to create MOC file at ${levelInfo.path}: ${error.message}`);
+            mocContent = await this.createHierarchicalMOCTemplate(levelInfo, hierarchy, allLevels);
+            console.log(`[MOCManager] 📝 MOC content generated, length: ${mocContent.length}`);
+            
+            if (!mocContent || mocContent.length < 10) {
+                throw new Error('MOC content is empty or too short');
+            }
+        } catch (contentError) {
+            console.error(`[MOCManager] ❌ Error generating MOC content:`, contentError);
+            // Create fallback content
+            mocContent = this.createFallbackMOCContent(levelInfo, hierarchy);
+            console.log(`[MOCManager] 🔄 Using fallback MOC content, length: ${mocContent.length}`);
         }
+        
+        // Create the MOC file with retry mechanism
+        console.log(`[MOCManager] 💾 Creating MOC file: ${levelInfo.path}`);
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (attempts < maxAttempts) {
+            try {
+                // Verify the path is valid before attempting to create
+                if (!levelInfo.path || levelInfo.path.trim() === '') {
+                    throw new Error('Invalid MOC path - path is empty');
+                }
+                
+                if (!levelInfo.path.endsWith('.md')) {
+                    throw new Error(`Invalid MOC path - does not end with .md: ${levelInfo.path}`);
+                }
+                
+                console.log(`[MOCManager] 🎯 Attempt ${attempts + 1}/${maxAttempts} to create MOC file: ${levelInfo.path}`);
+                const createdFile = await this.app.vault.create(levelInfo.path, mocContent);
+                console.log(`[MOCManager] ✅ Successfully created MOC file:`, createdFile.path);
+                
+                // Verify the file was actually created and is readable
+                try {
+                    const verifyContent = await this.app.vault.read(createdFile);
+                    if (!verifyContent || verifyContent.length === 0) {
+                        throw new Error('Created file is empty or unreadable');
+                    }
+                    console.log(`[MOCManager] ✅ MOC file verification successful - content length: ${verifyContent.length}`);
+                } catch (verifyError) {
+                    console.error(`[MOCManager] ❌ MOC file verification failed:`, verifyError);
+                    throw new Error(`MOC file created but verification failed: ${verifyError.message}`);
+                }
+                
+                return; // Success - exit the retry loop
+                
+            } catch (error) {
+                attempts++;
+                console.error(`[MOCManager] ❌ Attempt ${attempts} failed to create MOC file ${levelInfo.path}:`, error);
+                console.error(`[MOCManager] ❌ Error details:`, {
+                    message: error.message,
+                    code: error.code,
+                    path: levelInfo.path,
+                    directory: levelInfo.directory,
+                    attempt: attempts,
+                    maxAttempts: maxAttempts
+                });
+                
+                if (attempts < maxAttempts) {
+                    console.log(`[MOCManager] 🔄 Retrying in 1 second... (attempt ${attempts + 1}/${maxAttempts})`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Try alternative file path on retry
+                    if (attempts === 2) {
+                        const originalPath = levelInfo.path;
+                        levelInfo.path = this.generateAlternativePath(levelInfo);
+                        console.log(`[MOCManager] 🔄 Trying alternative path: ${originalPath} → ${levelInfo.path}`);
+                    }
+                } else {
+                    // Final attempt failed - provide comprehensive error information
+                    const detailedError = await this.generateDetailedErrorInfo(levelInfo, error);
+                    throw new Error(`Failed to create MOC file after ${maxAttempts} attempts at ${levelInfo.path}: ${error.message}\n\nDetailed Error Info:\n${detailedError}`);
+                }
+            }
+        }
+    }
+
+    private async createDirectoryRecursively(directoryPath: string): Promise<void> {
+        const parts = directoryPath.split('/');
+        let currentPath = '';
+        
+        for (const part of parts) {
+            if (part.trim() === '') continue;
+            
+            currentPath = currentPath ? `${currentPath}/${part}` : part;
+            
+            try {
+                const folder = this.app.vault.getAbstractFileByPath(currentPath);
+                if (!folder) {
+                    console.log(`[MOCManager] 🔨 Creating directory part: ${currentPath}`);
+                    await this.app.vault.createFolder(currentPath);
+                }
+            } catch (error) {
+                console.log(`[MOCManager] ⚠️ Could not create directory part ${currentPath}:`, error);
+                // Continue anyway - sometimes folders exist but can't be detected
+            }
+        }
+    }
+
+    private createFallbackMOCContent(levelInfo: any, hierarchy: MOCHierarchy): string {
+        const levelName = this.getLevelName(levelInfo.level);
+        const timestamp = new Date().toISOString();
+        
+        return `---
+title: "${levelInfo.title}"
+type: "moc"
+level: ${levelInfo.level}
+domain: "${hierarchy.level1}"
+created: "${timestamp}"
+updated: "${timestamp}"
+tags: ["#moc", "#${hierarchy.level1.toLowerCase().replace(/\s+/g, '-')}"]
+note_count: 0
+status: "auto-generated-fallback"
+---
+
+# ${levelInfo.title}
+
+> [!info] Auto-Generated ${levelName}
+> This MOC was automatically created as a fallback when the primary template generation failed.
+
+## Overview
+This is a ${levelName.toLowerCase()} for organizing knowledge related to **${levelInfo.title}**.
+
+## Core Concepts
+<!-- Key concepts will be added here as notes are organized -->
+
+## Learning Paths  
+<!-- Learning pathways will be developed as content grows -->
+
+## Prerequisites
+<!-- Prerequisites will be identified as the knowledge structure develops -->
+
+## Notes
+<!-- Notes will be automatically added here -->
+
+---
+*Last updated: ${timestamp}*
+`;
+    }
+
+    private generateAlternativePath(levelInfo: any): string {
+        const timestamp = Date.now();
+        const originalPath = levelInfo.path;
+        const pathParts = originalPath.split('/');
+        const fileName = pathParts[pathParts.length - 1];
+        const fileNameWithoutExt = fileName.replace('.md', '');
+        const directory = pathParts.slice(0, -1).join('/');
+        
+        // Create alternative filename with timestamp
+        const alternativeFileName = `${fileNameWithoutExt}-${timestamp}.md`;
+        return `${directory}/${alternativeFileName}`;
+    }
+
+    private async generateDetailedErrorInfo(levelInfo: any, error: any): Promise<string> {
+        let errorInfo = `Original Error: ${error.message}\n`;
+        errorInfo += `Error Code: ${error.code || 'N/A'}\n`;
+        errorInfo += `Attempted Path: ${levelInfo.path}\n`;
+        errorInfo += `Directory: ${levelInfo.directory}\n`;
+        errorInfo += `Level Info: ${JSON.stringify(levelInfo, null, 2)}\n`;
+        
+        // Check directory existence
+        try {
+            const folder = this.app.vault.getAbstractFileByPath(levelInfo.directory);
+            errorInfo += `Directory Exists: ${!!folder}\n`;
+            
+            if (folder) {
+                const children = (folder as any).children || [];
+                errorInfo += `Directory Contents (${children.length} items):\n`;
+                children.forEach((child: any, index: number) => {
+                    errorInfo += `  ${index + 1}. ${child.name} (${child.path})\n`;
+                });
+            }
+        } catch (dirError) {
+            errorInfo += `Directory Check Error: ${dirError.message}\n`;
+        }
+        
+        // Check vault state
+        try {
+            const allFiles = this.app.vault.getAllLoadedFiles();
+            errorInfo += `Total Vault Files: ${allFiles.length}\n`;
+            
+            const mocFiles = allFiles.filter(f => f.path.includes('MOC'));
+            errorInfo += `Existing MOC Files: ${mocFiles.length}\n`;
+            mocFiles.slice(0, 5).forEach((f, index) => {
+                errorInfo += `  ${index + 1}. ${f.path}\n`;
+            });
+        } catch (vaultError) {
+            errorInfo += `Vault State Check Error: ${vaultError.message}\n`;
+        }
+        
+        return errorInfo;
     }
 
     private async getMostSpecificMOCPath(hierarchy: MOCHierarchy): Promise<string> {
