@@ -4,26 +4,27 @@
 	"description": "Building your knowledge base with AI",
 	"main": "main.js",
 	"scripts": {
-	  "dev": "node esbuild.config.mjs",
-	  "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-	  "version": "node version-bump.mjs && git add manifest.json versions.json"
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
 	"keywords": [],
 	"author": "Your Name",
 	"license": "MIT",
 	"devDependencies": {
-	  "@types/node": "^16.11.6",
-	  "@typescript-eslint/eslint-plugin": "5.29.0",
-	  "@typescript-eslint/parser": "5.29.0",
-	  "builtin-modules": "3.3.0",
-	  "esbuild": "0.17.3",
-	  "obsidian": "latest",
-	  "tslib": "2.4.0",
-	  "typescript": "4.7.4"
+		"@types/node": "^16.11.6",
+		"@typescript-eslint/eslint-plugin": "5.29.0",
+		"@typescript-eslint/parser": "5.29.0",
+		"builtin-modules": "3.3.0",
+		"esbuild": "0.17.3",
+		"obsidian": "latest",
+		"tslib": "2.4.0",
+		"typescript": "4.7.4"
 	},
 	"dependencies": {
-	  "axios": "^1.7.4",
-	  "@google/generative-ai": "^0.1.0",
-	  "path": "^0.12.7"
+		"@google/generative-ai": "^0.1.0",
+		"axios": "^1.7.4",
+		"opik": "^1.7.36",
+		"path": "^0.12.7"
 	}
-  }
+}

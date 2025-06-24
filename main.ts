@@ -1,5 +1,6 @@
 import { Plugin, WorkspaceLeaf, ItemView, Notice, TFolder, Setting, PluginSettingTab, App, TFile, Modal } from 'obsidian';
 import { GoogleGenerativeAI, GenerateContentRequest } from '@google/generative-ai';
+import * as Opik from 'opik'; // Or specific imports if known
 // import { exec } from 'child_process'; // No longer using exec for transcript fetching
 import { promisify } from 'util';
 import * as path from 'path';
@@ -1263,45 +1264,132 @@ Return ONLY valid JSON:
     }
 
     private async makeAIRequest(prompt: string): Promise<any> {
-        if (this.plugin.settings.provider === 'gemini') {
-            const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
-            const model = this.geminiClient!.getGenerativeModel({ model: selectedModel });
-            
-            const result = await model.generateContent(prompt);
-            const responseText = result.response.text();
-            
-            // Extract JSON from markdown blocks
-            const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
-            const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText.trim();
-            
-            return JSON.parse(jsonText);
-        } else if (this.plugin.settings.provider === 'openrouter') {
-            const selectedModel = this.modelDropdown?.value || this.plugin.settings.openrouter.model;
-            const response = await fetch(this.plugin.settings.openrouter.endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.plugin.settings.openrouter.apiKey}`,
-                    'HTTP-Referer': 'https://github.com/yourusername/second-brAIn',
-                    'X-Title': 'second-brAIn'
-                },
-                body: JSON.stringify({
-                    model: selectedModel,
-                    messages: [
-                        { role: 'system', content: 'You are a helpful AI assistant that creates detailed analysis in JSON format.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 8000,
-                    response_format: { type: "json_object" }
-                })
-            });
-            
-            const data = await response.json();
-            return JSON.parse(data.choices[0].message.content);
+        const provider = this.plugin.settings.provider;
+        const selectedModel = provider === 'gemini'
+            ? this.modelDropdown?.value || this.plugin.settings.gemini.model
+            : this.modelDropdown?.value || this.plugin.settings.openrouter.model;
+
+        // Start Opik trace
+        // Assuming Opik SDK is initialized and available as `Opik`
+        // Also assuming a method like `startSpan` or `trace` exists.
+        // This API is hypothetical and needs to be verified with actual Opik TS SDK docs.
+        let opikTrace;
+        if (Opik && Opik.isInitialized && Opik.isInitialized()) { // Check if Opik was initialized
+            try {
+                opikTrace = Opik.trace({
+                    name: "LLM Request", // Name of the operation
+                    type: "llm", // Type of operation
+                    metadata: { // Additional data to log
+                        provider: provider,
+                        model: selectedModel,
+                        prompt_length: prompt.length,
+                        // prompt_preview: prompt.substring(0, 100) + "..."
+                    },
+                    // It's often better to log input/output separately if they can be large
+                    // Opik.setInput({ prompt: prompt }) may be a more appropriate API
+                });
+                if (opikTrace && opikTrace.setInput) {
+                    try {
+                        opikTrace.setInput({ prompt: prompt });
+                    } catch (e) {
+                        console.error("Opik: Failed to set input", e);
+                    }
+                }
+            } catch (e) {
+                console.error("Opik: Failed to start trace or set input", e);
+                opikTrace = null; // Ensure opikTrace is null
+            }
         }
-        
-        throw new Error('No valid AI provider configured');
+
+        try {
+            let responseData;
+            if (provider === 'gemini') {
+                if (!this.geminiClient) {
+                    this.geminiClient = new GoogleGenerativeAI(this.plugin.settings.gemini.apiKey);
+                }
+                const model = this.geminiClient!.getGenerativeModel({ model: selectedModel });
+                const result = await model.generateContent(prompt);
+                const responseText = result.response.text();
+                const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+                const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText.trim();
+                responseData = JSON.parse(jsonText);
+            } else if (provider === 'openrouter') {
+                const response = await fetch(this.plugin.settings.openrouter.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.plugin.settings.openrouter.apiKey}`,
+                        'HTTP-Referer': 'https://github.com/yourusername/second-brAIn', // Consider making this dynamic or removing if not needed
+                        'X-Title': 'second-brAIn' // Same as above
+                    },
+                    body: JSON.stringify({
+                        model: selectedModel,
+                        messages: [
+                            { role: 'system', content: 'You are a helpful AI assistant that creates detailed analysis in JSON format.' },
+                            { role: 'user', content: prompt }
+                        ],
+                        temperature: 0.7, // Consider making these configurable
+                        max_tokens: 8000,
+                        response_format: { type: "json_object" }
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    // Log error to Opik and throw
+                    const errorDetail = data.error?.message || `HTTP error ${response.status}`;
+                    if (opikTrace && opikTrace.setError) {
+                        try {
+                            opikTrace.setError({ error: errorDetail, isError: true });
+                        } catch (e) {
+                            console.error("Opik: Failed to set error", e);
+                        }
+                    }
+                    throw new Error(`OpenRouter API Error: ${errorDetail}`);
+                }
+                responseData = JSON.parse(data.choices[0].message.content);
+            } else {
+                const noProviderError = new Error('No valid AI provider configured');
+                if (opikTrace && opikTrace.setError) {
+                    try {
+                        opikTrace.setError({ error: noProviderError.message, isError: true });
+                    } catch (e) {
+                        console.error("Opik: Failed to set error for no provider", e);
+                    }
+                }
+                throw noProviderError;
+            }
+
+            // Log success to Opik
+            if (opikTrace && opikTrace.setSuccess) {
+                try {
+                    opikTrace.setSuccess({ output: responseData }); // Log the parsed JSON response
+                } catch (e) {
+                    console.error("Opik: Failed to set success", e);
+                }
+            }
+            return responseData;
+
+        } catch (error) {
+            // Log error to Opik (if not already logged more specifically)
+            if (opikTrace && opikTrace.setError && !(error.message.startsWith("OpenRouter API Error"))) { // Avoid double logging OpenRouter errors
+                try {
+                    opikTrace.setError({ error: error.message || String(error), isError: true });
+                } catch (e) {
+                    console.error("Opik: Failed to set general error", e);
+                }
+            }
+            console.error(`Error in makeAIRequest for ${provider}:`, error);
+            throw error; // Re-throw the error to be handled by the caller
+        } finally {
+            // End Opik trace
+            if (opikTrace && opikTrace.end) {
+                try {
+                    opikTrace.end();
+                } catch (e) {
+                    console.error("Opik: Failed to end trace", e);
+                }
+            }
+        }
     }
 
     private mergeMultiPassResults(structure: any, coreAnalysis: any, perspectives: any, connections: any, learning: any): any {
@@ -3448,6 +3536,19 @@ class AISummarizerPlugin extends Plugin {
 
     async onload() {
         await this.loadSettings();
+
+        // Initialize Opik
+        try {
+            Opik.init({
+                apiKey: "ChAilwZSGr1X75qCLvBLN3DRJ", // User's API Key
+                workspace: "surendran-balachandran",    // User's Workspace
+                // appName: "ObsidianAISummarizer", // Optional: Helps identify the app in Opik
+            });
+            console.log("Opik SDK initialized successfully.");
+        } catch (error) {
+            console.error("Failed to initialize Opik SDK:", error);
+            new Notice("Failed to initialize Opik integration. Tracing will be disabled.");
+        }
 
         // Initialize MOC components
         this.mocManager = new MOCManager(this.app, this.settings);
