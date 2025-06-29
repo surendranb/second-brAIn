@@ -96,6 +96,13 @@ export interface PluginSettings {
     defaultPrompt: string;
     mocFolder: string; // Root folder for knowledge organization (both notes and MOCs)
     enableMOC: boolean; // Toggle for MOC functionality
+    analysisPrompts: {
+        structure: string;
+        content: string;
+        perspectives: string;
+        connections: string;
+        learning: string;
+    };
 }
 
 // Available Models
@@ -171,7 +178,251 @@ const DEFAULT_SETTINGS: PluginSettings = {
     },
     defaultPrompt: DEFAULT_SUMMARIZATION_PROMPT,
     mocFolder: 'MOCs',
-    enableMOC: true
+    enableMOC: true,
+    analysisPrompts: {
+        structure: `You are an expert knowledge organizer. Analyze this content and return comprehensive structure and metadata.
+
+EXISTING KNOWLEDGE HIERARCHY:
+{HIERARCHY_CONTEXT}
+
+INSTRUCTIONS:
+1. Create an optimal title that captures the essence
+2. Determine the best hierarchy placement (avoid duplicates, use existing when appropriate)
+3. Extract comprehensive metadata (speakers, topics, key concepts, tags)
+4. Assess learning context (prerequisites, complexity, reading time)
+5. Provide a concise overview (2-3 sentences)
+
+{ADDITIONAL_INSTRUCTIONS}
+
+Content to analyze:
+{CONTENT}
+
+Return ONLY valid JSON:
+{
+  "title": "Comprehensive title",
+  "hierarchy": {
+    "level1": "Domain",
+    "level2": "Area", 
+    "level3": "Topic",
+    "level4": "Concept"
+  },
+  "metadata": {
+    "speakers": ["speaker1", "speaker2"],
+    "topics": ["topic1", "topic2"],
+    "key_concepts": ["concept1", "concept2"],
+    "tags": ["#tag1", "#tag2"],
+    "related": ["related1", "related2"]
+  },
+  "learning_context": {
+    "prerequisites": ["prereq1", "prereq2"],
+    "related_concepts": ["concept1", "concept2"],
+    "learning_path": ["step1", "step2"],
+    "complexity_level": "beginner|intermediate|advanced",
+    "estimated_reading_time": "X minutes"
+  },
+  "overview": "Brief 2-3 sentence overview of the content"
+}`,
+        content: `You are an expert content analyst. Provide deep, comprehensive analysis of this content.
+
+CONTENT CONTEXT:
+Title: {TITLE}
+Domain: {DOMAIN}
+Topic: {TOPIC}
+
+INSTRUCTIONS:
+Create comprehensive analysis sections. Be thorough and detailed - there are no length limits.
+
+{ADDITIONAL_INSTRUCTIONS}
+
+Content to analyze:
+{CONTENT}
+
+Return ONLY valid JSON:
+{
+  "context": "Detailed background and why this matters (200+ words)",
+  "key_facts": [
+    "Fact 1 with detailed explanation",
+    "Fact 2 with detailed explanation",
+    "Fact 3 with detailed explanation"
+  ],
+  "deep_insights": [
+    "Insight 1: Deep analysis of patterns, implications, connections",
+    "Insight 2: Another profound insight with reasoning",
+    "Insight 3: Third insight connecting to broader themes"
+  ],
+  "core_concepts": [
+    "Concept 1: Detailed explanation and significance", 
+    "Concept 2: Another key concept with context",
+    "Concept 3: Third important concept"
+  ],
+  "detailed_summary": "Comprehensive 300+ word summary covering all major points"
+}`,
+        perspectives: `You are an expert at analyzing multiple viewpoints and creating practical examples.
+
+CONTENT CONTEXT:
+Title: {TITLE}
+Overview: {OVERVIEW}
+
+INSTRUCTIONS:
+Analyze different perspectives and create rich examples. Be comprehensive and detailed.
+
+{ADDITIONAL_INSTRUCTIONS}
+
+Content to analyze:
+{CONTENT}
+
+Return ONLY valid JSON:
+{
+  "multiple_perspectives": [
+    {
+      "viewpoint": "Academic/Research Perspective",
+      "analysis": "Detailed analysis from this viewpoint (100+ words)"
+    },
+    {
+      "viewpoint": "Industry/Practical Perspective", 
+      "analysis": "Detailed analysis from this viewpoint (100+ words)"
+    },
+    {
+      "viewpoint": "Critical/Skeptical Perspective",
+      "analysis": "Detailed analysis from this viewpoint (100+ words)"
+    }
+  ],
+  "analogies_examples": [
+    {
+      "concept": "Key concept being explained",
+      "analogy": "Detailed analogy with clear explanation",
+      "real_world_example": "Concrete real-world example with context"
+    },
+    {
+      "concept": "Another key concept",
+      "analogy": "Another detailed analogy",
+      "real_world_example": "Another concrete example"
+    }
+  ],
+  "case_studies": [
+    "Detailed case study 1 showing practical application",
+    "Detailed case study 2 with different context",
+    "Detailed case study 3 highlighting challenges"
+  ]
+}`,
+        connections: `You are an expert at finding connections and practical applications.
+
+CONTENT CONTEXT:
+Title: {TITLE}
+Domain: {DOMAIN}
+Key Concepts: {KEY_CONCEPTS}
+
+INSTRUCTIONS:
+Find deep connections and practical applications. Be thorough and specific.
+
+{ADDITIONAL_INSTRUCTIONS}
+
+Content to analyze:
+{CONTENT}
+
+Return ONLY valid JSON:
+{
+  "knowledge_connections": [
+    {
+      "related_field": "Connected field/domain",
+      "connection_type": "How they connect",
+      "detailed_explanation": "Deep explanation of the connection (100+ words)"
+    },
+    {
+      "related_field": "Another connected field",
+      "connection_type": "Type of connection",
+      "detailed_explanation": "Another detailed explanation"
+    }
+  ],
+  "practical_applications": [
+    {
+      "domain": "Application domain",
+      "application": "Specific application",
+      "implementation": "How to implement/use this (100+ words)",
+      "benefits": "Expected benefits and outcomes"
+    },
+    {
+      "domain": "Another domain",
+      "application": "Another application", 
+      "implementation": "Implementation details",
+      "benefits": "Benefits and outcomes"
+    }
+  ],
+  "implications_consequences": [
+    "Long-term implication 1 with detailed reasoning",
+    "Long-term implication 2 with analysis",
+    "Potential unintended consequence with explanation"
+  ]
+}`,
+        learning: `You are an expert learning designer and action planner.
+
+CONTENT CONTEXT:
+Title: {TITLE}
+Complexity: {COMPLEXITY}
+Prerequisites: {PREREQUISITES}
+
+INSTRUCTIONS:
+Create comprehensive learning paths and actionable next steps.
+
+{ADDITIONAL_INSTRUCTIONS}
+
+Content to analyze:
+{CONTENT}
+
+Return ONLY valid JSON:
+{
+  "knowledge_gaps": [
+    "Specific gap 1 with explanation of why it matters",
+    "Specific gap 2 with learning strategy",
+    "Specific gap 3 with resources needed"
+  ],
+  "learning_pathways": [
+    {
+      "pathway_name": "Beginner Path",
+      "steps": [
+        "Step 1: Detailed description and resources",
+        "Step 2: Next step with specific actions",
+        "Step 3: Advanced step with outcomes"
+      ],
+      "estimated_time": "Time estimate",
+      "difficulty": "difficulty level"
+    },
+    {
+      "pathway_name": "Advanced Path",
+      "steps": [
+        "Advanced step 1 with details",
+        "Advanced step 2 with specifics",
+        "Advanced step 3 with outcomes"
+      ],
+      "estimated_time": "Time estimate", 
+      "difficulty": "difficulty level"
+    }
+  ],
+  "actionable_next_steps": [
+    {
+      "category": "Immediate Actions",
+      "actions": [
+        "Specific action 1 with clear instructions",
+        "Specific action 2 with expected outcomes",
+        "Specific action 3 with timeline"
+      ]
+    },
+    {
+      "category": "Medium-term Goals",
+      "actions": [
+        "Goal 1 with strategy and metrics",
+        "Goal 2 with approach and timeline",
+        "Goal 3 with resources needed"
+      ]
+    }
+  ],
+  "reflection_questions": [
+    "Deep question 1 to promote critical thinking",
+    "Deep question 2 to connect to personal experience", 
+    "Deep question 3 to explore implications"
+  ]
+}`
+    }
 };
 
 class SummaryView extends ItemView {
@@ -278,12 +529,12 @@ class SummaryView extends ItemView {
         const optionsHeader = contentEl.createEl('h3', { text: 'Options' });
         optionsHeader.style.marginTop = '24px';
 
-        // Prompt collapsible
-        const promptToggle = formContainer.createEl('button', { text: 'Show Prompt', cls: 'ai-summarizer-prompt-toggle' }) as HTMLButtonElement;
+        // Additional Instructions collapsible
+        const promptToggle = formContainer.createEl('button', { text: 'Additional Instructions', cls: 'ai-summarizer-prompt-toggle' }) as HTMLButtonElement;
         promptToggle.setAttribute('aria-expanded', 'false');
         promptToggle.style.marginBottom = '8px';
 
-        const promptHelp = formContainer.createEl('div', { text: '(Optional) Edit the prompt to customize the note structure.', cls: 'ai-summarizer-prompt-help' });
+        const promptHelp = formContainer.createEl('div', { text: '(Optional) Add additional instructions to customize the analysis focus.', cls: 'ai-summarizer-prompt-help' });
         promptHelp.style.fontSize = '0.9em';
         promptHelp.style.color = 'var(--text-muted)';
         promptHelp.style.marginBottom = '4px';
@@ -298,11 +549,11 @@ class SummaryView extends ItemView {
             const expanded = promptToggle.getAttribute('aria-expanded') === 'true';
             if (expanded) {
                 this.promptInput.style.display = 'none';
-                promptToggle.innerText = 'Show Prompt';
+                promptToggle.innerText = 'Additional Instructions';
                 promptToggle.setAttribute('aria-expanded', 'false');
             } else {
                 this.promptInput.style.display = 'block';
-                promptToggle.innerText = 'Hide Prompt';
+                promptToggle.innerText = 'Hide Instructions';
                 promptToggle.setAttribute('aria-expanded', 'true');
             }
         };
@@ -978,25 +1229,28 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     private async generateComprehensiveNote(text: string, prompt: string, url: string, hierarchyContext: string): Promise<any> {
         console.log('[GenerateComprehensiveNote] 🎯 Starting multi-pass comprehensive analysis');
         
+        // Get additional instructions from the UI
+        const additionalInstructions = this.promptInput.value;
+        
         // Pass 1: Structure & Metadata (Essential Foundation)
         console.log('[GenerateComprehensiveNote] 📋 Pass 1: Analyzing structure and metadata...');
-        const structure = await this.analyzeStructureAndMetadata(text, hierarchyContext);
+        const structure = await this.analyzeStructureAndMetadata(text, hierarchyContext, additionalInstructions);
         
         // Pass 2: Deep Content Analysis (Core Knowledge)
         console.log('[GenerateComprehensiveNote] 🧠 Pass 2: Deep content analysis...');
-        const coreAnalysis = await this.analyzeContentDepth(text, structure);
+        const coreAnalysis = await this.analyzeContentDepth(text, structure, additionalInstructions);
         
         // Pass 3: Perspectives & Examples (Multiple Viewpoints)
         console.log('[GenerateComprehensiveNote] 👁️ Pass 3: Multiple perspectives and examples...');
-        const perspectives = await this.analyzePerspectivesAndExamples(text, structure);
+        const perspectives = await this.analyzePerspectivesAndExamples(text, structure, additionalInstructions);
         
         // Pass 4: Connections & Applications (Knowledge Integration)
         console.log('[GenerateComprehensiveNote] 🔗 Pass 4: Connections and applications...');
-        const connections = await this.analyzeConnectionsAndApplications(text, structure);
+        const connections = await this.analyzeConnectionsAndApplications(text, structure, additionalInstructions);
         
         // Pass 5: Learning & Next Steps (Actionable Knowledge)
         console.log('[GenerateComprehensiveNote] 🎯 Pass 5: Learning paths and next steps...');
-        const learning = await this.analyzeLearningAndNextSteps(text, structure);
+        const learning = await this.analyzeLearningAndNextSteps(text, structure, additionalInstructions);
         
         // Merge all passes into comprehensive result
         const comprehensiveResult = this.mergeMultiPassResults(structure, coreAnalysis, perspectives, connections, learning);
@@ -1005,259 +1259,89 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         return comprehensiveResult;
     }
 
-    private async analyzeStructureAndMetadata(text: string, hierarchyContext: string): Promise<any> {
-        const structurePrompt = `You are an expert knowledge organizer. Analyze this content and return comprehensive structure and metadata.
+    private injectAdditionalInstructions(basePrompt: string, additionalInstructions: string, context: any = {}): string {
+        let processedPrompt = basePrompt;
+        
+        // Replace placeholders with context values
+        processedPrompt = processedPrompt.replace('{HIERARCHY_CONTEXT}', context.hierarchyContext || '');
+        processedPrompt = processedPrompt.replace('{CONTENT}', context.content || '{CONTENT}');
+        processedPrompt = processedPrompt.replace('{TITLE}', context.title || 'Unknown');
+        processedPrompt = processedPrompt.replace('{DOMAIN}', context.domain || 'General');
+        processedPrompt = processedPrompt.replace('{TOPIC}', context.topic || 'Miscellaneous');
+        processedPrompt = processedPrompt.replace('{OVERVIEW}', context.overview || 'No overview available');
+        processedPrompt = processedPrompt.replace('{KEY_CONCEPTS}', context.keyConcepts || 'None identified');
+        processedPrompt = processedPrompt.replace('{COMPLEXITY}', context.complexity || 'intermediate');
+        processedPrompt = processedPrompt.replace('{PREREQUISITES}', context.prerequisites || 'None specified');
+        
+        // Inject additional instructions
+        if (additionalInstructions && additionalInstructions.trim()) {
+            const additionalSection = `\nADDITIONAL FOCUS:\n${additionalInstructions.trim()}\n`;
+            processedPrompt = processedPrompt.replace('{ADDITIONAL_INSTRUCTIONS}', additionalSection);
+        } else {
+            processedPrompt = processedPrompt.replace('{ADDITIONAL_INSTRUCTIONS}', '');
+        }
+        
+        return processedPrompt;
+    }
 
-EXISTING KNOWLEDGE HIERARCHY:
-${hierarchyContext}
-
-INSTRUCTIONS:
-1. Create an optimal title that captures the essence
-2. Determine the best hierarchy placement (avoid duplicates, use existing when appropriate)
-3. Extract comprehensive metadata (speakers, topics, key concepts, tags)
-4. Assess learning context (prerequisites, complexity, reading time)
-5. Provide a concise overview (2-3 sentences)
-
-Content to analyze:
-${text.substring(0, 6000)}
-
-Return ONLY valid JSON:
-{
-  "title": "Comprehensive title",
-  "hierarchy": {
-    "level1": "Domain",
-    "level2": "Area", 
-    "level3": "Topic",
-    "level4": "Concept"
-  },
-  "metadata": {
-    "speakers": ["speaker1", "speaker2"],
-    "topics": ["topic1", "topic2"],
-    "key_concepts": ["concept1", "concept2"],
-    "tags": ["#tag1", "#tag2"],
-    "related": ["related1", "related2"]
-  },
-  "learning_context": {
-    "prerequisites": ["prereq1", "prereq2"],
-    "related_concepts": ["concept1", "concept2"],
-    "learning_path": ["step1", "step2"],
-    "complexity_level": "beginner|intermediate|advanced",
-    "estimated_reading_time": "X minutes"
-  },
-  "overview": "Brief 2-3 sentence overview of the content"
-}`;
+    private async analyzeStructureAndMetadata(text: string, hierarchyContext: string, additionalInstructions: string = ''): Promise<any> {
+        const basePrompt = this.plugin.settings.analysisPrompts.structure;
+        const context = {
+            hierarchyContext,
+            content: text.substring(0, 6000)
+        };
+        const structurePrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
 
         return await this.makeAIRequest(structurePrompt);
     }
 
-    private async analyzeContentDepth(text: string, structure: any): Promise<any> {
-        const depthPrompt = `You are an expert content analyst. Provide deep, comprehensive analysis of this content.
-
-CONTENT CONTEXT:
-Title: ${structure.title || 'Unknown'}
-Domain: ${structure.hierarchy?.level1 || 'General'}
-Topic: ${structure.hierarchy?.level2 || 'Miscellaneous'}
-
-INSTRUCTIONS:
-Create comprehensive analysis sections. Be thorough and detailed - there are no length limits.
-
-Content to analyze:
-${text}
-
-Return ONLY valid JSON:
-{
-  "context": "Detailed background and why this matters (200+ words)",
-  "key_facts": [
-    "Fact 1 with detailed explanation",
-    "Fact 2 with detailed explanation",
-    "Fact 3 with detailed explanation"
-  ],
-  "deep_insights": [
-    "Insight 1: Deep analysis of patterns, implications, connections",
-    "Insight 2: Another profound insight with reasoning",
-    "Insight 3: Third insight connecting to broader themes"
-  ],
-  "core_concepts": [
-    "Concept 1: Detailed explanation and significance", 
-    "Concept 2: Another key concept with context",
-    "Concept 3: Third important concept"
-  ],
-  "detailed_summary": "Comprehensive 300+ word summary covering all major points"
-}`;
+    private async analyzeContentDepth(text: string, structure: any, additionalInstructions: string = ''): Promise<any> {
+        const basePrompt = this.plugin.settings.analysisPrompts.content;
+        const context = {
+            content: text,
+            title: structure.title || 'Unknown',
+            domain: structure.hierarchy?.level1 || 'General',
+            topic: structure.hierarchy?.level2 || 'Miscellaneous'
+        };
+        const depthPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
 
         return await this.makeAIRequest(depthPrompt);
     }
 
-    private async analyzePerspectivesAndExamples(text: string, structure: any): Promise<any> {
-        const perspectivesPrompt = `You are an expert at analyzing multiple viewpoints and creating practical examples.
-
-CONTENT CONTEXT:
-Title: ${structure.title || 'Unknown'}
-Overview: ${structure.overview || 'No overview available'}
-
-INSTRUCTIONS:
-Analyze different perspectives and create rich examples. Be comprehensive and detailed.
-
-Content to analyze:
-${text}
-
-Return ONLY valid JSON:
-{
-  "multiple_perspectives": [
-    {
-      "viewpoint": "Academic/Research Perspective",
-      "analysis": "Detailed analysis from this viewpoint (100+ words)"
-    },
-    {
-      "viewpoint": "Industry/Practical Perspective", 
-      "analysis": "Detailed analysis from this viewpoint (100+ words)"
-    },
-    {
-      "viewpoint": "Critical/Skeptical Perspective",
-      "analysis": "Detailed analysis from this viewpoint (100+ words)"
-    }
-  ],
-  "analogies_examples": [
-    {
-      "concept": "Key concept being explained",
-      "analogy": "Detailed analogy with clear explanation",
-      "real_world_example": "Concrete real-world example with context"
-    },
-    {
-      "concept": "Another key concept",
-      "analogy": "Another detailed analogy",
-      "real_world_example": "Another concrete example"
-    }
-  ],
-  "case_studies": [
-    "Detailed case study 1 showing practical application",
-    "Detailed case study 2 with different context",
-    "Detailed case study 3 highlighting challenges"
-  ]
-}`;
+    private async analyzePerspectivesAndExamples(text: string, structure: any, additionalInstructions: string = ''): Promise<any> {
+        const basePrompt = this.plugin.settings.analysisPrompts.perspectives;
+        const context = {
+            content: text,
+            title: structure.title || 'Unknown',
+            overview: structure.overview || 'No overview available'
+        };
+        const perspectivesPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
 
         return await this.makeAIRequest(perspectivesPrompt);
     }
 
-    private async analyzeConnectionsAndApplications(text: string, structure: any): Promise<any> {
-        const connectionsPrompt = `You are an expert at finding connections and practical applications.
-
-CONTENT CONTEXT:
-Title: ${structure.title || 'Unknown'}
-Domain: ${structure.hierarchy?.level1 || 'General'}
-Key Concepts: ${structure.metadata?.key_concepts?.join(', ') || 'None identified'}
-
-INSTRUCTIONS:
-Find deep connections and practical applications. Be thorough and specific.
-
-Content to analyze:
-${text}
-
-Return ONLY valid JSON:
-{
-  "knowledge_connections": [
-    {
-      "related_field": "Connected field/domain",
-      "connection_type": "How they connect",
-      "detailed_explanation": "Deep explanation of the connection (100+ words)"
-    },
-    {
-      "related_field": "Another connected field",
-      "connection_type": "Type of connection",
-      "detailed_explanation": "Another detailed explanation"
-    }
-  ],
-  "practical_applications": [
-    {
-      "domain": "Application domain",
-      "application": "Specific application",
-      "implementation": "How to implement/use this (100+ words)",
-      "benefits": "Expected benefits and outcomes"
-    },
-    {
-      "domain": "Another domain",
-      "application": "Another application", 
-      "implementation": "Implementation details",
-      "benefits": "Benefits and outcomes"
-    }
-  ],
-  "implications_consequences": [
-    "Long-term implication 1 with detailed reasoning",
-    "Long-term implication 2 with analysis",
-    "Potential unintended consequence with explanation"
-  ]
-}`;
+    private async analyzeConnectionsAndApplications(text: string, structure: any, additionalInstructions: string = ''): Promise<any> {
+        const basePrompt = this.plugin.settings.analysisPrompts.connections;
+        const context = {
+            content: text,
+            title: structure.title || 'Unknown',
+            domain: structure.hierarchy?.level1 || 'General',
+            keyConcepts: structure.metadata?.key_concepts?.join(', ') || 'None identified'
+        };
+        const connectionsPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
 
         return await this.makeAIRequest(connectionsPrompt);
     }
 
-    private async analyzeLearningAndNextSteps(text: string, structure: any): Promise<any> {
-        const learningPrompt = `You are an expert learning designer and action planner.
-
-CONTENT CONTEXT:
-Title: ${structure.title || 'Unknown'}
-Complexity: ${structure.learning_context?.complexity_level || 'intermediate'}
-Prerequisites: ${structure.learning_context?.prerequisites?.join(', ') || 'None specified'}
-
-INSTRUCTIONS:
-Create comprehensive learning paths and actionable next steps.
-
-Content to analyze:
-${text}
-
-Return ONLY valid JSON:
-{
-  "knowledge_gaps": [
-    "Specific gap 1 with explanation of why it matters",
-    "Specific gap 2 with learning strategy",
-    "Specific gap 3 with resources needed"
-  ],
-  "learning_pathways": [
-    {
-      "pathway_name": "Beginner Path",
-      "steps": [
-        "Step 1: Detailed description and resources",
-        "Step 2: Next step with specific actions",
-        "Step 3: Advanced step with outcomes"
-      ],
-      "estimated_time": "Time estimate",
-      "difficulty": "difficulty level"
-    },
-    {
-      "pathway_name": "Advanced Path",
-      "steps": [
-        "Advanced step 1 with details",
-        "Advanced step 2 with specifics",
-        "Advanced step 3 with outcomes"
-      ],
-      "estimated_time": "Time estimate", 
-      "difficulty": "difficulty level"
-    }
-  ],
-  "actionable_next_steps": [
-    {
-      "category": "Immediate Actions",
-      "actions": [
-        "Specific action 1 with clear instructions",
-        "Specific action 2 with expected outcomes",
-        "Specific action 3 with timeline"
-      ]
-    },
-    {
-      "category": "Medium-term Goals",
-      "actions": [
-        "Goal 1 with strategy and metrics",
-        "Goal 2 with approach and timeline",
-        "Goal 3 with resources needed"
-      ]
-    }
-  ],
-  "reflection_questions": [
-    "Deep question 1 to promote critical thinking",
-    "Deep question 2 to connect to personal experience", 
-    "Deep question 3 to explore implications"
-  ]
-}`;
+    private async analyzeLearningAndNextSteps(text: string, structure: any, additionalInstructions: string = ''): Promise<any> {
+        const basePrompt = this.plugin.settings.analysisPrompts.learning;
+        const context = {
+            content: text,
+            title: structure.title || 'Unknown',
+            complexity: structure.learning_context?.complexity_level || 'intermediate',
+            prerequisites: structure.learning_context?.prerequisites?.join(', ') || 'None specified'
+        };
+        const learningPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
 
         return await this.makeAIRequest(learningPrompt);
     }
