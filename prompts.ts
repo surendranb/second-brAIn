@@ -72,10 +72,29 @@ Please structure your response with clear sections, using bullet points for list
 export const HIERARCHY_ANALYSIS_PROMPT = `Analyze the following content and determine optimal knowledge hierarchy placement(s). CRITICAL: Detect if this content could legitimately belong in multiple domains (cross-domain content).
 
 CROSS-DOMAIN DETECTION:
-Look for content that spans multiple academic/professional domains. Examples:
-- "Semiconductor breakthroughs" → Chemistry (Materials), Physics (Solid State), Technology (Electronics)
-- "AI in healthcare" → Computer Science (AI), Medicine (Healthcare Technology), Business (Digital Health)
+Look for content that could legitimately belong in multiple domains. Be LIBERAL in detection - when in doubt, flag as cross-domain. Examples:
+
+**Technology Topics:**
+- "AI/ML applications" → Computer Science (AI), Business (Digital Transformation), Industry-specific domains
+- "Semiconductors" → Chemistry (Materials), Physics (Solid State), Technology (Electronics)
+- "Cybersecurity" → Computer Science (Security), Business (Risk Management), Law (Privacy)
+
+**Business/Science Overlap:**
 - "Behavioral economics" → Psychology (Behavior), Economics (Markets), Business (Decision Making)
+- "Data analysis" → Statistics (Analysis), Computer Science (Data Science), Business (Analytics)
+- "Climate change" → Environmental Science, Economics (Policy), Technology (Green Tech)
+
+**Interdisciplinary Content:**
+- Health + Technology, Education + AI, Finance + Psychology, etc.
+
+**Content Types Often Cross-Domain:**
+- Industry applications of technology
+- Scientific concepts with business implications  
+- Emerging technologies with social impact
+- Policy topics affecting multiple sectors
+- Research with practical applications
+
+**Detection Threshold:** If content mentions multiple domains OR could be useful in multiple fields, flag as cross-domain. Err on the side of giving users choice.
 
 CRITICAL HIERARCHY PRINCIPLES:
 
@@ -159,7 +178,11 @@ LEARNING CONTEXT GUIDELINES:
 - Intermediate: Builds on existing knowledge, moderate depth
 - Advanced: Requires substantial background, high cognitive load
 
-Remember: The goal is to create a learning architecture that helps users build knowledge systematically, not just organize content for storage.`;
+**ALWAYS PROVIDE ALTERNATIVES**: Even for seemingly single-domain content, consider alternative valid placements. Most content can be organized in multiple valid ways depending on learning goals and context. Examples:
+- A Python tutorial could go in: Computer Science > Programming OR Professional Development > Technical Skills
+- A leadership article could go in: Business > Management OR Psychology > Social Behavior
+
+Remember: The goal is to create a learning architecture that helps users build knowledge systematically, not just organize content for storage. Give users meaningful choice in how they structure their knowledge.`;
 
 export const ENHANCED_SUMMARIZATION_PROMPT = `You are an expert knowledge architect creating learning-focused notes. Structure your response as a JSON object with this EXACT format:
 

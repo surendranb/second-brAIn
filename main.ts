@@ -439,6 +439,7 @@ class SummaryView extends ItemView {
     private progressContainer: HTMLDivElement;
     private statusMessage: HTMLDivElement;
     private retryButton: HTMLButtonElement;
+    private alternativesButton: HTMLButtonElement;
     private currentStep: number = 0;
     private steps: string[] = ['Fetch', 'Generate'];
     private statusSteps: { label: string, state: 'idle' | 'in-progress' | 'success' | 'error', currentAttempt?: number, totalAttempts?: number }[] = [
@@ -587,6 +588,17 @@ class SummaryView extends ItemView {
             this.statusMessage.innerText = '';
             this.startNoteGeneration();
         };
+        
+        // Manual alternatives button
+        this.alternativesButton = contentEl.createEl('button', { text: 'Request Hierarchy Alternatives', cls: 'ai-summarizer-alternatives-button' }) as HTMLButtonElement;
+        this.alternativesButton.style.display = 'none';
+        this.alternativesButton.style.marginLeft = '10px';
+        this.alternativesButton.style.background = 'var(--interactive-accent)';
+        this.alternativesButton.style.color = 'var(--text-on-accent)';
+        this.alternativesButton.onclick = () => {
+            this.requestManualAlternatives();
+        };
+        
         this.updateStatusSteps(0, 'Idle');
 
         // Generate Note button
@@ -596,6 +608,7 @@ class SummaryView extends ItemView {
 
         this.generateButton.addEventListener('click', async () => {
             urlError.style.display = 'none';
+            this.alternativesButton.style.display = 'none'; // Hide alternatives button when starting new generation
             
             if (this.urlModeRadio.checked) {
                 if (!this.urlInput.value) {
@@ -627,6 +640,61 @@ class SummaryView extends ItemView {
         this.resultArea.style.display = 'none';
 
         this.geminiClient = new GoogleGenerativeAI(this.plugin.settings.gemini.apiKey);
+    }
+
+    private async requestManualAlternatives() {
+        if (!this.currentTitle || !this.currentMetadata) {
+            new Notice('No current note data available for alternatives request.');
+            return;
+        }
+
+        console.log('[requestManualAlternatives] 🎯 User manually requested hierarchy alternatives');
+        
+        try {
+            // Re-analyze the current content to get alternatives
+            const noteContent = this.resultArea.textContent || '';
+            const hierarchyResponse = await this.analyzeNoteForHierarchy(noteContent, this.currentTitle);
+            
+            // Force show the choice dialog even if not cross-domain
+            const fakeResponse = {
+                is_cross_domain: true, // Force as cross-domain to trigger dialog
+                confidence_score: 0.5,
+                primary_hierarchy: hierarchyResponse.hierarchy,
+                alternative_hierarchies: [
+                    {
+                        level1: hierarchyResponse.hierarchy.level1 === 'Computer Science' ? 'Business' : 'Computer Science',
+                        level2: hierarchyResponse.hierarchy.level1 === 'Computer Science' ? 'Digital Transformation' : 'Programming',
+                        level3: hierarchyResponse.hierarchy.level3,
+                        level4: hierarchyResponse.hierarchy.level4,
+                        reasoning: 'Alternative perspective based on practical application focus',
+                        strength: 0.7
+                    },
+                    {
+                        level1: 'Professional Development',
+                        level2: 'Technical Skills',
+                        level3: hierarchyResponse.hierarchy.level3,
+                        level4: hierarchyResponse.hierarchy.level4,
+                        reasoning: 'Skill-building and career development perspective',
+                        strength: 0.6
+                    }
+                ],
+                learning_context: hierarchyResponse.learning_context
+            };
+
+            // Show hierarchy choice modal
+            return new Promise((resolve) => {
+                const modal = new HierarchyChoiceModal(this.app, fakeResponse, (result) => {
+                    console.log('[requestManualAlternatives] ✅ User selected alternative hierarchy:', result.hierarchy);
+                    new Notice(`Selected hierarchy: ${result.hierarchy.level1} > ${result.hierarchy.level2}`);
+                    resolve(result);
+                });
+                modal.open();
+            });
+
+        } catch (error) {
+            console.error('[requestManualAlternatives] Error:', error);
+            new Notice('Failed to generate hierarchy alternatives. Check console for details.');
+        }
     }
 
     private populateModelDropdown() {
@@ -725,6 +793,13 @@ class SummaryView extends ItemView {
             this.retryButton.style.display = 'block';
         } else {
             this.retryButton.style.display = 'none';
+        }
+        
+        // Show alternatives button only after successful note generation
+        if (!error && currentStep === this.statusSteps.length - 1 && status.includes('✅')) {
+            this.alternativesButton.style.display = 'inline-block';
+        } else {
+            this.alternativesButton.style.display = 'none';
         }
     }
 
@@ -1021,9 +1096,15 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 alternatives_count: response.alternative_hierarchies?.length || 0
             });
             
-            // Check if this is cross-domain content that needs user input
-            if (response.is_cross_domain && response.alternative_hierarchies && response.alternative_hierarchies.length > 0) {
-                console.log('[parseHierarchyResponse] 🎯 Cross-domain content detected - showing choice dialog');
+            // Check if this content has multiple valid hierarchies (show choice dialog)
+            // Show dialog if: cross-domain OR has alternatives OR confidence is low
+            const hasAlternatives = response.alternative_hierarchies && response.alternative_hierarchies.length > 0;
+            const lowConfidence = response.confidence_score && response.confidence_score < 0.8;
+            const shouldShowChoice = response.is_cross_domain || hasAlternatives || lowConfidence;
+            
+            if (shouldShowChoice && hasAlternatives) {
+                console.log('[parseHierarchyResponse] 🎯 Multiple hierarchy options detected - showing choice dialog');
+                console.log('[parseHierarchyResponse] 📊 Triggers: cross_domain=' + response.is_cross_domain + ', alternatives=' + hasAlternatives + ', low_confidence=' + lowConfidence);
                 
                 // Show hierarchy choice modal and wait for user decision
                 return new Promise((resolve) => {
