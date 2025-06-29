@@ -1218,6 +1218,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         
         // Get additional instructions from the UI
         const additionalInstructions = this.promptInput.value;
+        console.log('[GenerateComprehensiveNote] 📝 Additional instructions from UI:', additionalInstructions || '(empty)');
         
         // Pass 1: Structure & Metadata (Essential Foundation)
         console.log('[GenerateComprehensiveNote] 📋 Pass 1: Analyzing structure and metadata...');
@@ -1249,6 +1250,10 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     private injectAdditionalInstructions(basePrompt: string, additionalInstructions: string, context: any = {}): string {
         let processedPrompt = basePrompt;
         
+        // Debug logging
+        console.log('[PromptInjection] 🔧 Processing additional instructions...');
+        console.log('[PromptInjection] Instructions provided:', additionalInstructions || '(none)');
+        
         // Replace placeholders with context values
         processedPrompt = processedPrompt.replace('{HIERARCHY_CONTEXT}', context.hierarchyContext || '');
         processedPrompt = processedPrompt.replace('{CONTENT}', context.content || '{CONTENT}');
@@ -1264,8 +1269,10 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         if (additionalInstructions && additionalInstructions.trim()) {
             const additionalSection = `\nADDITIONAL FOCUS:\n${additionalInstructions.trim()}\n`;
             processedPrompt = processedPrompt.replace('{ADDITIONAL_INSTRUCTIONS}', additionalSection);
+            console.log('[PromptInjection] ✅ Additional instructions injected:', additionalInstructions.trim());
         } else {
             processedPrompt = processedPrompt.replace('{ADDITIONAL_INSTRUCTIONS}', '');
+            console.log('[PromptInjection] ℹ️ No additional instructions provided');
         }
         
         return processedPrompt;
