@@ -335,7 +335,8 @@ Domain: {DOMAIN}
 Topic: {TOPIC}
 
 INSTRUCTIONS:
-Create comprehensive analysis sections. Be thorough and detailed - there are no length limits.
+Create comprehensive but FOCUSED analysis sections. Be thorough yet concise.
+IMPORTANT: Keep each insight/fact under 300 characters. Limit arrays to 4-6 items maximum.
 
 {ADDITIONAL_INSTRUCTIONS}
 
@@ -424,7 +425,8 @@ Domain: {DOMAIN}
 Key Concepts: {KEY_CONCEPTS}
 
 INSTRUCTIONS:
-Find deep connections and practical applications. Be thorough and specific.
+Find deep connections and practical applications. Be thorough yet concise.
+IMPORTANT: Keep explanations under 250 characters. Limit arrays to 3-4 items maximum.
 
 {ADDITIONAL_INSTRUCTIONS}
 
@@ -476,7 +478,8 @@ Complexity: {COMPLEXITY}
 Prerequisites: {PREREQUISITES}
 
 INSTRUCTIONS:
-Create comprehensive learning paths and actionable next steps.
+Create comprehensive but CONCISE learning paths and actionable next steps. 
+IMPORTANT: Keep each array element under 200 characters. Limit arrays to 3-5 items maximum.
 
 {ADDITIONAL_INSTRUCTIONS}
 

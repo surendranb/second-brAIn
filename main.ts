@@ -962,7 +962,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             const responseText = result.response.text();
             
             // Parse the response
-            return this.parseHierarchyResponse(responseText);
+            return await this.parseHierarchyResponse(responseText);
             
         } else if (this.plugin.settings.provider === 'openrouter') {
             selectedModel = this.modelDropdown?.value || this.plugin.settings.openrouter.model;
@@ -995,14 +995,14 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             }
             
             const responseText = data.choices[0].message.content;
-            return this.parseHierarchyResponse(responseText);
+            return await this.parseHierarchyResponse(responseText);
         }
         
         throw new Error('No AI provider configured');
     }
 
-    private parseHierarchyResponse(responseText: string): { hierarchy: MOCHierarchy, learning_context: LearningContext } {
-        console.log('[parseHierarchyResponse] Parsing hierarchy response');
+    private async parseHierarchyResponse(responseText: string): Promise<{ hierarchy: MOCHierarchy, learning_context: LearningContext }> {
+        console.log('[parseHierarchyResponse] Parsing enhanced hierarchy response');
         
         // Try to extract JSON
         let jsonText = responseText;
@@ -1015,8 +1015,38 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             // Clean up and parse JSON
             jsonText = this.cleanupJSON(jsonText);
             const response = JSON.parse(jsonText);
+            console.log('[parseHierarchyResponse] 🔍 Analysis result:', {
+                is_cross_domain: response.is_cross_domain,
+                confidence: response.confidence_score,
+                alternatives_count: response.alternative_hierarchies?.length || 0
+            });
             
+            // Check if this is cross-domain content that needs user input
+            if (response.is_cross_domain && response.alternative_hierarchies && response.alternative_hierarchies.length > 0) {
+                console.log('[parseHierarchyResponse] 🎯 Cross-domain content detected - showing choice dialog');
+                
+                // Show hierarchy choice modal and wait for user decision
+                return new Promise((resolve) => {
+                    const modal = new HierarchyChoiceModal(this.app, response, (result) => {
+                        console.log('[parseHierarchyResponse] ✅ User selected hierarchy:', result.hierarchy);
+                        resolve(result);
+                    });
+                    modal.open();
+                });
+            }
+            
+            // Single domain content - use primary hierarchy
+            if (response.primary_hierarchy && response.learning_context) {
+                console.log('[parseHierarchyResponse] ✅ Single domain content - using primary hierarchy');
+                return {
+                    hierarchy: response.primary_hierarchy,
+                    learning_context: response.learning_context
+                };
+            }
+            
+            // Legacy format compatibility
             if (response.hierarchy && response.learning_context) {
+                console.log('[parseHierarchyResponse] ✅ Legacy format detected');
                 return {
                     hierarchy: response.hierarchy,
                     learning_context: response.learning_context
@@ -1027,7 +1057,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         }
         
         // Fallback to heuristic analysis
-        console.log('[parseHierarchyResponse] Using fallback heuristic analysis');
+        console.log('[parseHierarchyResponse] 🔧 Using fallback heuristic analysis');
         return {
             hierarchy: {
                 level1: 'General Knowledge',
@@ -1337,7 +1367,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private cleanJsonResponse(jsonString: string): string {
-        // Remove common JSON-breaking characters and patterns
+        console.log('[JSON Cleaning] 🔧 Starting enhanced JSON cleanup...');
         let cleaned = jsonString.trim();
         
         // Remove any text before the first { or [
@@ -1359,7 +1389,150 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             cleaned = cleaned.substring(0, lastJson + 1);
         }
         
+        // Enhanced cleaning for common JSON-breaking patterns
+        cleaned = this.fixJsonStringEscaping(cleaned);
+        
+        // Length check - if response is too long, it's likely malformed
+        if (cleaned.length > 50000) {
+            console.log('[JSON Cleaning] ⚠️ Response too long, truncating...');
+            cleaned = this.truncateJsonResponse(cleaned);
+        }
+        
+        console.log('[JSON Cleaning] ✅ Cleanup complete, length:', cleaned.length);
         return cleaned;
+    }
+
+    private fixJsonStringEscaping(jsonString: string): string {
+        try {
+            // Fix common JSON string escaping issues
+            let fixed = jsonString;
+            
+            // Fix unescaped quotes inside JSON string values
+            // Match strings and escape quotes within them
+            fixed = fixed.replace(/"([^"]*?)([^\\])"([^"]*?)"/g, (match, before, quote, after) => {
+                // Only fix if this looks like a broken string (has content after the quote)
+                if (after && after.length > 0 && !after.startsWith(',') && !after.startsWith('}') && !after.startsWith(']')) {
+                    return `"${before}${quote}\\"${after}"`;
+                }
+                return match;
+            });
+            
+            // Fix unescaped newlines in strings
+            fixed = fixed.replace(/(".*?)\n(.*?")/g, '$1\\n$2');
+            
+            // Fix unescaped backslashes
+            fixed = fixed.replace(/(".*?[^\\])\\([^"\\nrt])/g, '$1\\\\$2');
+            
+            // Remove trailing commas before closing brackets/braces
+            fixed = fixed.replace(/,\s*([}\]])/g, '$1');
+            
+            return fixed;
+        } catch (error) {
+            console.log('[JSON Cleaning] ⚠️ String fixing failed, returning original');
+            return jsonString;
+        }
+    }
+
+    private truncateJsonResponse(jsonString: string): string {
+        try {
+            // Try to parse partial JSON and truncate at a safe point
+            const maxLength = 30000;
+            if (jsonString.length <= maxLength) return jsonString;
+            
+            // Find a safe truncation point (after a complete object/array)
+            const truncated = jsonString.substring(0, maxLength);
+            
+            // Find the last complete field/value pair
+            const lastComma = truncated.lastIndexOf(',');
+            const lastCloseBrace = truncated.lastIndexOf('}');
+            const lastCloseBracket = truncated.lastIndexOf(']');
+            
+            const safeTruncatePoint = Math.max(lastComma, lastCloseBrace, lastCloseBracket);
+            
+            if (safeTruncatePoint > maxLength * 0.8) {
+                // Good truncation point found
+                let result = truncated.substring(0, safeTruncatePoint);
+                
+                // Ensure we end with proper JSON structure
+                const openBraces = (result.match(/{/g) || []).length;
+                const closeBraces = (result.match(/}/g) || []).length;
+                const openBrackets = (result.match(/\[/g) || []).length;
+                const closeBrackets = (result.match(/\]/g) || []).length;
+                
+                // Add missing closing braces/brackets
+                result += '}'.repeat(openBraces - closeBraces);
+                result += ']'.repeat(openBrackets - closeBrackets);
+                
+                console.log('[JSON Cleaning] 📏 Truncated safely at position:', safeTruncatePoint);
+                return result;
+            }
+            
+            // Fallback: just truncate and try to close JSON
+            return truncated + '}';
+            
+        } catch (error) {
+            console.log('[JSON Cleaning] ⚠️ Truncation failed, using simple truncation');
+            return jsonString.substring(0, 30000) + '}';
+        }
+    }
+
+    private aggressiveJsonRepair(jsonString: string): string {
+        console.log('[JSON Repair] 🚨 Attempting aggressive JSON repair...');
+        try {
+            let repaired = jsonString;
+            
+            // Remove everything that's clearly not JSON
+            repaired = repaired.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+            
+            // Find JSON boundaries more aggressively
+            const firstBrace = repaired.indexOf('{');
+            if (firstBrace === -1) {
+                throw new Error('No JSON object found');
+            }
+            
+            // Simple bracket matching to find the end
+            let braceCount = 0;
+            let endPos = firstBrace;
+            
+            for (let i = firstBrace; i < repaired.length; i++) {
+                if (repaired[i] === '{') braceCount++;
+                else if (repaired[i] === '}') braceCount--;
+                
+                if (braceCount === 0) {
+                    endPos = i;
+                    break;
+                }
+            }
+            
+            repaired = repaired.substring(firstBrace, endPos + 1);
+            
+            // Aggressive string content cleaning
+            repaired = repaired.replace(/"[^"]*"/g, (match) => {
+                // Clean the content inside quotes
+                let content = match.slice(1, -1); // Remove surrounding quotes
+                content = content.replace(/"/g, '\\"'); // Escape internal quotes
+                content = content.replace(/\n/g, '\\n'); // Escape newlines
+                content = content.replace(/\r/g, '\\r'); // Escape carriage returns
+                content = content.replace(/\t/g, '\\t'); // Escape tabs
+                content = content.replace(/\\/g, '\\\\'); // Escape backslashes
+                return `"${content}"`;
+            });
+            
+            // Remove trailing commas
+            repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+            
+            // If still too long, truncate
+            if (repaired.length > 20000) {
+                repaired = repaired.substring(0, 15000) + '}';
+            }
+            
+            console.log('[JSON Repair] ✅ Aggressive repair complete');
+            return repaired;
+            
+        } catch (error) {
+            console.log('[JSON Repair] ❌ Aggressive repair failed, returning minimal JSON');
+            return '{"error": "Response parsing failed", "fallback": true}';
+        }
     }
 
     private async makeAIRequest(prompt: string): Promise<any> {
@@ -1384,10 +1557,18 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                     console.log('[AI Request] Initial JSON parse failed, trying cleanup...');
                     
                     // Try cleaning the response and parsing again
-                    const cleanedResponse = this.cleanJsonResponse(jsonText);
-                    console.log('[AI Request] Cleaned response preview:', cleanedResponse.substring(0, 200) + '...');
-                    
-                    return JSON.parse(cleanedResponse);
+                    try {
+                        const cleanedResponse = this.cleanJsonResponse(jsonText);
+                        console.log('[AI Request] Cleaned response preview:', cleanedResponse.substring(0, 200) + '...');
+                        
+                        return JSON.parse(cleanedResponse);
+                    } catch (secondParseError) {
+                        console.log('[AI Request] 🔧 Enhanced cleaning failed, trying aggressive cleanup...');
+                        
+                        // Last resort: aggressive JSON repair
+                        const aggressiveCleaned = this.aggressiveJsonRepair(jsonText);
+                        return JSON.parse(aggressiveCleaned);
+                    }
                 }
                 
             } else if (this.plugin.settings.provider === 'openrouter') {
@@ -1406,8 +1587,8 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                             { role: 'system', content: 'You are a helpful AI assistant that creates detailed analysis in JSON format.' },
                             { role: 'user', content: prompt }
                         ],
-                        temperature: 0.7,
-                        max_tokens: 8000,
+                        temperature: 0.3,
+                        max_tokens: 4000,
                         response_format: { type: "json_object" }
                     })
                 });
@@ -1422,10 +1603,18 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                     console.log('[AI Request] Initial JSON parse failed, trying cleanup...');
                     
                     // Try cleaning the response and parsing again
-                    const cleanedResponse = this.cleanJsonResponse(responseText);
-                    console.log('[AI Request] Cleaned response preview:', cleanedResponse.substring(0, 200) + '...');
-                    
-                    return JSON.parse(cleanedResponse);
+                    try {
+                        const cleanedResponse = this.cleanJsonResponse(responseText);
+                        console.log('[AI Request] Cleaned response preview:', cleanedResponse.substring(0, 200) + '...');
+                        
+                        return JSON.parse(cleanedResponse);
+                    } catch (secondParseError) {
+                        console.log('[AI Request] 🔧 Enhanced cleaning failed, trying aggressive cleanup...');
+                        
+                        // Last resort: aggressive JSON repair
+                        const aggressiveCleaned = this.aggressiveJsonRepair(responseText);
+                        return JSON.parse(aggressiveCleaned);
+                    }
                 }
             }
             
@@ -3797,6 +3986,169 @@ class SettingModal extends Modal {
 
     populateModelDropdown() {
         this.onOpen();
+    }
+}
+
+class HierarchyChoiceModal extends Modal {
+    private result: { hierarchy: MOCHierarchy, learning_context: LearningContext } | null = null;
+    private onChoose: (result: { hierarchy: MOCHierarchy, learning_context: LearningContext }) => void;
+    private analysisResult: any;
+    private allowMultiple: boolean = false;
+    private selectedHierarchies: MOCHierarchy[] = [];
+    private confirmButton: HTMLButtonElement;
+
+    constructor(app: App, analysisResult: any, onChoose: (result: { hierarchy: MOCHierarchy, learning_context: LearningContext }) => void) {
+        super(app);
+        this.analysisResult = analysisResult;
+        this.onChoose = onChoose;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.createEl('h2', { text: '🎯 Choose Hierarchy Placement' });
+        
+        // Cross-domain explanation
+        const explanation = contentEl.createEl('div', { cls: 'hierarchy-choice-explanation' });
+        explanation.innerHTML = `
+            <p><strong>Cross-domain content detected!</strong> This content could legitimately belong in multiple knowledge domains.</p>
+            <p>Choose the best placement for your learning goals, or select multiple hierarchies if the content truly spans domains.</p>
+        `;
+        explanation.style.marginBottom = '20px';
+        explanation.style.padding = '12px';
+        explanation.style.backgroundColor = 'var(--background-secondary)';
+        explanation.style.borderRadius = '6px';
+        explanation.style.fontSize = '0.9em';
+
+        // Confidence score
+        if (this.analysisResult.confidence_score) {
+            const confidence = contentEl.createEl('div', { 
+                text: `AI Confidence: ${Math.round(this.analysisResult.confidence_score * 100)}%` 
+            });
+            confidence.style.marginBottom = '15px';
+            confidence.style.fontSize = '0.85em';
+            confidence.style.color = 'var(--text-muted)';
+        }
+
+        // Primary hierarchy
+        this.createHierarchyOption(contentEl, this.analysisResult.primary_hierarchy, true, '🎯 Primary Recommendation');
+
+        // Alternative hierarchies
+        if (this.analysisResult.alternative_hierarchies?.length > 0) {
+            contentEl.createEl('h3', { text: '🔄 Alternative Placements' });
+            this.analysisResult.alternative_hierarchies.forEach((alt: any, index: number) => {
+                this.createHierarchyOption(contentEl, alt, false, `Alternative ${index + 1} (${Math.round(alt.strength * 100)}% strength)`);
+            });
+        }
+
+        // Multiple selection option
+        const multipleContainer = contentEl.createEl('div', { cls: 'multiple-selection-container' });
+        multipleContainer.style.marginTop = '20px';
+        multipleContainer.style.marginBottom = '20px';
+        multipleContainer.style.padding = '12px';
+        multipleContainer.style.border = '1px solid var(--background-modifier-border)';
+        multipleContainer.style.borderRadius = '6px';
+
+        const multipleCheckbox = multipleContainer.createEl('input', { type: 'checkbox' }) as HTMLInputElement;
+        multipleCheckbox.style.marginRight = '8px';
+        multipleContainer.createEl('span', { text: 'Allow multiple hierarchy placement (creates links in both locations)' });
+        
+        multipleCheckbox.addEventListener('change', () => {
+            this.allowMultiple = multipleCheckbox.checked;
+            this.updateButtons();
+        });
+
+        // Buttons
+        const buttonContainer = contentEl.createEl('div', { cls: 'hierarchy-choice-buttons' });
+        buttonContainer.style.marginTop = '20px';
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.gap = '10px';
+        buttonContainer.style.justifyContent = 'flex-end';
+
+        const cancelButton = buttonContainer.createEl('button', { text: 'Cancel' });
+        cancelButton.addEventListener('click', () => this.close());
+
+        this.confirmButton = buttonContainer.createEl('button', { text: 'Confirm Selection' });
+        this.confirmButton.style.backgroundColor = 'var(--interactive-accent)';
+        this.confirmButton.style.color = 'var(--text-on-accent)';
+        this.confirmButton.disabled = true;
+        this.confirmButton.addEventListener('click', () => this.handleConfirm());
+    }
+
+    private createHierarchyOption(containerEl: HTMLElement, hierarchy: any, isPrimary: boolean, title: string) {
+        const optionContainer = containerEl.createEl('div', { cls: 'hierarchy-option' });
+        optionContainer.style.marginBottom = '15px';
+        optionContainer.style.padding = '12px';
+        optionContainer.style.border = isPrimary ? '2px solid var(--interactive-accent)' : '1px solid var(--background-modifier-border)';
+        optionContainer.style.borderRadius = '6px';
+        optionContainer.style.cursor = 'pointer';
+
+        const titleEl = optionContainer.createEl('h4', { text: title });
+        titleEl.style.marginBottom = '8px';
+        titleEl.style.color = isPrimary ? 'var(--interactive-accent)' : 'var(--text-normal)';
+
+        // Hierarchy path
+        const pathParts = [hierarchy.level1, hierarchy.level2, hierarchy.level3, hierarchy.level4].filter(Boolean);
+        const pathEl = optionContainer.createEl('div', { text: pathParts.join(' > ') });
+        pathEl.style.fontWeight = '500';
+        pathEl.style.marginBottom = '6px';
+
+        // Reasoning
+        if (hierarchy.reasoning) {
+            const reasoningEl = optionContainer.createEl('div', { text: hierarchy.reasoning });
+            reasoningEl.style.fontSize = '0.85em';
+            reasoningEl.style.color = 'var(--text-muted)';
+            reasoningEl.style.fontStyle = 'italic';
+        }
+
+        // Radio button for single selection
+        const radio = optionContainer.createEl('input', { type: 'radio' }) as HTMLInputElement;
+        radio.name = 'hierarchy-choice';
+        radio.value = JSON.stringify(hierarchy);
+        radio.style.marginTop = '8px';
+        
+        if (isPrimary) {
+            radio.checked = true;
+            this.result = { 
+                hierarchy: hierarchy as MOCHierarchy, 
+                learning_context: this.analysisResult.learning_context 
+            };
+            this.updateButtons();
+        }
+
+        radio.addEventListener('change', () => {
+            if (radio.checked) {
+                this.result = { 
+                    hierarchy: hierarchy as MOCHierarchy, 
+                    learning_context: this.analysisResult.learning_context 
+                };
+                this.updateButtons();
+            }
+        });
+
+        optionContainer.addEventListener('click', (e) => {
+            if (e.target !== radio) {
+                radio.checked = true;
+                radio.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+
+    private updateButtons() {
+        if (this.confirmButton) {
+            this.confirmButton.disabled = !this.result;
+        }
+    }
+
+    private handleConfirm() {
+        if (this.result) {
+            this.onChoose(this.result);
+            this.close();
+        }
+    }
+
+    onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
     }
 }
 

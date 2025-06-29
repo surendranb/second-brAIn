@@ -69,7 +69,13 @@ RELATED GOALS:
 
 Please structure your response with clear sections, using bullet points for lists and maintaining a professional yet engaging tone. Focus on creating actionable insights that serve as building blocks in a larger knowledge architecture.`;
 
-export const HIERARCHY_ANALYSIS_PROMPT = `Analyze the following content and determine the optimal knowledge hierarchy placement for learning architecture. Focus on building pedagogically sound knowledge scaffolding rather than simple categorization.
+export const HIERARCHY_ANALYSIS_PROMPT = `Analyze the following content and determine optimal knowledge hierarchy placement(s). CRITICAL: Detect if this content could legitimately belong in multiple domains (cross-domain content).
+
+CROSS-DOMAIN DETECTION:
+Look for content that spans multiple academic/professional domains. Examples:
+- "Semiconductor breakthroughs" → Chemistry (Materials), Physics (Solid State), Technology (Electronics)
+- "AI in healthcare" → Computer Science (AI), Medicine (Healthcare Technology), Business (Digital Health)
+- "Behavioral economics" → Psychology (Behavior), Economics (Markets), Business (Decision Making)
 
 CRITICAL HIERARCHY PRINCIPLES:
 
@@ -77,16 +83,30 @@ CRITICAL HIERARCHY PRINCIPLES:
 2. **ATOMIC FINAL LEVEL**: The most specific level must represent a SINGLE, coherent concept
 3. **PEDAGOGICAL SOUNDNESS**: Each level should represent a logical learning progression (foundations → applications)
 4. **ACADEMIC RIGOR**: Maintain proper conceptual relationships and domain accuracy
+5. **CROSS-DOMAIN AWARENESS**: Identify when content legitimately spans multiple domains
 
 Please respond with ONLY a JSON object in this exact format:
 
 {
-    "hierarchy": {
-        "level1": "Knowledge Domain (e.g., Computer Science, Physics, Business, Philosophy, etc.)",
-        "level2": "Learning Area within the domain (e.g., Machine Learning, Quantum Mechanics, Marketing, Ethics)",
-        "level3": "Specific Topic (optional - only if content warrants deeper categorization)",
-        "level4": "Single Key Concept (optional - final atomic concept level)"
+    "is_cross_domain": true/false,
+    "confidence_score": 0.0-1.0,
+    "primary_hierarchy": {
+        "level1": "Primary Knowledge Domain",
+        "level2": "Primary Learning Area",
+        "level3": "Specific Topic (optional)",
+        "level4": "Single Key Concept (optional)",
+        "reasoning": "Why this is the primary placement"
     },
+    "alternative_hierarchies": [
+        {
+            "level1": "Alternative Domain",
+            "level2": "Alternative Learning Area", 
+            "level3": "Specific Topic (optional)",
+            "level4": "Single Key Concept (optional)",
+            "reasoning": "Why this is also valid",
+            "strength": 0.0-1.0
+        }
+    ],
     "learning_context": {
         "prerequisites": ["Foundational Concept 1", "Foundational Concept 2"],
         "related_concepts": ["Related Topic 1", "Related Topic 2"],
