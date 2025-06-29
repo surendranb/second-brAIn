@@ -1267,7 +1267,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         
         // Inject additional instructions
         if (additionalInstructions && additionalInstructions.trim()) {
-            const additionalSection = `\nADDITIONAL FOCUS:\n${additionalInstructions.trim()}\n`;
+            const additionalSection = `\nADDITIONAL FOCUS:\n${additionalInstructions.trim()}\n\nIMPORTANT: Your response must still be valid JSON. Do not break JSON syntax with unescaped quotes, newlines, or other formatting.\n`;
             processedPrompt = processedPrompt.replace('{ADDITIONAL_INSTRUCTIONS}', additionalSection);
             console.log('[PromptInjection] ✅ Additional instructions injected:', additionalInstructions.trim());
         } else {
@@ -1340,46 +1340,106 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         return await this.makeAIRequest(learningPrompt);
     }
 
-    private async makeAIRequest(prompt: string): Promise<any> {
-        if (this.plugin.settings.provider === 'gemini') {
-            const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
-            const model = this.geminiClient!.getGenerativeModel({ model: selectedModel });
-            
-            const result = await model.generateContent(prompt);
-            const responseText = result.response.text();
-            
-            // Extract JSON from markdown blocks
-            const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
-            const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText.trim();
-            
-            return JSON.parse(jsonText);
-        } else if (this.plugin.settings.provider === 'openrouter') {
-            const selectedModel = this.modelDropdown?.value || this.plugin.settings.openrouter.model;
-            const response = await fetch(this.plugin.settings.openrouter.endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.plugin.settings.openrouter.apiKey}`,
-                    'HTTP-Referer': 'https://github.com/yourusername/second-brAIn',
-                    'X-Title': 'second-brAIn'
-                },
-                body: JSON.stringify({
-                    model: selectedModel,
-                    messages: [
-                        { role: 'system', content: 'You are a helpful AI assistant that creates detailed analysis in JSON format.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 8000,
-                    response_format: { type: "json_object" }
-                })
-            });
-            
-            const data = await response.json();
-            return JSON.parse(data.choices[0].message.content);
+    private cleanJsonResponse(jsonString: string): string {
+        // Remove common JSON-breaking characters and patterns
+        let cleaned = jsonString.trim();
+        
+        // Remove any text before the first { or [
+        const firstBrace = cleaned.indexOf('{');
+        const firstBracket = cleaned.indexOf('[');
+        const firstJson = Math.min(
+            firstBrace === -1 ? Infinity : firstBrace,
+            firstBracket === -1 ? Infinity : firstBracket
+        );
+        if (firstJson !== Infinity) {
+            cleaned = cleaned.substring(firstJson);
         }
         
-        throw new Error('No valid AI provider configured');
+        // Remove any text after the last } or ]
+        const lastBrace = cleaned.lastIndexOf('}');
+        const lastBracket = cleaned.lastIndexOf(']');
+        const lastJson = Math.max(lastBrace, lastBracket);
+        if (lastJson !== -1) {
+            cleaned = cleaned.substring(0, lastJson + 1);
+        }
+        
+        return cleaned;
+    }
+
+    private async makeAIRequest(prompt: string): Promise<any> {
+        let responseText = '';
+        
+        try {
+            if (this.plugin.settings.provider === 'gemini') {
+                const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
+                const model = this.geminiClient!.getGenerativeModel({ model: selectedModel });
+                
+                const result = await model.generateContent(prompt);
+                responseText = result.response.text();
+                
+                // Extract JSON from markdown blocks
+                const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+                const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText.trim();
+                
+                // Try parsing the response as-is first
+                try {
+                    return JSON.parse(jsonText);
+                } catch (parseError) {
+                    console.log('[AI Request] Initial JSON parse failed, trying cleanup...');
+                    
+                    // Try cleaning the response and parsing again
+                    const cleanedResponse = this.cleanJsonResponse(jsonText);
+                    console.log('[AI Request] Cleaned response preview:', cleanedResponse.substring(0, 200) + '...');
+                    
+                    return JSON.parse(cleanedResponse);
+                }
+                
+            } else if (this.plugin.settings.provider === 'openrouter') {
+                const selectedModel = this.modelDropdown?.value || this.plugin.settings.openrouter.model;
+                const response = await fetch(this.plugin.settings.openrouter.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.plugin.settings.openrouter.apiKey}`,
+                        'HTTP-Referer': 'https://github.com/yourusername/second-brAIn',
+                        'X-Title': 'second-brAIn'
+                    },
+                    body: JSON.stringify({
+                        model: selectedModel,
+                        messages: [
+                            { role: 'system', content: 'You are a helpful AI assistant that creates detailed analysis in JSON format.' },
+                            { role: 'user', content: prompt }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 8000,
+                        response_format: { type: "json_object" }
+                    })
+                });
+                
+                const data = await response.json();
+                responseText = data.choices[0].message.content;
+                
+                // Try parsing the response as-is first
+                try {
+                    return JSON.parse(responseText);
+                } catch (parseError) {
+                    console.log('[AI Request] Initial JSON parse failed, trying cleanup...');
+                    
+                    // Try cleaning the response and parsing again
+                    const cleanedResponse = this.cleanJsonResponse(responseText);
+                    console.log('[AI Request] Cleaned response preview:', cleanedResponse.substring(0, 200) + '...');
+                    
+                    return JSON.parse(cleanedResponse);
+                }
+            }
+            
+            throw new Error('No valid AI provider configured');
+            
+        } catch (error) {
+            console.error('[AI Request] Error:', error);
+            console.error('[AI Request] Response that failed:', responseText?.substring(0, 500) + '...');
+            throw error;
+        }
     }
 
     private mergeMultiPassResults(structure: any, coreAnalysis: any, perspectives: any, connections: any, learning: any): any {
