@@ -56,10 +56,13 @@
 ### 4. **Error Handling & Robustness**
 
 #### **JSON Parsing**
-- Always include fallback JSON cleaning
-- Log parsing errors with response content
-- Handle malformed AI responses gracefully
-- Test with inputs that might break JSON structure
+- **Always implement multi-layer fallback strategies** - See Hierarchy Choice Dialog feature for complete pattern
+- Use progressive approach: direct parse → enhanced cleaning → smart truncation → aggressive repair
+- Optimize model configuration for reliability (lower temperature, reduced max_tokens)
+- Add explicit length constraints to all AI prompts
+- Log parsing errors with response content for debugging
+- Handle malformed AI responses gracefully with fallback JSON structures
+- Test with inputs that might break JSON structure (technical terms, quotes, long responses)
 
 #### **Debug Logging**
 - Add console logging for critical paths
@@ -257,6 +260,137 @@ minWidth: '50px' (labels)
 minWidth: '300px' (dropdowns)
 padding: '4px 8px' (form elements)
 ```
+
+### Hierarchy Choice Dialog & JSON Parsing Robustness Feature
+
+#### What Worked Well
+1. **Problem identification** - Recognized cross-domain content placement as user agency issue
+2. **Comprehensive solution** - Enhanced AI analysis + user choice interface + robust JSON parsing
+3. **Multi-layer error handling** - Progressive fallback strategy for JSON parsing failures
+4. **User-centered design** - Beautiful modal showing AI reasoning + alternatives for informed decisions
+5. **Model optimization** - Reduced temperature and max_tokens for more reliable responses
+6. **Technical robustness** - Multiple JSON cleaning layers handling edge cases
+
+#### Architecture Patterns Established
+
+#### **Cross-Domain Content Detection Pattern**
+```typescript
+// Enhanced AI prompt with structured detection
+interface HierarchyAnalysis {
+    is_cross_domain: boolean;
+    confidence_score: number;
+    primary_hierarchy: {
+        path: string;
+        reasoning: string;
+    };
+    alternative_hierarchies: Array<{
+        path: string;
+        reasoning: string;
+        strength: number;
+    }>;
+}
+
+// Modal dialog for user choice
+class HierarchyChoiceModal extends Modal {
+    private result: Promise<string>;
+    private resolveResult: (value: string) => void;
+    
+    async showChoice(): Promise<string> {
+        return this.result;
+    }
+}
+```
+
+#### **Multi-Layer JSON Parsing Pattern**
+```typescript
+// Progressive fallback strategy
+private cleanJsonResponse(response: string): any {
+    try {
+        return JSON.parse(response); // Layer 1: Direct parse
+    } catch (error) {
+        try {
+            const cleaned = this.fixJsonStringEscaping(response);
+            return JSON.parse(cleaned); // Layer 2: Enhanced cleaning
+        } catch (secondError) {
+            try {
+                const truncated = this.truncateJsonResponse(cleaned);
+                return JSON.parse(truncated); // Layer 3: Smart truncation
+            } catch (thirdError) {
+                return this.aggressiveJsonRepair(response); // Layer 4: Last resort
+            }
+        }
+    }
+}
+
+// JSON cleaning helpers
+private fixJsonStringEscaping(jsonStr: string): string {
+    // Handle unescaped quotes, newlines, backslashes
+    // Smart length validation and truncation
+    // Trailing comma removal
+}
+
+private aggressiveJsonRepair(response: string): any {
+    // Bracket matching to find JSON boundaries
+    // Aggressive content cleaning
+    // Fallback minimal JSON structure
+}
+```
+
+#### **Model Configuration Optimization**
+```typescript
+// Optimized for reliability over creativity
+const requestBody = {
+    model: selectedModel,
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 4000,        // Reduced from 8000
+    temperature: 0.3,        // Reduced from 0.7
+    top_p: 1,
+    frequency_penalty: 0,
+    presence_penalty: 0
+};
+
+// Add length constraints to all prompts
+const promptSuffix = `
+RESPONSE REQUIREMENTS:
+- Keep total response under 3500 characters
+- Use concise language while maintaining accuracy
+- Ensure valid JSON format with proper escaping
+`;
+```
+
+#### Key Technical Lessons
+1. **JSON parsing is fragile** - Always implement multi-layer fallback strategies
+2. **Model configuration matters** - Lower temperature + reduced tokens = more reliable responses
+3. **Long responses increase failure rate** - Add explicit length constraints to prompts
+4. **Cross-domain content needs user agency** - Don't force AI decisions on ambiguous content
+5. **Modal dialogs need async/await patterns** - Proper Promise handling for user interactions
+6. **Edge case testing is critical** - Test with content that contains quotes, technical terms, long responses
+
+#### Mistakes to Avoid
+1. **Don't assume JSON will parse** - Always have progressive fallback strategies
+2. **Don't optimize for creativity over reliability** - Use conservative model settings for structured output
+3. **Don't make placement decisions for users** - Provide choice for ambiguous content
+4. **Don't ignore response length limits** - Add explicit constraints to prevent overflow
+5. **Don't skip edge case testing** - Test with technical content containing special characters
+
+#### JSON Robustness Checklist
+- ✅ Direct JSON.parse() attempt
+- ✅ Enhanced string escaping and cleaning
+- ✅ Smart truncation at object/array boundaries
+- ✅ Aggressive repair with bracket matching
+- ✅ Fallback minimal JSON structure
+- ✅ Comprehensive error logging
+- ✅ Length validation and constraints
+- ✅ Model configuration optimization
+
+#### Cross-Domain Feature Checklist
+- ✅ Enhanced AI detection with confidence scoring
+- ✅ Beautiful modal interface with reasoning display
+- ✅ Alternative hierarchy presentation with strengths
+- ✅ User choice integration with async/await
+- ✅ Backward compatibility for single-domain content
+- ✅ Multiple placement option consideration
+- ✅ Clear visual hierarchy in choice presentation
 
 ---
 
