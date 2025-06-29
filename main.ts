@@ -488,6 +488,36 @@ class SummaryView extends ItemView {
         this.noteModeRadio.name = 'inputMode';
         this.noteModeRadio.value = 'note';
         noteModeLabel.appendText(' Organize existing note');
+
+        // Model Selection - Below radio buttons with proper spacing
+        const modelContainer = formContainer.createEl('div', { cls: 'ai-summarizer-model-container' });
+        modelContainer.style.marginTop = '12px';
+        modelContainer.style.marginBottom = '18px';
+        modelContainer.style.display = 'flex';
+        modelContainer.style.alignItems = 'center';
+        modelContainer.style.gap = '10px';
+        modelContainer.style.paddingTop = '8px';
+        modelContainer.style.borderTop = '1px solid var(--background-modifier-border)';
+        
+        const modelLabel = modelContainer.createEl('label', { text: 'Model:' });
+        modelLabel.style.fontSize = '0.9em';
+        modelLabel.style.fontWeight = '500';
+        modelLabel.style.minWidth = '50px';
+        modelLabel.style.color = 'var(--text-normal)';
+        
+        this.modelDropdown = modelContainer.createEl('select') as HTMLSelectElement;
+        this.modelDropdown.style.fontSize = '0.9em';
+        this.modelDropdown.style.padding = '4px 8px';
+        this.modelDropdown.style.minWidth = '300px';
+        this.modelDropdown.style.maxWidth = '100%';
+        this.populateModelDropdown();
+        this.modelDropdown.addEventListener('change', () => {
+            if (this.plugin.settings.provider === 'gemini') {
+                this.plugin.settings.gemini.model = this.modelDropdown.value;
+            } else if (this.plugin.settings.provider === 'openrouter') {
+                this.plugin.settings.openrouter.model = this.modelDropdown.value;
+            }
+        });
         
         // URL input section
         const urlSection = formContainer.createEl('div', { cls: 'url-input-section' });
@@ -544,32 +574,6 @@ class SummaryView extends ItemView {
         this.promptInput.style.width = '100%';
         this.promptInput.style.resize = 'vertical';
         this.promptInput.style.fontSize = '14px';
-
-        // Model Selection - Always visible, compact
-        const modelContainer = formContainer.createEl('div', { cls: 'ai-summarizer-model-container' });
-        modelContainer.style.marginBottom = '12px';
-        modelContainer.style.display = 'flex';
-        modelContainer.style.alignItems = 'center';
-        modelContainer.style.gap = '8px';
-        
-        const modelLabel = modelContainer.createEl('label', { text: 'Model:' });
-        modelLabel.style.fontSize = '0.9em';
-        modelLabel.style.fontWeight = '500';
-        modelLabel.style.minWidth = '45px';
-        modelLabel.style.color = 'var(--text-muted)';
-        
-        this.modelDropdown = modelContainer.createEl('select') as HTMLSelectElement;
-        this.modelDropdown.style.flex = '1';
-        this.modelDropdown.style.fontSize = '0.9em';
-        this.modelDropdown.style.padding = '4px 6px';
-        this.populateModelDropdown();
-        this.modelDropdown.addEventListener('change', () => {
-            if (this.plugin.settings.provider === 'gemini') {
-                this.plugin.settings.gemini.model = this.modelDropdown.value;
-            } else if (this.plugin.settings.provider === 'openrouter') {
-                this.plugin.settings.openrouter.model = this.modelDropdown.value;
-            }
-        });
 
         // Section: Progress
         const progressHeader = contentEl.createEl('h3', { text: 'Progress' });
