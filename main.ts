@@ -545,18 +545,23 @@ class SummaryView extends ItemView {
         this.promptInput.style.resize = 'vertical';
         this.promptInput.style.fontSize = '14px';
 
-        // Advanced Options collapsible
-        const advToggle = formContainer.createEl('button', { text: 'Show Advanced Options', cls: 'ai-summarizer-adv-toggle' }) as HTMLButtonElement;
-        advToggle.setAttribute('aria-expanded', 'false');
-        advToggle.style.marginBottom = '8px';
-
-        const advOptions = formContainer.createEl('div', { cls: 'ai-summarizer-adv-options' });
-        advOptions.style.display = 'none';
-
-        // Model Dropdown
-        const modelContainer = advOptions.createEl('div', { cls: 'ai-summarizer-model-container' });
-        modelContainer.createEl('label', { text: 'Model: ' });
+        // Model Selection - Always visible, compact
+        const modelContainer = formContainer.createEl('div', { cls: 'ai-summarizer-model-container' });
+        modelContainer.style.marginBottom = '12px';
+        modelContainer.style.display = 'flex';
+        modelContainer.style.alignItems = 'center';
+        modelContainer.style.gap = '8px';
+        
+        const modelLabel = modelContainer.createEl('label', { text: 'Model:' });
+        modelLabel.style.fontSize = '0.9em';
+        modelLabel.style.fontWeight = '500';
+        modelLabel.style.minWidth = '45px';
+        modelLabel.style.color = 'var(--text-muted)';
+        
         this.modelDropdown = modelContainer.createEl('select') as HTMLSelectElement;
+        this.modelDropdown.style.flex = '1';
+        this.modelDropdown.style.fontSize = '0.9em';
+        this.modelDropdown.style.padding = '4px 6px';
         this.populateModelDropdown();
         this.modelDropdown.addEventListener('change', () => {
             if (this.plugin.settings.provider === 'gemini') {
@@ -565,19 +570,6 @@ class SummaryView extends ItemView {
                 this.plugin.settings.openrouter.model = this.modelDropdown.value;
             }
         });
-
-        advToggle.onclick = () => {
-            const expanded = advToggle.getAttribute('aria-expanded') === 'true';
-            if (expanded) {
-                advOptions.style.display = 'none';
-                advToggle.innerText = 'Show Advanced Options';
-                advToggle.setAttribute('aria-expanded', 'false');
-            } else {
-                advOptions.style.display = 'block';
-                advToggle.innerText = 'Hide Advanced Options';
-                advToggle.setAttribute('aria-expanded', 'true');
-            }
-        };
 
         // Section: Progress
         const progressHeader = contentEl.createEl('h3', { text: 'Progress' });
