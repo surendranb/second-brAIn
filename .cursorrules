@@ -1,0 +1,213 @@
+# Cursor Rules for brAIn Plugin Development
+
+## Core Development Principles
+
+### 1. **Always Follow GitHub Best Practices**
+- Create feature branches: `feature/descriptive-name`
+- Make focused, atomic commits with conventional commit messages
+- Never push code without local testing first
+- Build and test before every commit
+- User must validate functionality before merging to main
+
+### 2. **Development Workflow**
+```
+1. Create feature branch
+2. Understand the problem clearly
+3. Make incremental changes
+4. Build and test after each change
+5. Get user feedback early and often
+6. Commit with descriptive messages
+7. Only merge after user validation
+```
+
+### 3. **Code Architecture Rules**
+
+#### **File Structure**
+- `main.ts` - Core plugin logic, UI, analysis methods
+- `settings.ts` - Settings UI and configuration 
+- `prompts.ts` - Prompt templates and constants
+- Keep methods focused and single-responsibility
+
+#### **Settings Pattern**
+- All configurable options go in `PluginSettings` interface
+- Provide sensible defaults in `DEFAULT_SETTINGS`
+- Settings UI should have clear labels and descriptions
+- Include "Reset to Default" buttons for complex settings
+- Use helper methods for default value generation
+
+#### **UI Development**
+- Prefer simple, always-visible inputs over complex toggles
+- Use clear, descriptive labels and placeholders
+- Start with empty/clean states, not confusing defaults
+- Get user feedback on UX before finalizing
+- Make UI intuitive without documentation
+
+#### **Prompt Engineering**
+- Use placeholder injection: `{PLACEHOLDER}` format
+- Create reusable prompt injection helpers
+- Separate base prompts from dynamic content
+- Always include JSON format validation in prompts
+- Test with edge cases that might break JSON parsing
+
+### 4. **Error Handling & Robustness**
+
+#### **JSON Parsing**
+- Always include fallback JSON cleaning
+- Log parsing errors with response content
+- Handle malformed AI responses gracefully
+- Test with inputs that might break JSON structure
+
+#### **Debug Logging**
+- Add console logging for critical paths
+- Use consistent log prefixes: `[ComponentName]`
+- Include emojis for visual scanning: `🔧 🎯 📝 ✅ ❌`
+- Log user inputs and processing steps
+- Remove debug logs after feature validation
+
+### 5. **Testing Strategy**
+
+#### **Before Every Build**
+- Test core functionality still works
+- Test new feature with multiple input types
+- Verify settings save and load correctly
+- Check console for errors or warnings
+
+#### **User Validation Process**
+1. Build plugin: `npm run build`
+2. User restarts Obsidian
+3. User tests specific functionality
+4. Check console logs for validation
+5. Test edge cases and error scenarios
+6. Only proceed after user confirms working
+
+### 6. **Commit Message Standards**
+
+#### **Format**: `type: description`
+**Types:**
+- `feat:` - New features
+- `fix:` - Bug fixes  
+- `refactor:` - Code improvements
+- `debug:` - Temporary debugging code
+- `docs:` - Documentation
+- `style:` - UI/UX improvements
+
+#### **Examples:**
+```
+feat: Add configurable analysis prompts to settings
+fix: Resolve JSON parsing error with additional instructions  
+refactor: Simplify Additional Instructions UI
+debug: Add console logging to validate prompt injection
+```
+
+### 7. **Feature Development Pattern**
+
+#### **Phase 1: Foundation**
+- Identify the core problem/bug
+- Update interfaces and data structures
+- Add default configurations
+- Create basic functionality
+
+#### **Phase 2: Implementation** 
+- Implement core logic changes
+- Add helper methods and utilities
+- Update existing methods to use new system
+- Ensure backward compatibility
+
+#### **Phase 3: UI/UX**
+- Create or update settings UI
+- Improve main interface based on user feedback
+- Add clear labels, help text, placeholders
+- Test usability with user
+
+#### **Phase 4: Robustness**
+- Add error handling and fallbacks
+- Include debug logging for validation
+- Test edge cases and error scenarios
+- Clean up temporary debugging code
+
+### 8. **Common Patterns & Solutions**
+
+#### **Settings UI Pattern**
+```typescript
+// 1. Add to interface
+interface PluginSettings {
+    newFeature: {
+        option1: string;
+        option2: boolean;
+    };
+}
+
+// 2. Add to defaults
+const DEFAULT_SETTINGS = {
+    newFeature: {
+        option1: 'default_value',
+        option2: true
+    }
+};
+
+// 3. Create settings UI
+new Setting(containerEl)
+    .setName('Feature Name')
+    .setDesc('Clear description')
+    .addTextArea(text => /* implementation */)
+    .addButton(button => /* reset functionality */);
+```
+
+#### **Prompt Injection Pattern**
+```typescript
+private injectDynamicContent(basePrompt: string, userInput: string, context: any): string {
+    let prompt = basePrompt;
+    
+    // Replace context placeholders
+    Object.entries(context).forEach(([key, value]) => {
+        prompt = prompt.replace(`{${key.toUpperCase()}}`, value || 'Unknown');
+    });
+    
+    // Inject user input with format validation
+    if (userInput?.trim()) {
+        const section = `\nUSER FOCUS:\n${userInput.trim()}\n\nIMPORTANT: Maintain valid JSON format.\n`;
+        prompt = prompt.replace('{USER_INPUT}', section);
+    }
+    
+    return prompt;
+}
+```
+
+### 9. **User Feedback Integration**
+- Listen to UX feedback immediately
+- Simplify complex interfaces based on user input
+- Validate that features work as expected
+- Don't assume functionality works without user confirmation
+- Iterate quickly on UX improvements
+
+### 10. **Quality Gates**
+- ✅ Feature branch created
+- ✅ Code builds without errors
+- ✅ Core functionality preserved  
+- ✅ New feature works as designed
+- ✅ User has validated functionality
+- ✅ Settings save/load correctly
+- ✅ Error handling tested
+- ✅ Clean commit history
+- ✅ User approves merge to main
+
+## Key Lessons from Configurable Analysis Prompts Feature
+
+### What Worked Well
+1. **Clear problem identification** - Fixed broken "Show Prompt" functionality
+2. **Incremental development** - Built in logical phases
+3. **User feedback integration** - Simplified UI based on user input
+4. **Comprehensive settings** - Full control over all 5 analysis prompts
+5. **Debug logging** - Enabled easy validation of functionality
+6. **JSON robustness** - Added fallback parsing for malformed responses
+
+### Mistakes to Avoid
+1. **Don't push without user testing** - Always validate locally first
+2. **Don't ignore UX complexity** - Simple is better than feature-rich but confusing
+3. **Don't assume JSON will be valid** - Always include robust parsing
+4. **Don't skip incremental commits** - Small, focused commits are easier to debug
+5. **Don't forget edge case testing** - Test inputs that might break the system
+
+---
+
+*These rules should be followed for all future brAIn plugin development to ensure high-quality, user-validated features.* 
