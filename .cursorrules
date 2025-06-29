@@ -41,6 +41,10 @@
 - Start with empty/clean states, not confusing defaults
 - Get user feedback on UX before finalizing
 - Make UI intuitive without documentation
+- **Spacing is critical** - Use proper margins, padding, and visual separators
+- **Respond to "ugly" feedback immediately** - User comfort trumps feature complexity
+- **Avoid cramped layouts** - Elements need breathing room to look professional
+- **Use consistent spacing hierarchy** - Follow established standards for margins/padding
 
 #### **Prompt Engineering**
 - Use placeholder injection: `{PLACEHOLDER}` format
@@ -97,6 +101,19 @@ feat: Add configurable analysis prompts to settings
 fix: Resolve JSON parsing error with additional instructions  
 refactor: Simplify Additional Instructions UI
 debug: Add console logging to validate prompt injection
+style: improve model selection UI with better spacing and layout
+```
+
+#### **Multi-line Commit Messages for Complex Changes:**
+```
+style: improve model selection UI with better spacing and layout
+
+- Move model dropdown below radio buttons instead of inline
+- Add proper spacing with 12px top margin and 18px bottom margin  
+- Add visual separation with subtle border-top
+- Increase dropdown width to 300px for better readability
+- Use normal text color and improved font sizes
+- Create clean section division between input modes and content inputs
 ```
 
 ### 7. **Feature Development Pattern**
@@ -191,9 +208,11 @@ private injectDynamicContent(basePrompt: string, userInput: string, context: any
 - ✅ Clean commit history
 - ✅ User approves merge to main
 
-## Key Lessons from Configurable Analysis Prompts Feature
+## Key Lessons from Recent Features
 
-### What Worked Well
+### Configurable Analysis Prompts Feature
+
+#### What Worked Well
 1. **Clear problem identification** - Fixed broken "Show Prompt" functionality
 2. **Incremental development** - Built in logical phases
 3. **User feedback integration** - Simplified UI based on user input
@@ -201,12 +220,43 @@ private injectDynamicContent(basePrompt: string, userInput: string, context: any
 5. **Debug logging** - Enabled easy validation of functionality
 6. **JSON robustness** - Added fallback parsing for malformed responses
 
-### Mistakes to Avoid
+#### Mistakes to Avoid
 1. **Don't push without user testing** - Always validate locally first
 2. **Don't ignore UX complexity** - Simple is better than feature-rich but confusing
 3. **Don't assume JSON will be valid** - Always include robust parsing
 4. **Don't skip incremental commits** - Small, focused commits are easier to debug
 5. **Don't forget edge case testing** - Test inputs that might break the system
+
+### Model Selection UI Improvement Feature
+
+#### What Worked Well
+1. **Immediate response to UX feedback** - User said "ugly", we fixed it immediately
+2. **Multiple layout iterations** - Tried inline → moved to header → settled on separate section
+3. **Proper spacing principles** - Added margins, padding, and visual separators
+4. **Clean visual hierarchy** - Used borders and typography to create sections
+5. **User-centered design** - Prioritized user comfort over feature complexity
+
+#### Key UX Principles Learned
+1. **Avoid cramped layouts** - Elements need breathing room, not squeezed together
+2. **Use proper spacing hierarchy** - 12px margins, 18px bottom spacing, 8px padding
+3. **Visual separation matters** - Subtle borders create clean section divisions
+4. **Font sizing consistency** - 0.9em for labels, proper padding for dropdowns
+5. **Always-visible is better than hidden** - Remove unnecessary toggles and complex UI
+
+#### Spacing Standards Established
+```css
+/* Section separators */
+marginTop: '12px'
+marginBottom: '18px'
+paddingTop: '8px'
+borderTop: '1px solid var(--background-modifier-border)'
+
+/* Element spacing */
+gap: '10px'
+minWidth: '50px' (labels)
+minWidth: '300px' (dropdowns)
+padding: '4px 8px' (form elements)
+```
 
 ---
 
