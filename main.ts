@@ -529,34 +529,21 @@ class SummaryView extends ItemView {
         const optionsHeader = contentEl.createEl('h3', { text: 'Options' });
         optionsHeader.style.marginTop = '24px';
 
-        // Additional Instructions collapsible
-        const promptToggle = formContainer.createEl('button', { text: 'Additional Instructions', cls: 'ai-summarizer-prompt-toggle' }) as HTMLButtonElement;
-        promptToggle.setAttribute('aria-expanded', 'false');
-        promptToggle.style.marginBottom = '8px';
+        // Additional Instructions - Simple text input
+        const instructionsLabel = formContainer.createEl('label', { text: 'Additional Instructions (Optional)', cls: 'ai-summarizer-instructions-label' });
+        instructionsLabel.style.display = 'block';
+        instructionsLabel.style.marginBottom = '4px';
+        instructionsLabel.style.fontSize = '0.9em';
+        instructionsLabel.style.fontWeight = '500';
 
-        const promptHelp = formContainer.createEl('div', { text: '(Optional) Add additional instructions to customize the analysis focus.', cls: 'ai-summarizer-prompt-help' });
-        promptHelp.style.fontSize = '0.9em';
-        promptHelp.style.color = 'var(--text-muted)';
-        promptHelp.style.marginBottom = '4px';
-
-        this.promptInput = formContainer.createEl('textarea', { placeholder: 'Write your prompt here...' }) as HTMLTextAreaElement;
-        this.promptInput.value = this.plugin.settings.defaultPrompt;
-        this.promptInput.style.display = 'none';
-        this.promptInput.setAttribute('aria-label', 'Prompt input');
-        this.promptInput.rows = 8;
-
-        promptToggle.onclick = () => {
-            const expanded = promptToggle.getAttribute('aria-expanded') === 'true';
-            if (expanded) {
-                this.promptInput.style.display = 'none';
-                promptToggle.innerText = 'Additional Instructions';
-                promptToggle.setAttribute('aria-expanded', 'false');
-            } else {
-                this.promptInput.style.display = 'block';
-                promptToggle.innerText = 'Hide Instructions';
-                promptToggle.setAttribute('aria-expanded', 'true');
-            }
-        };
+        this.promptInput = formContainer.createEl('textarea', { placeholder: 'Add specific focus areas, perspectives, or instructions to customize the analysis...' }) as HTMLTextAreaElement;
+        this.promptInput.value = ''; // Start empty, no confusing default prompt
+        this.promptInput.setAttribute('aria-label', 'Additional instructions input');
+        this.promptInput.rows = 3;
+        this.promptInput.style.marginBottom = '12px';
+        this.promptInput.style.width = '100%';
+        this.promptInput.style.resize = 'vertical';
+        this.promptInput.style.fontSize = '14px';
 
         // Advanced Options collapsible
         const advToggle = formContainer.createEl('button', { text: 'Show Advanced Options', cls: 'ai-summarizer-adv-toggle' }) as HTMLButtonElement;
