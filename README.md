@@ -1,29 +1,25 @@
 # brAIn: AI-Powered Knowledge Organization for Obsidian
 
-Transform any web content or YouTube video into organized, actionable knowledge that automatically integrates into your personal knowledge hierarchy with context-aware AI intelligence.
+Transform web content and YouTube videos into structured, organized knowledge using AI analysis and hierarchical organization.
 
-## What does brAIn do?
+## What brAIn Does
 
-**brAIn doesn't just summarize content — it transforms information into structured knowledge and intelligently organizes it within your existing knowledge ecosystem.**
+**brAIn transforms information into structured knowledge and intelligently organizes it within your personal knowledge hierarchy.**
 
-- 🌐 **Smart Content Processing**: Turn any web article or YouTube video into comprehensive notes
-- 🧠 **Context-Aware AI Analysis**: AI understands your existing knowledge structure to make intelligent placement decisions
-- 🗂️ **Intelligent Hierarchy Management**: Creates and maintains hierarchical knowledge maps (MOCs) that evolve with your learning
-- 🔗 **Smart Linking**: Automatically connects new knowledge to existing concepts, preventing duplicate hierarchies
-- 📚 **Learning Enhancement**: Identifies knowledge gaps and suggests optimal learning paths
-- 🔧 **Robust Error Handling**: Advanced debugging and recovery systems ensure reliable knowledge creation
+### Core Features
+- 🌐 **Content Processing**: Web articles, blog posts, and YouTube videos
+- 🧠 **5-Pass AI Analysis**: Comprehensive analysis across multiple dimensions
+- 🗂️ **Hierarchical MOCs**: Automatic organization into Domain → Area → Topic → Concept structure
+- 🔗 **Context-Aware Placement**: AI understands existing knowledge structure to avoid duplicates
+- 📚 **Cross-Domain Detection**: Identifies content spanning multiple knowledge areas
+- 🔧 **Robust Error Handling**: Advanced fallback mechanisms ensure reliable processing
 
-## Why brAIn?
-
-**Problem**: Information overload leads to shallow learning, disconnected knowledge, and chaotic note organization.
-
-**Solution**: brAIn transforms passive content consumption into active knowledge building by:
-- Converting complex content into 13+ structured knowledge dimensions
-- Understanding your existing knowledge structure to prevent hierarchy conflicts
-- Automatically organizing information into Domain → Area → Topic → Concept hierarchies  
-- Creating meaningful connections between new and existing knowledge
-- Maintaining a centralized knowledge map that evolves intelligently
-- Preserving context and enabling seamless knowledge retrieval
+### 5-Pass Analysis System
+1. **Structure & Metadata**: Title optimization, hierarchy placement, learning context
+2. **Content Analysis**: Key facts, insights, core concepts, detailed summaries
+3. **Perspectives & Examples**: Multiple viewpoints, analogies, real-world applications
+4. **Connections & Applications**: Cross-domain links, practical applications, implications
+5. **Learning & Next Steps**: Knowledge gaps, learning pathways, actionable steps
 
 ## ✨ Recent Major Improvements
 

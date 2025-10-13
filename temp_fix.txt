@@ -1,0 +1,1 @@
+I need to add a closing brace for the display method in settings.ts

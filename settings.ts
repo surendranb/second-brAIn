@@ -1,5 +1,5 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import AISummarizerPlugin, { Provider, GeminiModel, OpenRouterModel } from './main';
+import AISummarizerPlugin, { Provider, GeminiModel, GEMINI_MODELS } from './main';
 
 export class AISummarizerSettingsTab extends PluginSettingTab {
     plugin: AISummarizerPlugin;
@@ -19,7 +19,6 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
             .setDesc('Select the AI provider to use for summarization')
             .addDropdown(dropdown => dropdown
                 .addOption('gemini', 'Google Gemini')
-                .addOption('openrouter', 'OpenRouter')
                 .setValue(this.plugin.settings.provider)
                 .onChange(async (value) => {
                     this.plugin.settings.provider = value as Provider;
@@ -48,7 +47,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                 .addDropdown(dropdown => {
                     // Clear and repopulate dropdown
                     dropdown.selectEl.innerHTML = '';
-                    this.plugin.settings.gemini.models.forEach((model: GeminiModel) => {
+                    GEMINI_MODELS.forEach((model: GeminiModel) => {
                         dropdown.addOption(model.id, `${model.name} - ${model.description}`);
                     });
                     return dropdown
@@ -58,49 +57,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                             await this.plugin.saveSettings();
                         });
                 });
-        } else if (this.plugin.settings.provider === 'openrouter') {
-            // OpenRouter API Key
-            new Setting(containerEl)
-                .setName('OpenRouter API Key')
-                .setDesc('Your OpenRouter API key')
-                .addText(text => text
-                    .setPlaceholder('Enter your API key')
-                    .setValue(this.plugin.settings.openrouter.apiKey)
-                    .onChange(async (value) => {
-                        this.plugin.settings.openrouter.apiKey = value;
-                        await this.plugin.saveSettings();
-                    }));
 
-            // OpenRouter Model Selection
-            new Setting(containerEl)
-                .setName('OpenRouter Model')
-                .setDesc('Select the model to use via OpenRouter')
-                .addDropdown(dropdown => {
-                    // Clear and repopulate dropdown
-                    dropdown.selectEl.innerHTML = '';
-                    this.plugin.settings.openrouter.models.forEach((model: OpenRouterModel) => {
-                        dropdown.addOption(model.id, `${model.name} (${model.provider}) - ${model.description}`);
-                    });
-                    return dropdown
-                        .setValue(this.plugin.settings.openrouter.model)
-                        .onChange(async (value) => {
-                            this.plugin.settings.openrouter.model = value;
-                            await this.plugin.saveSettings();
-                        });
-                });
-
-            // OpenRouter Endpoint
-            new Setting(containerEl)
-                .setName('OpenRouter Endpoint')
-                .setDesc('The OpenRouter API endpoint')
-                .addText(text => text
-                    .setPlaceholder('Enter endpoint URL')
-                    .setValue(this.plugin.settings.openrouter.endpoint)
-                    .onChange(async (value) => {
-                        this.plugin.settings.openrouter.endpoint = value;
-                        await this.plugin.saveSettings();
-                    }));
-        }
 
         // Common Settings
         new Setting(containerEl)
@@ -115,6 +72,58 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                 }));
 
 
+
+        // Langfuse Settings Section
+        containerEl.createEl('h3', { text: 'Langfuse Tracing Settings' });
+
+        new Setting(containerEl)
+            .setName('Enable Langfuse Tracing')
+            .setDesc('Track AI calls for observability, cost analysis, and performance monitoring')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.langfuse.enabled)
+                .onChange(async (value) => {
+                    this.plugin.settings.langfuse.enabled = value;
+                    await this.plugin.saveSettings();
+                    this.display(); // Refresh to show/hide Langfuse settings
+                }));
+
+        if (this.plugin.settings.langfuse.enabled) {
+            new Setting(containerEl)
+                .setName('Langfuse Public Key')
+                .setDesc('Your Langfuse public key (pk-lf-...)')
+                .addText(text => text
+                    .setPlaceholder('pk-lf-...')
+                    .setValue(this.plugin.settings.langfuse.publicKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.langfuse.publicKey = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Langfuse Secret Key')
+                .setDesc('Your Langfuse secret key (sk-lf-...)')
+                .addText(text => {
+                    text.inputEl.type = 'password';
+                    return text
+                        .setPlaceholder('sk-lf-...')
+                        .setValue(this.plugin.settings.langfuse.secretKey)
+                        .onChange(async (value) => {
+                            this.plugin.settings.langfuse.secretKey = value;
+                            await this.plugin.saveSettings();
+                        });
+                });
+
+            new Setting(containerEl)
+                .setName('Langfuse Base URL')
+                .setDesc('Langfuse server URL (use https://cloud.langfuse.com for cloud)')
+                .addText(text => text
+                    .setPlaceholder('https://cloud.langfuse.com')
+                    .setValue(this.plugin.settings.langfuse.baseUrl)
+                    .onChange(async (value) => {
+                        this.plugin.settings.langfuse.baseUrl = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
 
         // MOC Settings Section
         containerEl.createEl('h3', { text: 'MOC (Map of Content) Settings' });
@@ -279,7 +288,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                     this.display();
                 }));
     }
-
+  }
     // Helper methods to get default prompts
     private getDefaultStructurePrompt(): string {
         return `You are an expert knowledge organizer. Analyze this content and return comprehensive structure and metadata.
@@ -292,7 +301,9 @@ INSTRUCTIONS:
 2. Determine the best hierarchy placement (avoid duplicates, use existing when appropriate)
 3. Extract comprehensive metadata (speakers, topics, key concepts, tags)
 4. Assess learning context (prerequisites, complexity, reading time)
-5. Provide a concise overview (2-3 sentences)
+5. Classify the source type based on content and context
+6. Extract specific actionable items (if any)
+7. Provide a concise overview (2-3 sentences)
 
 {ADDITIONAL_INSTRUCTIONS}
 
@@ -322,6 +333,8 @@ Return ONLY valid JSON:
     "complexity_level": "beginner|intermediate|advanced",
     "estimated_reading_time": "X minutes"
   },
+  "source_type": "social|academic|news|professional|traditional",
+  "action_items": ["specific action 1", "specific action 2"],
   "overview": "Brief 2-3 sentence overview of the content"
 }`;
     }

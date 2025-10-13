@@ -34,6 +34,7 @@ venv/
 # IDE specific files
 .idea/
 .vscode/
+.kiro/
 *.suo
 *.ntvs*
 *.njsproj
