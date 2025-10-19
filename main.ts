@@ -15,7 +15,7 @@ const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
 export type Provider = 'gemini';
 
 // Processing Intent Types
-export type ProcessingIntent = 'knowledge_building' | 'event_documentation' | 'quick_reference' | 'research_collection' | 'professional_intelligence' | 'personal_development' | 'news_events' | 'inspiration_capture';
+export type ProcessingIntent = 'knowledge_building' | 'event_documentation' | 'quick_reference' | 'research_collection' | 'professional_intelligence' | 'personal_development' | 'news_events' | 'inspiration_capture' | 'how_to';
 
 export interface ProcessingIntentOption {
     id: ProcessingIntent;
@@ -94,6 +94,13 @@ export interface LangfuseSettings {
     baseUrl: string;
 }
 
+// Topic Folder Settings
+export interface TopicFolderSettings {
+    enabled: boolean;
+    rootFolder: string; // Root folder for topic-based organization (e.g., "Research Topics")
+    topics: string[]; // List of predefined topics
+}
+
 // Usage Statistics
 export interface UsageStats {
     lifetime: {
@@ -113,6 +120,13 @@ export interface UsageStats {
     };
 }
 
+// Topic Folder Settings
+export interface TopicFolderSettings {
+    enabled: boolean;
+    rootFolder: string; // Root folder for topic-based organization (e.g., "Research Topics")
+    topics: string[]; // List of predefined topics
+}
+
 // Main Plugin Settings
 export interface PluginSettings {
     provider: Provider;
@@ -121,6 +135,7 @@ export interface PluginSettings {
     mocFolder: string; // Root folder for knowledge organization (both notes and MOCs)
     enableMOC: boolean; // Toggle for MOC functionality
     defaultIntent: ProcessingIntent; // Default processing intent
+    topicFolders: TopicFolderSettings; // Topic-based folder organization
     langfuse: LangfuseSettings; // Langfuse tracing settings
     usageStats: UsageStats; // Usage tracking
     trackUsage: boolean; // Allow users to opt out of usage tracking
@@ -198,6 +213,11 @@ const PROCESSING_INTENTS: ProcessingIntentOption[] = [
         id: 'inspiration_capture',
         name: 'Inspiration Capture',
         description: 'Preserve creative ideas and inspiration'
+    },
+    {
+        id: 'how_to',
+        name: 'How To / Tutorial',
+        description: 'Step-by-step guides and tutorials organized by topic'
     }
 ];
 
@@ -213,6 +233,11 @@ const DEFAULT_SETTINGS: PluginSettings = {
     mocFolder: 'MOCs',
     enableMOC: true,
     defaultIntent: 'knowledge_building',
+    topicFolders: {
+        enabled: true,
+        rootFolder: 'Research Topics',
+        topics: ['LLM Evals', 'AI Safety', 'Machine Learning', 'Data Science', 'Software Engineering']
+    },
     langfuse: {
         enabled: false,
         publicKey: '',
@@ -487,6 +512,8 @@ class SummaryView extends ItemView {
     private geminiClient: GoogleGenerativeAI | null = null;
     private modelDropdown: HTMLSelectElement;
     private intentDropdown: HTMLSelectElement;
+    private topicDropdown: HTMLSelectElement;
+    private topicSection: HTMLDivElement;
     private promptLoader: PromptLoader;
     private langfuseInitialized: boolean = false;
     private currentTraceId: string | null = null;
@@ -579,7 +606,16 @@ class SummaryView extends ItemView {
         this.intentDropdown.addEventListener('change', async () => {
             this.plugin.settings.defaultIntent = this.intentDropdown.value as ProcessingIntent;
             await this.plugin.saveSettings();
+            this.toggleTopicSelection();
         });
+
+        // Topic selection (only shown for "how_to" intent)
+        this.topicSection = configSection.createEl('div', { cls: 'brain-form-group brain-topic-section' });
+        this.topicSection.style.display = 'none';
+        const topicLabel = this.topicSection.createEl('label', { text: '📁 Research Topic', cls: 'brain-form-label' });
+        this.topicSection.createEl('div', { text: 'Choose a topic folder to organize this content', cls: 'brain-form-hint' });
+        this.topicDropdown = this.topicSection.createEl('select', { cls: 'brain-select' }) as HTMLSelectElement;
+        this.populateTopicDropdown();
 
 
 
@@ -693,6 +729,13 @@ class SummaryView extends ItemView {
             if (!this.intentDropdown.value) {
                 this.showError(urlError, 'Please select a processing intent.');
                 this.intentDropdown.focus();
+                return;
+            }
+
+            // Validate topic selection for "how_to" intent
+            if (this.intentDropdown.value === 'how_to' && !this.topicDropdown.value) {
+                this.showError(urlError, 'Please select a research topic for How To / Tutorial content.');
+                this.topicDropdown.focus();
                 return;
             }
 
@@ -1177,6 +1220,91 @@ class SummaryView extends ItemView {
         this.intentDropdown.value = this.plugin.settings?.defaultIntent || 'knowledge_building';
         console.log(`[DEBUG] Intent dropdown populated with ${this.intentDropdown.options.length} options, selected: ${this.intentDropdown.value}`);
         console.log(`[DEBUG] Intent dropdown selectedIndex: ${this.intentDropdown.selectedIndex}, selectedOptions: ${this.intentDropdown.selectedOptions.length}`);
+    }
+
+    private populateTopicDropdown() {
+        this.topicDropdown.innerHTML = '';
+        
+        // Add default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.text = 'Select a topic...';
+        this.topicDropdown.appendChild(defaultOption);
+        
+        // Add predefined topics
+        this.plugin.settings.topicFolders.topics.forEach((topic: string) => {
+            const option = document.createElement('option');
+            option.value = topic;
+            option.text = topic;
+            this.topicDropdown.appendChild(option);
+        });
+        
+        // Add option to create new topic
+        const newTopicOption = document.createElement('option');
+        newTopicOption.value = '__new__';
+        newTopicOption.text = '+ Create new topic...';
+        this.topicDropdown.appendChild(newTopicOption);
+        
+        console.log(`[DEBUG] Topic dropdown populated with ${this.topicDropdown.options.length} options`);
+    }
+
+    private toggleTopicSelection() {
+        const isHowToIntent = this.intentDropdown.value === 'how_to';
+        this.topicSection.style.display = isHowToIntent ? 'block' : 'none';
+        console.log(`[DEBUG] Topic selection ${isHowToIntent ? 'shown' : 'hidden'} for intent: ${this.intentDropdown.value}`);
+    }
+
+    private async ensureTopicFolder(topicName: string): Promise<string> {
+        const rootFolder = this.plugin.settings.topicFolders.rootFolder;
+        const topicFolderPath = `${rootFolder}/${topicName}`;
+        
+        try {
+            // Ensure root folder exists
+            const rootFolderExists = this.app.vault.getAbstractFileByPath(rootFolder);
+            if (!rootFolderExists) {
+                await this.app.vault.createFolder(rootFolder);
+                console.log(`[TopicFolders] Created root folder: ${rootFolder}`);
+            }
+            
+            // Ensure topic folder exists
+            const topicFolderExists = this.app.vault.getAbstractFileByPath(topicFolderPath);
+            if (!topicFolderExists) {
+                await this.app.vault.createFolder(topicFolderPath);
+                console.log(`[TopicFolders] Created topic folder: ${topicFolderPath}`);
+            }
+            
+            return topicFolderPath;
+        } catch (error) {
+            console.error(`[TopicFolders] Error creating topic folder: ${error}`);
+            throw error;
+        }
+    }
+
+    private async addTopicToSettings(topicName: string): Promise<void> {
+        if (!this.plugin.settings.topicFolders.topics.includes(topicName)) {
+            this.plugin.settings.topicFolders.topics.push(topicName);
+            await this.plugin.saveSettings();
+            console.log(`[TopicFolders] Added new topic to settings: ${topicName}`);
+        }
+    }
+
+    private getSelectedTopic(): string | null {
+        const selectedValue = this.topicDropdown.value;
+        
+        if (!selectedValue) {
+            return null;
+        }
+        
+        if (selectedValue === '__new__') {
+            // Prompt for new topic name
+            const newTopic = prompt('Enter a name for the new research topic:');
+            if (newTopic && newTopic.trim()) {
+                return newTopic.trim();
+            }
+            return null;
+        }
+        
+        return selectedValue;
     }
 
 
@@ -2295,11 +2423,27 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         processedPrompt = processedPrompt.replace('{COMPLEXITY}', context.complexity || 'intermediate');
         processedPrompt = processedPrompt.replace('{PREREQUISITES}', context.prerequisites || 'None specified');
 
+        // Add intent-specific instructions for "how_to"
+        let intentSpecificInstructions = '';
+        if (this.intentDropdown?.value === 'how_to') {
+            const selectedTopic = this.getSelectedTopic();
+            intentSpecificInstructions = `\nHOW-TO TUTORIAL FOCUS:
+- This content is being organized as a tutorial/guide for the topic: "${selectedTopic || 'General'}"
+- Focus on extracting step-by-step processes, methodologies, and actionable instructions
+- Identify prerequisites, tools needed, and expected outcomes
+- Structure the content to be practical and implementable
+- Emphasize learning pathways and skill progression
+- Extract specific action items and implementation steps
+- Tag with tutorial-specific keywords like #how-to, #tutorial, #guide, #implementation\n`;
+        }
+
         // Inject additional instructions
-        if (additionalInstructions && additionalInstructions.trim()) {
-            const additionalSection = `\nADDITIONAL FOCUS:\n${additionalInstructions.trim()}\n\nIMPORTANT: Your response must still be valid JSON. Do not break JSON syntax with unescaped quotes, newlines, or other formatting.\n`;
+        const combinedInstructions = [intentSpecificInstructions, additionalInstructions].filter(Boolean).join('\n');
+        
+        if (combinedInstructions.trim()) {
+            const additionalSection = `\nADDITIONAL FOCUS:\n${combinedInstructions.trim()}\n\nIMPORTANT: Your response must still be valid JSON. Do not break JSON syntax with unescaped quotes, newlines, or other formatting.\n`;
             processedPrompt = processedPrompt.replace('{ADDITIONAL_INSTRUCTIONS}', additionalSection);
-            console.log('[PromptInjection] ✅ Additional instructions injected:', additionalInstructions.trim());
+            console.log('[PromptInjection] ✅ Instructions injected (intent + additional):', combinedInstructions.trim());
         } else {
             processedPrompt = processedPrompt.replace('{ADDITIONAL_INSTRUCTIONS}', '');
             console.log('[PromptInjection] ℹ️ No additional instructions provided');
@@ -3313,6 +3457,26 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const fileName = this.sanitizeFileName(title + '.md');
         let folderPath = this.plugin.settings.mocFolder; // fallback to root MOC folder
 
+        // Handle topic folders for "how_to" intent
+        if (intent === 'how_to' && this.plugin.settings.topicFolders.enabled) {
+            const selectedTopic = this.getSelectedTopic();
+            if (selectedTopic) {
+                try {
+                    // If it's a new topic, add it to settings
+                    if (selectedTopic !== '__new__' && !this.plugin.settings.topicFolders.topics.includes(selectedTopic)) {
+                        await this.addTopicToSettings(selectedTopic);
+                    }
+                    
+                    // Create topic folder and use it as the folder path
+                    folderPath = await this.ensureTopicFolder(selectedTopic);
+                    console.log(`[TopicFolders] Using topic folder: ${folderPath}`);
+                } catch (error) {
+                    console.error(`[TopicFolders] Failed to create topic folder, falling back to MOC folder:`, error);
+                    new Notice(`Failed to create topic folder. Note will be saved in MOC folder.`);
+                }
+            }
+        }
+
         // MOC Analysis and Integration
         let mocPath: string | null = null;
         let hierarchyData: NoteHierarchyAnalysis | null = null;
@@ -3322,7 +3486,10 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             this.statusMessage.innerText = message;
         };
 
-        if (this.plugin.settings.enableMOC && metadata) {
+        // Skip MOC creation for topic folders (they have their own organization)
+        const useTopicFolders = intent === 'how_to' && this.plugin.settings.topicFolders.enabled && this.getSelectedTopic();
+        
+        if (this.plugin.settings.enableMOC && metadata && !useTopicFolders) {
             try {
                 // Use AI-generated hierarchy from the analysis result
                 const aiHierarchy = fullResult?.hierarchy;

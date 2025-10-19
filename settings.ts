@@ -152,6 +152,50 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                     }));
         }
 
+        // Topic Folders Settings Section
+        containerEl.createEl('h3', { text: 'Topic Folders Settings' });
+
+        new Setting(containerEl)
+            .setName('Enable Topic Folders')
+            .setDesc('Organize "How To / Tutorial" content into topic-specific folders for focused research collections')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.topicFolders.enabled)
+                .onChange(async (value) => {
+                    this.plugin.settings.topicFolders.enabled = value;
+                    await this.plugin.saveSettings();
+                    this.display(); // Refresh to show/hide topic folder settings
+                }));
+
+        if (this.plugin.settings.topicFolders.enabled) {
+            new Setting(containerEl)
+                .setName('Topic Folders Root')
+                .setDesc('Root folder for topic-based organization (e.g., "Research Topics")')
+                .addText(text => text
+                    .setPlaceholder('Research Topics')
+                    .setValue(this.plugin.settings.topicFolders.rootFolder)
+                    .onChange(async (value) => {
+                        this.plugin.settings.topicFolders.rootFolder = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Predefined Topics')
+                .setDesc('Comma-separated list of topics for quick selection')
+                .addTextArea(text => {
+                    text.inputEl.rows = 3;
+                    return text
+                        .setPlaceholder('LLM Evals, AI Safety, Machine Learning, Data Science')
+                        .setValue(this.plugin.settings.topicFolders.topics.join(', '))
+                        .onChange(async (value) => {
+                            this.plugin.settings.topicFolders.topics = value
+                                .split(',')
+                                .map(topic => topic.trim())
+                                .filter(topic => topic.length > 0);
+                            await this.plugin.saveSettings();
+                        });
+                });
+        }
+
         // Analysis Prompts Section
         containerEl.createEl('h3', { text: 'Analysis Prompts Configuration' });
         
