@@ -101,6 +101,15 @@ export interface TopicFolderSettings {
     topics: string[]; // List of predefined topics
 }
 
+// Debug Settings
+export interface DebugSettings {
+    enabled: boolean;
+    saveRawContent: boolean; // Save raw transcripts/web content
+    savePrompts: boolean; // Save actual prompts sent to AI
+    saveResponses: boolean; // Save raw AI responses
+    debugFolder: string; // Folder to save debug files
+}
+
 // Usage Statistics
 export interface UsageStats {
     lifetime: {
@@ -130,11 +139,13 @@ export interface TopicFolderSettings {
 // Debug Settings
 export interface DebugSettings {
     enabled: boolean;
-    saveRawContent: boolean;
-    debugFolder: string;
-    enablePromptTesting: boolean;
-    useExperimentalPrompts: boolean;
-    generateComparisons: boolean;
+    saveRawContent: boolean; // Save raw transcripts/web content
+    savePrompts: boolean; // Save actual prompts sent to AI
+    saveResponses: boolean; // Save raw AI responses
+    debugFolder: string; // Folder to save debug files
+    enablePromptTesting: boolean; // Enable A/B prompt testing (future feature)
+    useExperimentalPrompts: boolean; // Use experimental prompts (future feature)
+    generateComparisons: boolean; // Generate comparison reports (future feature)
 }
 
 // Main Plugin Settings
@@ -146,6 +157,7 @@ export interface PluginSettings {
     enableMOC: boolean; // Toggle for MOC functionality
     defaultIntent: ProcessingIntent; // Default processing intent
     topicFolders: TopicFolderSettings; // Topic-based folder organization
+    debug: DebugSettings; // Debug and analysis settings
     langfuse: LangfuseSettings; // Langfuse tracing settings
     usageStats: UsageStats; // Usage tracking
     trackUsage: boolean; // Allow users to opt out of usage tracking
@@ -247,6 +259,16 @@ const DEFAULT_SETTINGS: PluginSettings = {
         enabled: true,
         rootFolder: 'Research Topics',
         topics: ['LLM Evals', 'AI Safety', 'Machine Learning', 'Data Science', 'Software Engineering']
+    },
+    debug: {
+        enabled: false,
+        saveRawContent: true,
+        savePrompts: true,
+        saveResponses: true,
+        debugFolder: 'Debug',
+        enablePromptTesting: false,
+        useExperimentalPrompts: false,
+        generateComparisons: false
     },
     langfuse: {
         enabled: false,
@@ -1370,6 +1392,100 @@ class SummaryView extends ItemView {
         return selectedValue;
     }
 
+    private async saveDebugFile(filename: string, content: string, subfolder?: string): Promise<void> {
+        if (!this.plugin.settings.debug.enabled) return;
+
+        try {
+            const debugFolder = this.plugin.settings.debug.debugFolder;
+            const fullPath = subfolder ? `${debugFolder}/${subfolder}` : debugFolder;
+            
+            // Ensure debug folder exists
+            const folderExists = this.app.vault.getAbstractFileByPath(fullPath);
+            if (!folderExists) {
+                await this.app.vault.createFolder(fullPath);
+            }
+
+            // Create timestamp for unique filenames
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fullFilename = `${timestamp}_${filename}`;
+            const filePath = `${fullPath}/${fullFilename}`;
+
+            await this.app.vault.create(filePath, content);
+            console.log(`[Debug] Saved debug file: ${filePath}`);
+        } catch (error) {
+            console.error('[Debug] Failed to save debug file:', error);
+        }
+    }
+
+    private async debugLogRawContent(url: string, content: string, intent: string): Promise<void> {
+        if (!this.plugin.settings.debug.saveRawContent) return;
+
+        const debugContent = `# Raw Content Debug Log
+
+**URL:** ${url}
+**Intent:** ${intent}
+**Timestamp:** ${new Date().toISOString()}
+**Content Length:** ${content.length} characters
+
+---
+
+## Raw Content
+
+${content}
+`;
+
+        await this.saveDebugFile('raw-content.md', debugContent, 'raw-content');
+    }
+
+    private async debugLogPrompt(passName: string, prompt: string, intent: string): Promise<void> {
+        if (!this.plugin.settings.debug.savePrompts) return;
+
+        const debugContent = `# AI Prompt Debug Log
+
+**Pass:** ${passName}
+**Intent:** ${intent}
+**Timestamp:** ${new Date().toISOString()}
+**Prompt Length:** ${prompt.length} characters
+
+---
+
+## Actual Prompt Sent to AI
+
+${prompt}
+`;
+
+        await this.saveDebugFile(`prompt-${passName.toLowerCase().replace(/\s+/g, '-')}.md`, debugContent, 'prompts');
+    }
+
+    private async debugLogResponse(passName: string, response: any, intent: string): Promise<void> {
+        if (!this.plugin.settings.debug.saveResponses) return;
+
+        const debugContent = `# AI Response Debug Log
+
+**Pass:** ${passName}
+**Intent:** ${intent}
+**Timestamp:** ${new Date().toISOString()}
+**Response Type:** ${typeof response}
+
+---
+
+## Raw AI Response
+
+\`\`\`json
+${JSON.stringify(response, null, 2)}
+\`\`\`
+
+---
+
+## Response Analysis
+
+**Is Valid JSON:** ${typeof response === 'object' ? 'Yes' : 'No'}
+**Has Expected Fields:** ${response && typeof response === 'object' ? Object.keys(response).join(', ') : 'N/A'}
+`;
+
+        await this.saveDebugFile(`response-${passName.toLowerCase().replace(/\s+/g, '-')}.md`, debugContent, 'responses');
+    }
+
     private async ensureTopicFolder(topicName: string): Promise<string> {
         const rootFolder = this.plugin.settings.topicFolders.rootFolder;
         const topicFolderPath = `${rootFolder}/${topicName}`;
@@ -2006,6 +2122,9 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
 
             console.log('[startNoteGeneration] Content fetched successfully, length:', content.length);
 
+            // Debug: Save raw content for analysis
+            await this.debugLogRawContent(url, content, selectedIntent);
+
             // Start AI Analysis - the individual passes will update their own steps
             console.log('[startNoteGeneration] Starting content processing...');
             const result = await this.summarizeContent(content, prompt, url);
@@ -2523,7 +2642,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         // Add intent-specific instructions
         let intentSpecificInstructions = '';
         const currentIntent = this.intentDropdown?.value as ProcessingIntent;
-        
+
         switch (currentIntent) {
             case 'how_to':
                 const selectedTopic = this.topicDropdown?.value || 'General';
@@ -2536,7 +2655,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 - Extract specific action items and implementation steps
 - Tag with tutorial-specific keywords like #how-to, #tutorial, #guide, #implementation`;
                 break;
-                
+
             case 'knowledge_building':
                 intentSpecificInstructions = `\nKNOWLEDGE BUILDING FOCUS:
 - This content is for deep learning and understanding
@@ -2546,7 +2665,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 - Emphasize learning pathways and knowledge progression
 - Tag with knowledge-building keywords like #concept, #framework, #theory, #learning`;
                 break;
-                
+
             case 'research_collection':
                 intentSpecificInstructions = `\nRESEARCH COLLECTION FOCUS:
 - This content is being gathered for a specific research project
@@ -2556,7 +2675,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 - Emphasize research methodology and evidence quality
 - Tag with research keywords like #research, #data, #evidence, #methodology`;
                 break;
-                
+
             case 'quick_reference':
                 intentSpecificInstructions = `\nQUICK REFERENCE FOCUS:
 - This content is for immediate practical use and quick lookup
@@ -2566,7 +2685,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 - Emphasize practical application and immediate utility
 - Tag with reference keywords like #reference, #quick, #facts, #checklist`;
                 break;
-                
+
             case 'professional_intelligence':
                 intentSpecificInstructions = `\nPROFESSIONAL INTELLIGENCE FOCUS:
 - This content is for staying current in professional field/industry
@@ -2576,7 +2695,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 - Emphasize professional relevance and career impact
 - Tag with professional keywords like #industry, #trends, #business, #strategy`;
                 break;
-                
+
             case 'personal_development':
                 intentSpecificInstructions = `\nPERSONAL DEVELOPMENT FOCUS:
 - This content is for self-improvement and habit formation
@@ -2586,7 +2705,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 - Emphasize personal transformation and skill development
 - Tag with development keywords like #growth, #habits, #skills, #mindset`;
                 break;
-                
+
             case 'event_documentation':
                 intentSpecificInstructions = `\nEVENT DOCUMENTATION FOCUS:
 - This content is for recording what happened for future reference
@@ -2596,7 +2715,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 - Emphasize historical record and future reference value
 - Tag with documentation keywords like #event, #record, #timeline, #lessons`;
                 break;
-                
+
             case 'news_events':
                 intentSpecificInstructions = `\nNEWS & CURRENT EVENTS FOCUS:
 - This content is for staying informed about current developments
@@ -2606,7 +2725,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 - Emphasize timeliness and relevance to current affairs
 - Tag with news keywords like #news, #current, #events, #impact`;
                 break;
-                
+
             case 'inspiration_capture':
                 intentSpecificInstructions = `\nINSPIRATION CAPTURE FOCUS:
 - This content is for preserving creative ideas and inspiration
@@ -2640,11 +2759,20 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             content: text.substring(0, 6000)
         };
         const structurePrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
+        const intent = this.intentDropdown?.value || 'unknown';
 
-        return await this.makeTracedAIRequest(structurePrompt, {
-            intent: this.intentDropdown?.value || 'unknown',
+        // Debug: Save prompt
+        await this.debugLogPrompt('Structure & Metadata', structurePrompt, intent);
+
+        const response = await this.makeTracedAIRequest(structurePrompt, {
+            intent: intent,
             pass: 'structure-metadata'
         });
+
+        // Debug: Save response
+        await this.debugLogResponse('Structure & Metadata', response, intent);
+
+        return response;
     }
 
     private async analyzeContentDepth(text: string, structure: any, additionalInstructions: string = '', customPrompt?: string): Promise<any> {
@@ -2656,11 +2784,20 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             topic: structure.hierarchy?.level2 || 'Miscellaneous'
         };
         const depthPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
+        const intent = this.intentDropdown?.value || 'unknown';
 
-        return await this.makeTracedAIRequest(depthPrompt, {
-            intent: this.intentDropdown?.value || 'unknown',
+        // Debug: Save prompt
+        await this.debugLogPrompt('Content Depth', depthPrompt, intent);
+
+        const response = await this.makeTracedAIRequest(depthPrompt, {
+            intent: intent,
             pass: 'content-depth'
         });
+
+        // Debug: Save response
+        await this.debugLogResponse('Content Depth', response, intent);
+
+        return response;
     }
 
     private async analyzePerspectivesAndExamples(text: string, structure: any, additionalInstructions: string = '', customPrompt?: string): Promise<any> {
@@ -2671,11 +2808,20 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             overview: structure.overview || 'No overview available'
         };
         const perspectivesPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
+        const intent = this.intentDropdown?.value || 'unknown';
 
-        return await this.makeTracedAIRequest(perspectivesPrompt, {
-            intent: this.intentDropdown?.value || 'unknown',
+        // Debug: Save prompt
+        await this.debugLogPrompt('Perspectives & Examples', perspectivesPrompt, intent);
+
+        const response = await this.makeTracedAIRequest(perspectivesPrompt, {
+            intent: intent,
             pass: 'perspectives-examples'
         });
+
+        // Debug: Save response
+        await this.debugLogResponse('Perspectives & Examples', response, intent);
+
+        return response;
     }
 
     private async analyzeConnectionsAndApplications(text: string, structure: any, additionalInstructions: string = '', customPrompt?: string): Promise<any> {
@@ -2687,11 +2833,20 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             keyConcepts: structure.metadata?.key_concepts?.join(', ') || 'None identified'
         };
         const connectionsPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
+        const intent = this.intentDropdown?.value || 'unknown';
 
-        return await this.makeTracedAIRequest(connectionsPrompt, {
-            intent: this.intentDropdown?.value || 'unknown',
+        // Debug: Save prompt
+        await this.debugLogPrompt('Connections & Applications', connectionsPrompt, intent);
+
+        const response = await this.makeTracedAIRequest(connectionsPrompt, {
+            intent: intent,
             pass: 'connections-applications'
         });
+
+        // Debug: Save response
+        await this.debugLogResponse('Connections & Applications', response, intent);
+
+        return response;
     }
 
     private async analyzeLearningAndNextSteps(text: string, structure: any, additionalInstructions: string = '', customPrompt?: string): Promise<any> {
@@ -2703,11 +2858,20 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             prerequisites: structure.learning_context?.prerequisites?.join(', ') || 'None specified'
         };
         const learningPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
+        const intent = this.intentDropdown?.value || 'unknown';
 
-        return await this.makeTracedAIRequest(learningPrompt, {
-            intent: this.intentDropdown?.value || 'unknown',
+        // Debug: Save prompt
+        await this.debugLogPrompt('Learning & Next Steps', learningPrompt, intent);
+
+        const response = await this.makeTracedAIRequest(learningPrompt, {
+            intent: intent,
             pass: 'learning-next-steps'
         });
+
+        // Debug: Save response
+        await this.debugLogResponse('Learning & Next Steps', response, intent);
+
+        return response;
     }
 
     private cleanJsonResponse(jsonString: string): string {

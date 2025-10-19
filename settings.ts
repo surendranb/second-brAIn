@@ -196,6 +196,63 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                 });
         }
 
+        // Debug Settings Section
+        containerEl.createEl('h3', { text: 'Debug & Analysis Settings' });
+
+        new Setting(containerEl)
+            .setName('Enable Debug Mode')
+            .setDesc('Save raw content, prompts, and AI responses for analysis and prompt improvement')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.debug.enabled)
+                .onChange(async (value) => {
+                    this.plugin.settings.debug.enabled = value;
+                    await this.plugin.saveSettings();
+                    this.display(); // Refresh to show/hide debug options
+                }));
+
+        if (this.plugin.settings.debug.enabled) {
+            new Setting(containerEl)
+                .setName('Debug Folder')
+                .setDesc('Folder where debug files will be saved')
+                .addText(text => text
+                    .setPlaceholder('Debug')
+                    .setValue(this.plugin.settings.debug.debugFolder)
+                    .onChange(async (value) => {
+                        this.plugin.settings.debug.debugFolder = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Save Raw Content')
+                .setDesc('Save original transcripts and web content before AI processing')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.debug.saveRawContent)
+                    .onChange(async (value) => {
+                        this.plugin.settings.debug.saveRawContent = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Save AI Prompts')
+                .setDesc('Save the actual prompts sent to the AI for each analysis pass')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.debug.savePrompts)
+                    .onChange(async (value) => {
+                        this.plugin.settings.debug.savePrompts = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Save AI Responses')
+                .setDesc('Save raw AI responses before processing and formatting')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.debug.saveResponses)
+                    .onChange(async (value) => {
+                        this.plugin.settings.debug.saveResponses = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
+
         // Analysis Prompts Section
         containerEl.createEl('h3', { text: 'Analysis Prompts Configuration' });
         
