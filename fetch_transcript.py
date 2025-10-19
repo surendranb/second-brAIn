@@ -61,8 +61,8 @@ if __name__ == "__main__":
             print("[INFO] Cleaning SRT transcript..."); sys.stdout.flush()
             clean_text = clean_srt(srt_text)
             print("--- Cleaned Transcript Start ---")
-            print(clean_text[:2000])  # Print first 2000 chars for brevity
-            print("--- Cleaned Transcript End (truncated) ---")
+            print(clean_text)  # Print FULL transcript
+            print("--- Cleaned Transcript End ---")
         else:
             print("[ERROR] Could not fetch transcript."); sys.stdout.flush()
     else:
