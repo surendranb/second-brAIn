@@ -53,7 +53,8 @@ export class PromptLoader {
             'professional_intelligence': 'professional-intelligence.md',
             'personal_development': 'personal-development.md',
             'news_events': 'news-events.md',
-            'inspiration_capture': 'inspiration-capture.md'
+            'inspiration_capture': 'inspiration-capture.md',
+            'how_to': 'how-to.md'
         };
         return fileNames[intent] || 'knowledge-building.md';
     }
