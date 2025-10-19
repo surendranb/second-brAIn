@@ -127,6 +127,16 @@ export interface TopicFolderSettings {
     topics: string[]; // List of predefined topics
 }
 
+// Debug Settings
+export interface DebugSettings {
+    enabled: boolean;
+    saveRawContent: boolean;
+    debugFolder: string;
+    enablePromptTesting: boolean;
+    useExperimentalPrompts: boolean;
+    generateComparisons: boolean;
+}
+
 // Main Plugin Settings
 export interface PluginSettings {
     provider: Provider;
@@ -251,86 +261,107 @@ const DEFAULT_SETTINGS: PluginSettings = {
     },
     trackUsage: true,
     analysisPrompts: {
-        structure: `You are an expert knowledge organizer. Analyze this content and return comprehensive structure and metadata.
+        structure: `You are an expert knowledge organizer with deep expertise in content analysis and information architecture.
 
 EXISTING KNOWLEDGE HIERARCHY:
 {HIERARCHY_CONTEXT}
 
-INSTRUCTIONS:
-1. Create an optimal title that captures the essence
-2. Determine the best hierarchy placement (avoid duplicates, use existing when appropriate)
-3. Extract comprehensive metadata (speakers, topics, key concepts, tags)
-4. Assess learning context (prerequisites, complexity, reading time)
-5. Classify the source type based on content and context
-6. Extract specific actionable items (if any)
-7. Provide a concise overview (2-3 sentences)
+CORE ANALYSIS OBJECTIVES:
+1. Create a precise, descriptive title that captures the content's unique value proposition
+2. Determine optimal knowledge hierarchy placement (avoid duplicates, leverage existing structure)
+3. Extract comprehensive metadata with high precision and relevance
+4. Assess learning context and cognitive requirements accurately
+5. Classify source type and credibility indicators
+6. Identify specific, actionable items that readers can implement
+7. Provide a compelling overview that highlights key value and insights
+
+QUALITY STANDARDS:
+- Title should be specific, searchable, and immediately informative
+- Hierarchy placement should reflect content depth and scope accurately
+- Metadata should be comprehensive but focused on most relevant elements
+- Action items should be specific, measurable, and implementable
+- Tags should enhance discoverability and connection to related content
 
 {ADDITIONAL_INSTRUCTIONS}
 
 Content to analyze:
 {CONTENT}
 
-Return ONLY valid JSON:
+Return ONLY valid JSON with enhanced detail and precision:
 {
-  "title": "Comprehensive title",
+  "title": "Specific, descriptive title that captures unique value",
   "hierarchy": {
-    "level1": "Domain",
-    "level2": "Area", 
-    "level3": "Topic",
-    "level4": "Concept"
+    "level1": "Primary knowledge domain",
+    "level2": "Specific area or discipline", 
+    "level3": "Focused topic or subject",
+    "level4": "Specific concept or technique"
   },
   "metadata": {
     "speakers": ["speaker1", "speaker2"],
-    "topics": ["topic1", "topic2"],
-    "key_concepts": ["concept1", "concept2"],
-    "tags": ["#tag1", "#tag2"],
-    "related": ["related1", "related2"]
+    "topics": ["specific topic1", "specific topic2"],
+    "key_concepts": ["concept1", "concept2", "concept3"],
+    "tags": ["#primary", "#secondary", "#tertiary"],
+    "related": ["related concept1", "related concept2"]
   },
   "learning_context": {
-    "prerequisites": ["prereq1", "prereq2"],
-    "related_concepts": ["concept1", "concept2"],
-    "learning_path": ["step1", "step2"],
+    "prerequisites": ["specific prereq1", "specific prereq2"],
+    "related_concepts": ["connected concept1", "connected concept2"],
+    "learning_path": ["step1", "step2", "step3"],
     "complexity_level": "beginner|intermediate|advanced",
     "estimated_reading_time": "X minutes"
   },
-  "source_type": "social|academic|news|professional|traditional",
-  "action_items": ["specific action 1", "specific action 2"],
-  "overview": "Brief 2-3 sentence overview of the content"
+  "source_type": "social|academic|news|professional|traditional|tutorial|interview|presentation",
+  "action_items": ["Specific actionable item 1", "Specific actionable item 2", "Specific actionable item 3"],
+  "overview": "Compelling 2-3 sentence overview highlighting key insights and value proposition"
 }`,
-        content: `You are an expert content analyst. Provide deep, comprehensive analysis of this content.
+        content: `You are an expert content analyst with deep expertise in extracting meaningful insights and synthesizing complex information.
 
 CONTENT CONTEXT:
 Title: {TITLE}
 Domain: {DOMAIN}
 Topic: {TOPIC}
 
-INSTRUCTIONS:
-Create comprehensive analysis sections. Be thorough and detailed - there are no length limits.
+ANALYSIS FRAMEWORK:
+- Context: Establish significance, background, and relevance
+- Key Facts: Extract verifiable, important information with supporting details
+- Deep Insights: Identify patterns, implications, and non-obvious connections
+- Core Concepts: Define fundamental ideas and their relationships
+- Synthesis: Create comprehensive understanding that connects all elements
+
+QUALITY STANDARDS:
+- Context should establish why this content matters and its broader significance
+- Key facts should be specific, verifiable, and well-explained
+- Insights should reveal deeper patterns and implications beyond surface content
+- Core concepts should be clearly defined with their significance explained
+- Summary should synthesize all elements into coherent understanding
 
 {ADDITIONAL_INSTRUCTIONS}
 
 Content to analyze:
 {CONTENT}
 
-Return ONLY valid JSON:
+Return ONLY valid JSON with enhanced depth and clarity:
 {
-  "context": "Detailed background and why this matters (200+ words)",
+  "context": "Comprehensive background explaining why this content matters, its significance in the broader field, and the problems or opportunities it addresses (250+ words with specific details)",
   "key_facts": [
-    "Fact 1 with detailed explanation",
-    "Fact 2 with detailed explanation",
-    "Fact 3 with detailed explanation"
+    "Specific fact 1 with detailed explanation, supporting evidence, and context",
+    "Specific fact 2 with quantitative details, sources, and implications",
+    "Specific fact 3 with concrete examples, data points, and verification",
+    "Additional facts as relevant to content depth"
   ],
   "deep_insights": [
-    "Insight 1: Deep analysis of patterns, implications, connections",
-    "Insight 2: Another profound insight with reasoning",
-    "Insight 3: Third insight connecting to broader themes"
+    "Insight 1: Pattern analysis revealing underlying principles, cause-effect relationships, and broader implications with reasoning",
+    "Insight 2: Connection analysis linking this content to related fields, concepts, or trends with specific examples",
+    "Insight 3: Implication analysis exploring consequences, opportunities, and future directions with evidence",
+    "Additional insights as content warrants"
   ],
   "core_concepts": [
-    "Concept 1: Detailed explanation and significance", 
-    "Concept 2: Another key concept with context",
-    "Concept 3: Third important concept"
+    "Concept 1: Clear definition, significance, and how it relates to other concepts with examples", 
+    "Concept 2: Detailed explanation of mechanism, application, and importance with context",
+    "Concept 3: Comprehensive description of principles, usage, and implications with specifics",
+    "Additional concepts as content requires"
   ],
-  "detailed_summary": "Comprehensive 300+ word summary covering all major points"
+  "detailed_summary": "Comprehensive synthesis that weaves together context, facts, insights, and concepts into coherent understanding, highlighting key takeaways and their significance (400+ words)"
 }`,
         perspectives: `You are an expert at analyzing multiple viewpoints and creating practical examples.
 
@@ -1224,13 +1255,13 @@ class SummaryView extends ItemView {
 
     private populateTopicDropdown() {
         this.topicDropdown.innerHTML = '';
-        
+
         // Add default option
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.text = 'Select a topic...';
         this.topicDropdown.appendChild(defaultOption);
-        
+
         // Add predefined topics
         this.plugin.settings.topicFolders.topics.forEach((topic: string) => {
             const option = document.createElement('option');
@@ -1238,34 +1269,34 @@ class SummaryView extends ItemView {
             option.text = `📋 ${topic}`;
             this.topicDropdown.appendChild(option);
         });
-        
+
         // Add separator
         const separatorOption = document.createElement('option');
         separatorOption.disabled = true;
         separatorOption.text = '─────────────────';
         this.topicDropdown.appendChild(separatorOption);
-        
+
         // Add existing folders from the topic root folder
         this.addExistingFoldersToDropdown();
-        
+
         // Add separator
         const separatorOption2 = document.createElement('option');
         separatorOption2.disabled = true;
         separatorOption2.text = '─────────────────';
         this.topicDropdown.appendChild(separatorOption2);
-        
+
         // Add option to browse for folder
         const browseOption = document.createElement('option');
         browseOption.value = '__browse__';
         browseOption.text = '📁 Browse for existing folder...';
         this.topicDropdown.appendChild(browseOption);
-        
+
         // Add option to create new topic
         const newTopicOption = document.createElement('option');
         newTopicOption.value = '__new__';
         newTopicOption.text = '+ Create new topic...';
         this.topicDropdown.appendChild(newTopicOption);
-        
+
         console.log(`[DEBUG] Topic dropdown populated with ${this.topicDropdown.options.length} options`);
     }
 
@@ -1273,13 +1304,13 @@ class SummaryView extends ItemView {
         try {
             const rootFolder = this.plugin.settings.topicFolders.rootFolder;
             const rootFolderObj = this.app.vault.getAbstractFileByPath(rootFolder);
-            
+
             if (rootFolderObj && rootFolderObj instanceof TFolder) {
                 const subfolders = rootFolderObj.children
                     .filter(child => child instanceof TFolder)
                     .map(folder => folder.name)
                     .sort();
-                
+
                 subfolders.forEach(folderName => {
                     // Skip if it's already in predefined topics
                     if (!this.plugin.settings.topicFolders.topics.includes(folderName)) {
@@ -1312,11 +1343,11 @@ class SummaryView extends ItemView {
 
     private async getSelectedTopic(): Promise<string | null> {
         const selectedValue = this.topicDropdown.value;
-        
+
         if (!selectedValue) {
             return null;
         }
-        
+
         if (selectedValue === '__new__') {
             // Prompt for new topic name
             const newTopic = prompt('Enter a name for the new research topic:');
@@ -1325,24 +1356,24 @@ class SummaryView extends ItemView {
             }
             return null;
         }
-        
+
         if (selectedValue === '__browse__') {
             // Show folder browser
             return await this.showFolderBrowser();
         }
-        
+
         if (selectedValue.startsWith('__existing__:')) {
             // Extract folder name from existing folder option
             return selectedValue.replace('__existing__:', '');
         }
-        
+
         return selectedValue;
     }
 
     private async ensureTopicFolder(topicName: string): Promise<string> {
         const rootFolder = this.plugin.settings.topicFolders.rootFolder;
         const topicFolderPath = `${rootFolder}/${topicName}`;
-        
+
         try {
             // Ensure root folder exists
             const rootFolderExists = this.app.vault.getAbstractFileByPath(rootFolder);
@@ -1350,14 +1381,14 @@ class SummaryView extends ItemView {
                 await this.app.vault.createFolder(rootFolder);
                 console.log(`[TopicFolders] Created root folder: ${rootFolder}`);
             }
-            
+
             // Ensure topic folder exists
             const topicFolderExists = this.app.vault.getAbstractFileByPath(topicFolderPath);
             if (!topicFolderExists) {
                 await this.app.vault.createFolder(topicFolderPath);
                 console.log(`[TopicFolders] Created topic folder: ${topicFolderPath}`);
             }
-            
+
             return topicFolderPath;
         } catch (error) {
             console.error(`[TopicFolders] Error creating topic folder: ${error}`);
@@ -2489,23 +2520,107 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         processedPrompt = processedPrompt.replace('{COMPLEXITY}', context.complexity || 'intermediate');
         processedPrompt = processedPrompt.replace('{PREREQUISITES}', context.prerequisites || 'None specified');
 
-        // Add intent-specific instructions for "how_to"
+        // Add intent-specific instructions
         let intentSpecificInstructions = '';
-        if (this.intentDropdown?.value === 'how_to') {
-            const selectedTopic = this.getSelectedTopic();
-            intentSpecificInstructions = `\nHOW-TO TUTORIAL FOCUS:
-- This content is being organized as a tutorial/guide for the topic: "${selectedTopic || 'General'}"
+        const currentIntent = this.intentDropdown?.value as ProcessingIntent;
+        
+        switch (currentIntent) {
+            case 'how_to':
+                const selectedTopic = this.topicDropdown?.value || 'General';
+                intentSpecificInstructions = `\nHOW-TO TUTORIAL FOCUS:
+- This content is being organized as a tutorial/guide for the topic: "${selectedTopic}"
 - Focus on extracting step-by-step processes, methodologies, and actionable instructions
 - Identify prerequisites, tools needed, and expected outcomes
 - Structure the content to be practical and implementable
 - Emphasize learning pathways and skill progression
 - Extract specific action items and implementation steps
-- Tag with tutorial-specific keywords like #how-to, #tutorial, #guide, #implementation\n`;
+- Tag with tutorial-specific keywords like #how-to, #tutorial, #guide, #implementation`;
+                break;
+                
+            case 'knowledge_building':
+                intentSpecificInstructions = `\nKNOWLEDGE BUILDING FOCUS:
+- This content is for deep learning and understanding
+- Focus on conceptual frameworks, theoretical foundations, and comprehensive explanations
+- Extract key principles, models, and mental frameworks
+- Identify connections to existing knowledge and broader concepts
+- Emphasize learning pathways and knowledge progression
+- Tag with knowledge-building keywords like #concept, #framework, #theory, #learning`;
+                break;
+                
+            case 'research_collection':
+                intentSpecificInstructions = `\nRESEARCH COLLECTION FOCUS:
+- This content is being gathered for a specific research project
+- Focus on data points, evidence, methodologies, and findings
+- Extract research questions, hypotheses, and conclusions
+- Identify sources, citations, and credibility indicators
+- Emphasize research methodology and evidence quality
+- Tag with research keywords like #research, #data, #evidence, #methodology`;
+                break;
+                
+            case 'quick_reference':
+                intentSpecificInstructions = `\nQUICK REFERENCE FOCUS:
+- This content is for immediate practical use and quick lookup
+- Focus on actionable information, key facts, and essential details
+- Extract checklists, formulas, key numbers, and critical points
+- Prioritize brevity and accessibility over depth
+- Emphasize practical application and immediate utility
+- Tag with reference keywords like #reference, #quick, #facts, #checklist`;
+                break;
+                
+            case 'professional_intelligence':
+                intentSpecificInstructions = `\nPROFESSIONAL INTELLIGENCE FOCUS:
+- This content is for staying current in professional field/industry
+- Focus on industry trends, market insights, and professional developments
+- Extract business implications, competitive advantages, and strategic insights
+- Identify key players, market dynamics, and future implications
+- Emphasize professional relevance and career impact
+- Tag with professional keywords like #industry, #trends, #business, #strategy`;
+                break;
+                
+            case 'personal_development':
+                intentSpecificInstructions = `\nPERSONAL DEVELOPMENT FOCUS:
+- This content is for self-improvement and habit formation
+- Focus on actionable advice, behavioral insights, and personal growth strategies
+- Extract practical exercises, habit formation techniques, and mindset shifts
+- Identify personal application opportunities and growth metrics
+- Emphasize personal transformation and skill development
+- Tag with development keywords like #growth, #habits, #skills, #mindset`;
+                break;
+                
+            case 'event_documentation':
+                intentSpecificInstructions = `\nEVENT DOCUMENTATION FOCUS:
+- This content is for recording what happened for future reference
+- Focus on chronological events, key decisions, and outcomes
+- Extract timelines, participants, decisions made, and results
+- Identify lessons learned, what worked, and what didn't
+- Emphasize historical record and future reference value
+- Tag with documentation keywords like #event, #record, #timeline, #lessons`;
+                break;
+                
+            case 'news_events':
+                intentSpecificInstructions = `\nNEWS & CURRENT EVENTS FOCUS:
+- This content is for staying informed about current developments
+- Focus on factual reporting, implications, and broader context
+- Extract key facts, stakeholders, and potential impacts
+- Identify trends, patterns, and connections to other events
+- Emphasize timeliness and relevance to current affairs
+- Tag with news keywords like #news, #current, #events, #impact`;
+                break;
+                
+            case 'inspiration_capture':
+                intentSpecificInstructions = `\nINSPIRATION CAPTURE FOCUS:
+- This content is for preserving creative ideas and inspiration
+- Focus on creative insights, innovative approaches, and inspiring concepts
+- Extract creative techniques, novel perspectives, and motivational elements
+- Identify artistic, creative, or innovative applications
+- Emphasize creative potential and inspirational value
+- Tag with inspiration keywords like #inspiration, #creative, #ideas, #innovation`;
+                break;
         }
 
         // Inject additional instructions
         const combinedInstructions = [intentSpecificInstructions, additionalInstructions].filter(Boolean).join('\n');
-        
+
         if (combinedInstructions.trim()) {
             const additionalSection = `\nADDITIONAL FOCUS:\n${combinedInstructions.trim()}\n\nIMPORTANT: Your response must still be valid JSON. Do not break JSON syntax with unescaped quotes, newlines, or other formatting.\n`;
             processedPrompt = processedPrompt.replace('{ADDITIONAL_INSTRUCTIONS}', additionalSection);
@@ -3532,7 +3647,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                     if (selectedTopic !== '__new__' && !this.plugin.settings.topicFolders.topics.includes(selectedTopic)) {
                         await this.addTopicToSettings(selectedTopic);
                     }
-                    
+
                     // Create topic folder and use it as the folder path
                     folderPath = await this.ensureTopicFolder(selectedTopic);
                     console.log(`[TopicFolders] Using topic folder: ${folderPath}`);
@@ -3554,7 +3669,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 
         // Skip MOC creation for topic folders (they have their own organization)
         const useTopicFolders = intent === 'how_to' && this.plugin.settings.topicFolders.enabled && this.topicDropdown.value;
-        
+
         if (this.plugin.settings.enableMOC && metadata && !useTopicFolders) {
             try {
                 // Use AI-generated hierarchy from the analysis result
@@ -4927,9 +5042,9 @@ class FolderSelectionModal extends Modal {
         contentEl.empty();
 
         contentEl.createEl('h2', { text: 'Select Existing Folder' });
-        
-        const description = contentEl.createEl('p', { 
-            text: 'Choose an existing folder from your vault to use as a topic folder:' 
+
+        const description = contentEl.createEl('p', {
+            text: 'Choose an existing folder from your vault to use as a topic folder:'
         });
         description.style.marginBottom = '20px';
 
