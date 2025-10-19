@@ -1235,9 +1235,30 @@ class SummaryView extends ItemView {
         this.plugin.settings.topicFolders.topics.forEach((topic: string) => {
             const option = document.createElement('option');
             option.value = topic;
-            option.text = topic;
+            option.text = `📋 ${topic}`;
             this.topicDropdown.appendChild(option);
         });
+        
+        // Add separator
+        const separatorOption = document.createElement('option');
+        separatorOption.disabled = true;
+        separatorOption.text = '─────────────────';
+        this.topicDropdown.appendChild(separatorOption);
+        
+        // Add existing folders from the topic root folder
+        this.addExistingFoldersToDropdown();
+        
+        // Add separator
+        const separatorOption2 = document.createElement('option');
+        separatorOption2.disabled = true;
+        separatorOption2.text = '─────────────────';
+        this.topicDropdown.appendChild(separatorOption2);
+        
+        // Add option to browse for folder
+        const browseOption = document.createElement('option');
+        browseOption.value = '__browse__';
+        browseOption.text = '📁 Browse for existing folder...';
+        this.topicDropdown.appendChild(browseOption);
         
         // Add option to create new topic
         const newTopicOption = document.createElement('option');
@@ -1248,10 +1269,74 @@ class SummaryView extends ItemView {
         console.log(`[DEBUG] Topic dropdown populated with ${this.topicDropdown.options.length} options`);
     }
 
+    private addExistingFoldersToDropdown() {
+        try {
+            const rootFolder = this.plugin.settings.topicFolders.rootFolder;
+            const rootFolderObj = this.app.vault.getAbstractFileByPath(rootFolder);
+            
+            if (rootFolderObj && rootFolderObj instanceof TFolder) {
+                const subfolders = rootFolderObj.children
+                    .filter(child => child instanceof TFolder)
+                    .map(folder => folder.name)
+                    .sort();
+                
+                subfolders.forEach(folderName => {
+                    // Skip if it's already in predefined topics
+                    if (!this.plugin.settings.topicFolders.topics.includes(folderName)) {
+                        const option = document.createElement('option');
+                        option.value = `__existing__:${folderName}`;
+                        option.text = `📂 ${folderName} (existing)`;
+                        this.topicDropdown.appendChild(option);
+                    }
+                });
+            }
+        } catch (error) {
+            console.log('[TopicFolders] Could not load existing folders:', error);
+        }
+    }
+
     private toggleTopicSelection() {
         const isHowToIntent = this.intentDropdown.value === 'how_to';
         this.topicSection.style.display = isHowToIntent ? 'block' : 'none';
         console.log(`[DEBUG] Topic selection ${isHowToIntent ? 'shown' : 'hidden'} for intent: ${this.intentDropdown.value}`);
+    }
+
+    private async showFolderBrowser(): Promise<string | null> {
+        return new Promise((resolve) => {
+            const modal = new FolderSelectionModal(this.app, (selectedFolder) => {
+                resolve(selectedFolder);
+            });
+            modal.open();
+        });
+    }
+
+    private async getSelectedTopic(): Promise<string | null> {
+        const selectedValue = this.topicDropdown.value;
+        
+        if (!selectedValue) {
+            return null;
+        }
+        
+        if (selectedValue === '__new__') {
+            // Prompt for new topic name
+            const newTopic = prompt('Enter a name for the new research topic:');
+            if (newTopic && newTopic.trim()) {
+                return newTopic.trim();
+            }
+            return null;
+        }
+        
+        if (selectedValue === '__browse__') {
+            // Show folder browser
+            return await this.showFolderBrowser();
+        }
+        
+        if (selectedValue.startsWith('__existing__:')) {
+            // Extract folder name from existing folder option
+            return selectedValue.replace('__existing__:', '');
+        }
+        
+        return selectedValue;
     }
 
     private async ensureTopicFolder(topicName: string): Promise<string> {
@@ -1286,25 +1371,6 @@ class SummaryView extends ItemView {
             await this.plugin.saveSettings();
             console.log(`[TopicFolders] Added new topic to settings: ${topicName}`);
         }
-    }
-
-    private getSelectedTopic(): string | null {
-        const selectedValue = this.topicDropdown.value;
-        
-        if (!selectedValue) {
-            return null;
-        }
-        
-        if (selectedValue === '__new__') {
-            // Prompt for new topic name
-            const newTopic = prompt('Enter a name for the new research topic:');
-            if (newTopic && newTopic.trim()) {
-                return newTopic.trim();
-            }
-            return null;
-        }
-        
-        return selectedValue;
     }
 
 
@@ -3459,7 +3525,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 
         // Handle topic folders for "how_to" intent
         if (intent === 'how_to' && this.plugin.settings.topicFolders.enabled) {
-            const selectedTopic = this.getSelectedTopic();
+            const selectedTopic = await this.getSelectedTopic();
             if (selectedTopic) {
                 try {
                     // If it's a new topic, add it to settings
@@ -3487,7 +3553,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         };
 
         // Skip MOC creation for topic folders (they have their own organization)
-        const useTopicFolders = intent === 'how_to' && this.plugin.settings.topicFolders.enabled && this.getSelectedTopic();
+        const useTopicFolders = intent === 'how_to' && this.plugin.settings.topicFolders.enabled && this.topicDropdown.value;
         
         if (this.plugin.settings.enableMOC && metadata && !useTopicFolders) {
             try {
@@ -4845,6 +4911,92 @@ class HierarchyAnalyzer {
         if (wordCount < 500) return 'beginner';
         if (wordCount < 1500) return 'intermediate';
         return 'advanced';
+    }
+}
+
+class FolderSelectionModal extends Modal {
+    private onChoose: (folder: string | null) => void;
+
+    constructor(app: App, onChoose: (folder: string | null) => void) {
+        super(app);
+        this.onChoose = onChoose;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+
+        contentEl.createEl('h2', { text: 'Select Existing Folder' });
+        
+        const description = contentEl.createEl('p', { 
+            text: 'Choose an existing folder from your vault to use as a topic folder:' 
+        });
+        description.style.marginBottom = '20px';
+
+        // Get all folders in the vault
+        const allFolders = this.app.vault.getAllLoadedFiles()
+            .filter(file => file instanceof TFolder)
+            .map(folder => folder as TFolder)
+            .sort((a, b) => a.path.localeCompare(b.path));
+
+        if (allFolders.length === 0) {
+            contentEl.createEl('p', { text: 'No folders found in your vault.' });
+            return;
+        }
+
+        // Create scrollable container
+        const folderContainer = contentEl.createEl('div');
+        folderContainer.style.maxHeight = '400px';
+        folderContainer.style.overflowY = 'auto';
+        folderContainer.style.border = '1px solid var(--background-modifier-border)';
+        folderContainer.style.borderRadius = '6px';
+        folderContainer.style.marginBottom = '20px';
+
+        // Add folders as clickable items
+        allFolders.forEach(folder => {
+            const folderItem = folderContainer.createEl('div');
+            folderItem.style.padding = '10px 15px';
+            folderItem.style.cursor = 'pointer';
+            folderItem.style.borderBottom = '1px solid var(--background-modifier-border)';
+            folderItem.style.display = 'flex';
+            folderItem.style.alignItems = 'center';
+            folderItem.style.gap = '8px';
+
+            folderItem.createEl('span', { text: '📁' });
+            folderItem.createEl('span', { text: folder.path });
+
+            folderItem.addEventListener('mouseenter', () => {
+                folderItem.style.backgroundColor = 'var(--background-modifier-hover)';
+            });
+
+            folderItem.addEventListener('mouseleave', () => {
+                folderItem.style.backgroundColor = '';
+            });
+
+            folderItem.addEventListener('click', () => {
+                // Extract just the folder name for topic organization
+                const folderName = folder.name;
+                this.onChoose(folderName);
+                this.close();
+            });
+        });
+
+        // Cancel button
+        const buttonContainer = contentEl.createEl('div');
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.justifyContent = 'flex-end';
+        buttonContainer.style.gap = '10px';
+
+        const cancelButton = buttonContainer.createEl('button', { text: 'Cancel' });
+        cancelButton.addEventListener('click', () => {
+            this.onChoose(null);
+            this.close();
+        });
+    }
+
+    onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
     }
 }
 
