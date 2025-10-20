@@ -1,0 +1,148 @@
+{
+  "intent": "news_events",
+  "version": "1.0.0",
+  "prompts": {
+    "structure": {
+      "role": "You are an expert news analyst specializing in current events documentation.",
+      "instructions": [
+        "Create a news-focused title with key event details",
+        "Place in optimal news hierarchy",
+        "Extract comprehensive metadata for news tracking",
+        "Assess news impact and significance"
+      ],
+      "template": "EXISTING KNOWLEDGE: {HIERARCHY_CONTEXT}\n\nTASK: Analyze content and create comprehensive news-focused metadata.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "title": "News title with date and key event",
+        "hierarchy": {
+          "level1": "News Category",
+          "level2": "News Topic",
+          "level3": "Specific Event",
+          "level4": "News Focus"
+        },
+        "metadata": {
+          "people": ["person1", "person2"],
+          "organizations": ["org1", "org2"],
+          "locations": ["location1", "location2"],
+          "topics": ["topic1", "topic2"],
+          "tags": ["#news", "#current-events", "#breaking"],
+          "related": ["related event 1", "connected story 2"]
+        },
+        "news_context": {
+          "event_date": "when the event occurred",
+          "significance": "high|medium|low",
+          "impact_scope": "local|national|international",
+          "estimated_reading_time": "X minutes"
+        },
+        "source_type": "news|report|announcement|press-release|interview",
+        "overview": "2-3 sentences highlighting the key news event and its significance"
+      }
+    },
+    "content": {
+      "role": "You are an expert news content analyst specializing in current events extraction.",
+      "instructions": [
+        "Extract key facts, developments, and news implications",
+        "Focus on factual accuracy and context"
+      ],
+      "template": "CONTEXT: {TITLE} | Event Date: {EVENT_DATE} | Significance: {SIGNIFICANCE}\n\nFOCUS: Extract key facts, developments, and news implications with factual accuracy.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "key_facts": [
+          "Fact 1: Core factual information about the event",
+          "Fact 2: Important detail with verification",
+          "Fact 3: Significant development with context"
+        ],
+        "timeline": [
+          "Event 1: What happened first with timing",
+          "Event 2: Subsequent development with timeline",
+          "Event 3: Latest update with current status"
+        ],
+        "stakeholders_affected": [
+          "Stakeholder 1: Who is affected and how",
+          "Stakeholder 2: Impact on specific group or organization"
+        ],
+        "detailed_summary": "Comprehensive summary emphasizing key developments and current status"
+      }
+    },
+    "perspectives": {
+      "role": "You are an expert at multi-perspective news analysis.",
+      "instructions": [
+        "Provide diverse viewpoints on the news event",
+        "Present balanced perspectives"
+      ],
+      "template": "CONTEXT: {TITLE} | {OVERVIEW}\n\nTASK: Provide diverse viewpoints and balanced perspectives on the news event.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "different_viewpoints": [
+          {
+            "perspective": "Official/Government",
+            "viewpoint": "Official stance or government position"
+          },
+          {
+            "perspective": "Public/Citizens",
+            "viewpoint": "Public reaction and citizen concerns"
+          },
+          {
+            "perspective": "Expert Analysis",
+            "viewpoint": "Expert opinion and professional analysis"
+          }
+        ],
+        "controversy_debate": [
+          {
+            "issue": "Controversial aspect of the event",
+            "positions": "Different positions taken",
+            "implications": "What this debate means"
+          }
+        ]
+      }
+    },
+    "connections": {
+      "role": "You are an expert at identifying news connections and broader implications.",
+      "instructions": [
+        "Map connections to other news events",
+        "Identify broader societal implications"
+      ],
+      "template": "CONTEXT: {TITLE} | {NEWS_CATEGORY} | Impact Scope: {IMPACT_SCOPE}\n\nTASK: Map connections to other news events and identify broader implications.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "related_events": [
+          {
+            "event": "Related news event or development",
+            "connection": "How this event relates",
+            "timeline": "When this connection occurred"
+          }
+        ],
+        "broader_implications": [
+          {
+            "area": "Affected sector or domain",
+            "implication": "How this news affects this area",
+            "long_term_impact": "Potential long-term consequences"
+          }
+        ]
+      }
+    },
+    "learning": {
+      "role": "You are an expert news analyst specializing in trend identification.",
+      "instructions": [
+        "Identify patterns and trends from the news",
+        "Create actionable insights for staying informed"
+      ],
+      "template": "CONTEXT: {TITLE} | Significance: {SIGNIFICANCE} | Impact: {IMPACT_SCOPE}\n\nTASK: Identify patterns and trends, create actionable insights for staying informed.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "emerging_trends": [
+          "Trend 1: Pattern or trend this news represents",
+          "Trend 2: Broader movement or development indicated"
+        ],
+        "follow_up_actions": [
+          {
+            "category": "Stay Informed",
+            "actions": [
+              "Action 1: How to track developments",
+              "Action 2: Sources to monitor for updates"
+            ]
+          }
+        ],
+        "lessons_learned": [
+          "Lesson 1: What this event teaches us",
+          "Lesson 2: Important takeaway for the future"
+        ]
+      }
+    }
+  }
+}

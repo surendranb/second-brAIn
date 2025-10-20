@@ -1,12 +1,15 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import AISummarizerPlugin, { Provider, GeminiModel, GEMINI_MODELS } from './main';
+import AISummarizerPlugin, { Provider, GeminiModel, GEMINI_MODELS, ProcessingIntent } from './main';
+import { IntentPrompts, PromptLoader } from './prompt-loader';
 
 export class AISummarizerSettingsTab extends PluginSettingTab {
     plugin: AISummarizerPlugin;
+    private promptLoader: PromptLoader;
 
     constructor(app: App, plugin: AISummarizerPlugin) {
         super(app, plugin);
         this.plugin = plugin;
+        this.promptLoader = new PromptLoader();
     }
 
     display(): void {
@@ -57,7 +60,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                             await this.plugin.saveSettings();
                         });
                 });
-
+        }
 
         // Common Settings
         new Setting(containerEl)
@@ -253,405 +256,166 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                     }));
         }
 
-        // Analysis Prompts Section
-        containerEl.createEl('h3', { text: 'Analysis Prompts Configuration' });
-        
-        const promptsDesc = containerEl.createEl('p', { 
-            text: 'Customize the prompts used in the 5-pass analysis system. Use {ADDITIONAL_INSTRUCTIONS} placeholder to inject user instructions from the main UI.' 
+        // Intent & Prompt Management Section
+        containerEl.createEl('h3', { text: 'Intent & Prompt Management' });
+
+        new Setting(containerEl)
+            .setName('Default Processing Intent')
+            .setDesc('Choose the default intent for processing content. This determines which prompts and analysis approach to use.')
+            .addDropdown(dropdown => dropdown
+                .addOption('knowledge_building', 'Knowledge Building - Deep learning and understanding')
+                .addOption('quick_reference', 'Quick Reference - Actionable guides and how-tos')
+                .addOption('research_collection', 'Research Collection - Academic and research content')
+                .addOption('event_documentation', 'Event Documentation - Meeting notes and events')
+                .addOption('professional_intelligence', 'Professional Intelligence - Business insights')
+                .addOption('personal_development', 'Personal Development - Growth and learning')
+                .addOption('news_events', 'News & Events - Current events and news')
+                .addOption('inspiration_capture', 'Inspiration Capture - Creative and inspirational content')
+                .addOption('how_to', 'How-To Guides - Step-by-step tutorials')
+                .setValue(this.plugin.settings.defaultIntent)
+                .onChange(async (value) => {
+                    this.plugin.settings.defaultIntent = value as ProcessingIntent;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Prompt Management
+        this.displayIntentManagement(containerEl);
+    }
+
+    private async displayIntentManagement(containerEl: HTMLElement): Promise<void> {
+        const intentSection = containerEl.createDiv();
+        intentSection.style.marginTop = '20px';
+
+        // Intent Selection for Prompt Editing
+        new Setting(intentSection)
+            .setName('Edit Prompts for Intent')
+            .setDesc('Select an intent to view and edit its prompts')
+            .addDropdown(dropdown => {
+                dropdown
+                    .addOption('', 'Select an intent to edit...')
+                    .addOption('knowledge_building', 'Knowledge Building')
+                    .addOption('quick_reference', 'Quick Reference')
+                    .addOption('research_collection', 'Research Collection')
+                    .addOption('event_documentation', 'Event Documentation')
+                    .addOption('professional_intelligence', 'Professional Intelligence')
+                    .addOption('personal_development', 'Personal Development')
+                    .addOption('news_events', 'News & Events')
+                    .addOption('inspiration_capture', 'Inspiration Capture')
+                    .addOption('how_to', 'How-To Guides')
+                    .onChange(async (value) => {
+                        if (value) {
+                            await this.displayPromptEditor(intentSection, value as ProcessingIntent);
+                        } else {
+                            this.clearPromptEditor(intentSection);
+                        }
+                    });
+            });
+
+        // Prompt Status Info
+        const statusDiv = intentSection.createDiv();
+        statusDiv.style.marginTop = '10px';
+        statusDiv.style.padding = '10px';
+        statusDiv.style.backgroundColor = 'var(--background-secondary)';
+        statusDiv.style.borderRadius = '4px';
+
+        const statusText = statusDiv.createEl('p', {
+            text: 'Prompts are loaded from JSON files in the prompts/ folder. Each intent has 5 specialized prompts: structure, content, perspectives, connections, and learning.'
         });
-        promptsDesc.style.color = 'var(--text-muted)';
-        promptsDesc.style.fontSize = '0.9em';
-        promptsDesc.style.marginBottom = '20px';
-
-        // Structure Analysis Prompt
-        new Setting(containerEl)
-            .setName('📋 Structure & Metadata Prompt')
-            .setDesc('Prompt for analyzing content structure, titles, hierarchy, and metadata (Pass 1)')
-            .addTextArea(text => {
-                text.inputEl.rows = 8;
-                text.inputEl.style.fontFamily = 'monospace';
-                text.inputEl.style.fontSize = '12px';
-                return text
-                    .setPlaceholder('Enter structure analysis prompt...')
-                    .setValue(this.plugin.settings.analysisPrompts.structure)
-                    .onChange(async (value) => {
-                        this.plugin.settings.analysisPrompts.structure = value;
-                        await this.plugin.saveSettings();
-                    });
-            })
-            .addButton(button => button
-                .setButtonText('Reset to Default')
-                .setTooltip('Reset to default structure prompt')
-                .onClick(async () => {
-                    // We'll need to import DEFAULT_SETTINGS for this
-                    this.plugin.settings.analysisPrompts.structure = this.getDefaultStructurePrompt();
-                    await this.plugin.saveSettings();
-                    this.display();
-                }));
-
-        // Content Analysis Prompt
-        new Setting(containerEl)
-            .setName('🧠 Content Analysis Prompt')
-            .setDesc('Prompt for deep content analysis, facts, insights, and concepts (Pass 2)')
-            .addTextArea(text => {
-                text.inputEl.rows = 8;
-                text.inputEl.style.fontFamily = 'monospace';
-                text.inputEl.style.fontSize = '12px';
-                return text
-                    .setPlaceholder('Enter content analysis prompt...')
-                    .setValue(this.plugin.settings.analysisPrompts.content)
-                    .onChange(async (value) => {
-                        this.plugin.settings.analysisPrompts.content = value;
-                        await this.plugin.saveSettings();
-                    });
-            })
-            .addButton(button => button
-                .setButtonText('Reset to Default')
-                .setTooltip('Reset to default content prompt')
-                .onClick(async () => {
-                    this.plugin.settings.analysisPrompts.content = this.getDefaultContentPrompt();
-                    await this.plugin.saveSettings();
-                    this.display();
-                }));
-
-        // Perspectives Analysis Prompt
-        new Setting(containerEl)
-            .setName('👁️ Perspectives & Examples Prompt')
-            .setDesc('Prompt for analyzing multiple viewpoints, analogies, and examples (Pass 3)')
-            .addTextArea(text => {
-                text.inputEl.rows = 8;
-                text.inputEl.style.fontFamily = 'monospace';
-                text.inputEl.style.fontSize = '12px';
-                return text
-                    .setPlaceholder('Enter perspectives analysis prompt...')
-                    .setValue(this.plugin.settings.analysisPrompts.perspectives)
-                    .onChange(async (value) => {
-                        this.plugin.settings.analysisPrompts.perspectives = value;
-                        await this.plugin.saveSettings();
-                    });
-            })
-            .addButton(button => button
-                .setButtonText('Reset to Default')
-                .setTooltip('Reset to default perspectives prompt')
-                .onClick(async () => {
-                    this.plugin.settings.analysisPrompts.perspectives = this.getDefaultPerspectivesPrompt();
-                    await this.plugin.saveSettings();
-                    this.display();
-                }));
-
-        // Connections Analysis Prompt
-        new Setting(containerEl)
-            .setName('🔗 Connections & Applications Prompt')
-            .setDesc('Prompt for finding knowledge connections and practical applications (Pass 4)')
-            .addTextArea(text => {
-                text.inputEl.rows = 8;
-                text.inputEl.style.fontFamily = 'monospace';
-                text.inputEl.style.fontSize = '12px';
-                return text
-                    .setPlaceholder('Enter connections analysis prompt...')
-                    .setValue(this.plugin.settings.analysisPrompts.connections)
-                    .onChange(async (value) => {
-                        this.plugin.settings.analysisPrompts.connections = value;
-                        await this.plugin.saveSettings();
-                    });
-            })
-            .addButton(button => button
-                .setButtonText('Reset to Default')
-                .setTooltip('Reset to default connections prompt')
-                .onClick(async () => {
-                    this.plugin.settings.analysisPrompts.connections = this.getDefaultConnectionsPrompt();
-                    await this.plugin.saveSettings();
-                    this.display();
-                }));
-
-        // Learning Analysis Prompt
-        new Setting(containerEl)
-            .setName('🎯 Learning & Next Steps Prompt')
-            .setDesc('Prompt for learning pathways, action planning, and next steps (Pass 5)')
-            .addTextArea(text => {
-                text.inputEl.rows = 8;
-                text.inputEl.style.fontFamily = 'monospace';
-                text.inputEl.style.fontSize = '12px';
-                return text
-                    .setPlaceholder('Enter learning analysis prompt...')
-                    .setValue(this.plugin.settings.analysisPrompts.learning)
-                    .onChange(async (value) => {
-                        this.plugin.settings.analysisPrompts.learning = value;
-                        await this.plugin.saveSettings();
-                    });
-            })
-            .addButton(button => button
-                .setButtonText('Reset to Default')
-                .setTooltip('Reset to default learning prompt')
-                .onClick(async () => {
-                    this.plugin.settings.analysisPrompts.learning = this.getDefaultLearningPrompt();
-                    await this.plugin.saveSettings();
-                    this.display();
-                }));
-    }
-  }
-    // Helper methods to get default prompts
-    private getDefaultStructurePrompt(): string {
-        return `You are an expert knowledge organizer. Analyze this content and return comprehensive structure and metadata.
-
-EXISTING KNOWLEDGE HIERARCHY:
-{HIERARCHY_CONTEXT}
-
-INSTRUCTIONS:
-1. Create an optimal title that captures the essence
-2. Determine the best hierarchy placement (avoid duplicates, use existing when appropriate)
-3. Extract comprehensive metadata (speakers, topics, key concepts, tags)
-4. Assess learning context (prerequisites, complexity, reading time)
-5. Classify the source type based on content and context
-6. Extract specific actionable items (if any)
-7. Provide a concise overview (2-3 sentences)
-
-{ADDITIONAL_INSTRUCTIONS}
-
-Content to analyze:
-{CONTENT}
-
-Return ONLY valid JSON:
-{
-  "title": "Comprehensive title",
-  "hierarchy": {
-    "level1": "Domain",
-    "level2": "Area", 
-    "level3": "Topic",
-    "level4": "Concept"
-  },
-  "metadata": {
-    "speakers": ["speaker1", "speaker2"],
-    "topics": ["topic1", "topic2"],
-    "key_concepts": ["concept1", "concept2"],
-    "tags": ["#tag1", "#tag2"],
-    "related": ["related1", "related2"]
-  },
-  "learning_context": {
-    "prerequisites": ["prereq1", "prereq2"],
-    "related_concepts": ["concept1", "concept2"],
-    "learning_path": ["step1", "step2"],
-    "complexity_level": "beginner|intermediate|advanced",
-    "estimated_reading_time": "X minutes"
-  },
-  "source_type": "social|academic|news|professional|traditional",
-  "action_items": ["specific action 1", "specific action 2"],
-  "overview": "Brief 2-3 sentence overview of the content"
-}`;
+        statusText.style.margin = '0';
+        statusText.style.fontSize = '0.9em';
+        statusText.style.color = 'var(--text-muted)';
     }
 
-    private getDefaultContentPrompt(): string {
-        return `You are an expert content analyst. Provide deep, comprehensive analysis of this content.
+    private async displayPromptEditor(containerEl: HTMLElement, intent: ProcessingIntent): Promise<void> {
+        // Clear any existing prompt editor
+        this.clearPromptEditor(containerEl);
 
-CONTENT CONTEXT:
-Title: {TITLE}
-Domain: {DOMAIN}
-Topic: {TOPIC}
+        const editorDiv = containerEl.createDiv();
+        editorDiv.addClass('prompt-editor');
+        editorDiv.style.marginTop = '20px';
+        editorDiv.style.border = '1px solid var(--background-modifier-border)';
+        editorDiv.style.borderRadius = '4px';
+        editorDiv.style.padding = '15px';
 
-INSTRUCTIONS:
-Create comprehensive but FOCUSED analysis sections. Be thorough yet concise.
-IMPORTANT: Keep each insight/fact under 300 characters. Limit arrays to 4-6 items maximum.
+        const titleEl = editorDiv.createEl('h4', { text: `Prompts for ${this.getIntentDisplayName(intent)}` });
+        titleEl.style.marginTop = '0';
 
-{ADDITIONAL_INSTRUCTIONS}
+        try {
+            // Load prompts for this intent
+            const prompts = await this.promptLoader.loadPromptsForIntent(intent);
 
-Content to analyze:
-{CONTENT}
+            // Display each prompt type
+            const promptTypes = [
+                { key: 'structure', name: 'Structure Analysis', desc: 'Analyzes content structure and metadata' },
+                { key: 'content', name: 'Content Extraction', desc: 'Extracts key information and actionable content' },
+                { key: 'perspectives', name: 'Perspectives Analysis', desc: 'Provides different viewpoints and approaches' },
+                { key: 'connections', name: 'Connections Mapping', desc: 'Identifies relationships and connections' },
+                { key: 'learning', name: 'Learning Enhancement', desc: 'Focuses on learning and improvement opportunities' }
+            ];
 
-Return ONLY valid JSON:
-{
-  "context": "Detailed background and why this matters (200+ words)",
-  "key_facts": [
-    "Fact 1 with detailed explanation",
-    "Fact 2 with detailed explanation",
-    "Fact 3 with detailed explanation"
-  ],
-  "deep_insights": [
-    "Insight 1: Deep analysis of patterns, implications, connections",
-    "Insight 2: Another profound insight with reasoning",
-    "Insight 3: Third insight connecting to broader themes"
-  ],
-  "core_concepts": [
-    "Concept 1: Detailed explanation and significance", 
-    "Concept 2: Another key concept with context",
-    "Concept 3: Third important concept"
-  ],
-  "detailed_summary": "Comprehensive 300+ word summary covering all major points"
-}`;
+            promptTypes.forEach(({ key, name, desc }) => {
+                const promptSection = editorDiv.createDiv();
+                promptSection.style.marginBottom = '15px';
+
+                const promptHeader = promptSection.createEl('h5', { text: name });
+                promptHeader.style.marginBottom = '5px';
+
+                const promptDesc = promptSection.createEl('p', { text: desc });
+                promptDesc.style.fontSize = '0.9em';
+                promptDesc.style.color = 'var(--text-muted)';
+                promptDesc.style.marginBottom = '8px';
+
+                const promptText = promptSection.createEl('textarea');
+                promptText.value = prompts[key as keyof IntentPrompts];
+                promptText.style.width = '100%';
+                promptText.style.minHeight = '100px';
+                promptText.style.fontFamily = 'var(--font-monospace)';
+                promptText.style.fontSize = '0.85em';
+                promptText.readOnly = true; // For now, make read-only
+                promptText.style.backgroundColor = 'var(--background-secondary)';
+                promptText.style.border = '1px solid var(--background-modifier-border)';
+                promptText.style.borderRadius = '3px';
+                promptText.style.padding = '8px';
+            });
+
+            // Add info about editing
+            const editInfo = editorDiv.createEl('p', {
+                text: 'Note: Prompts are currently read-only. To edit prompts, modify the JSON files in the prompts/ folder and restart the plugin.'
+            });
+            editInfo.style.fontSize = '0.85em';
+            editInfo.style.color = 'var(--text-muted)';
+            editInfo.style.fontStyle = 'italic';
+            editInfo.style.marginTop = '15px';
+            editInfo.style.marginBottom = '0';
+
+        } catch (error) {
+            const errorEl = editorDiv.createEl('p', {
+                text: `Error loading prompts: ${error.message}`
+            });
+            errorEl.style.color = 'var(--text-error)';
+            errorEl.style.fontStyle = 'italic';
+        }
     }
 
-    private getDefaultPerspectivesPrompt(): string {
-        return `You are an expert at analyzing multiple viewpoints and creating practical examples.
-
-CONTENT CONTEXT:
-Title: {TITLE}
-Overview: {OVERVIEW}
-
-INSTRUCTIONS:
-Analyze different perspectives and create rich examples. Be comprehensive and detailed.
-
-{ADDITIONAL_INSTRUCTIONS}
-
-Content to analyze:
-{CONTENT}
-
-Return ONLY valid JSON:
-{
-  "multiple_perspectives": [
-    {
-      "viewpoint": "Academic/Research Perspective",
-      "analysis": "Detailed analysis from this viewpoint (100+ words)"
-    },
-    {
-      "viewpoint": "Industry/Practical Perspective", 
-      "analysis": "Detailed analysis from this viewpoint (100+ words)"
-    },
-    {
-      "viewpoint": "Critical/Skeptical Perspective",
-      "analysis": "Detailed analysis from this viewpoint (100+ words)"
-    }
-  ],
-  "analogies_examples": [
-    {
-      "concept": "Key concept being explained",
-      "analogy": "Detailed analogy with clear explanation",
-      "real_world_example": "Concrete real-world example with context"
-    },
-    {
-      "concept": "Another key concept",
-      "analogy": "Another detailed analogy",
-      "real_world_example": "Another concrete example"
-    }
-  ],
-  "case_studies": [
-    "Detailed case study 1 showing practical application",
-    "Detailed case study 2 with different context",
-    "Detailed case study 3 highlighting challenges"
-  ]
-}`;
+    private clearPromptEditor(containerEl: HTMLElement): void {
+        const existingEditor = containerEl.querySelector('.prompt-editor');
+        if (existingEditor) {
+            existingEditor.remove();
+        }
     }
 
-    private getDefaultConnectionsPrompt(): string {
-        return `You are an expert at finding connections and practical applications.
-
-CONTENT CONTEXT:
-Title: {TITLE}
-Domain: {DOMAIN}
-Key Concepts: {KEY_CONCEPTS}
-
-INSTRUCTIONS:
-Find deep connections and practical applications. Be thorough yet concise.
-IMPORTANT: Keep explanations under 250 characters. Limit arrays to 3-4 items maximum.
-
-{ADDITIONAL_INSTRUCTIONS}
-
-Content to analyze:
-{CONTENT}
-
-Return ONLY valid JSON:
-{
-  "knowledge_connections": [
-    {
-      "related_field": "Connected field/domain",
-      "connection_type": "How they connect",
-      "detailed_explanation": "Deep explanation of the connection (100+ words)"
-    },
-    {
-      "related_field": "Another connected field",
-      "connection_type": "Type of connection",
-      "detailed_explanation": "Another detailed explanation"
-    }
-  ],
-  "practical_applications": [
-    {
-      "domain": "Application domain",
-      "application": "Specific application",
-      "implementation": "How to implement/use this (100+ words)",
-      "benefits": "Expected benefits and outcomes"
-    },
-    {
-      "domain": "Another domain",
-      "application": "Another application", 
-      "implementation": "Implementation details",
-      "benefits": "Benefits and outcomes"
-    }
-  ],
-  "implications_consequences": [
-    "Long-term implication 1 with detailed reasoning",
-    "Long-term implication 2 with analysis",
-    "Potential unintended consequence with explanation"
-  ]
-}`;
-    }
-
-    private getDefaultLearningPrompt(): string {
-        return `You are an expert learning designer and action planner.
-
-CONTENT CONTEXT:
-Title: {TITLE}
-Complexity: {COMPLEXITY}
-Prerequisites: {PREREQUISITES}
-
-INSTRUCTIONS:
-Create comprehensive but CONCISE learning paths and actionable next steps. 
-IMPORTANT: Keep each array element under 200 characters. Limit arrays to 3-5 items maximum.
-
-{ADDITIONAL_INSTRUCTIONS}
-
-Content to analyze:
-{CONTENT}
-
-Return ONLY valid JSON:
-{
-  "knowledge_gaps": [
-    "Specific gap 1 with explanation of why it matters",
-    "Specific gap 2 with learning strategy",
-    "Specific gap 3 with resources needed"
-  ],
-  "learning_pathways": [
-    {
-      "pathway_name": "Beginner Path",
-      "steps": [
-        "Step 1: Detailed description and resources",
-        "Step 2: Next step with specific actions",
-        "Step 3: Advanced step with outcomes"
-      ],
-      "estimated_time": "Time estimate",
-      "difficulty": "difficulty level"
-    },
-    {
-      "pathway_name": "Advanced Path",
-      "steps": [
-        "Advanced step 1 with details",
-        "Advanced step 2 with specifics",
-        "Advanced step 3 with outcomes"
-      ],
-      "estimated_time": "Time estimate", 
-      "difficulty": "difficulty level"
-    }
-  ],
-  "actionable_next_steps": [
-    {
-      "category": "Immediate Actions",
-      "actions": [
-        "Specific action 1 with clear instructions",
-        "Specific action 2 with expected outcomes",
-        "Specific action 3 with timeline"
-      ]
-    },
-    {
-      "category": "Medium-term Goals",
-      "actions": [
-        "Goal 1 with strategy and metrics",
-        "Goal 2 with approach and timeline",
-        "Goal 3 with resources needed"
-      ]
-    }
-  ],
-  "reflection_questions": [
-    "Deep question 1 to promote critical thinking",
-    "Deep question 2 to connect to personal experience", 
-    "Deep question 3 to explore implications"
-  ]
-}`;
+    private getIntentDisplayName(intent: ProcessingIntent): string {
+        const displayNames: Record<ProcessingIntent, string> = {
+            'knowledge_building': 'Knowledge Building',
+            'quick_reference': 'Quick Reference',
+            'research_collection': 'Research Collection',
+            'event_documentation': 'Event Documentation',
+            'professional_intelligence': 'Professional Intelligence',
+            'personal_development': 'Personal Development',
+            'news_events': 'News & Events',
+            'inspiration_capture': 'Inspiration Capture',
+            'how_to': 'How-To Guides'
+        };
+        return displayNames[intent] || intent;
     }
 }

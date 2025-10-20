@@ -1,0 +1,149 @@
+{
+  "intent": "how_to",
+  "version": "1.0.0",
+  "prompts": {
+    "structure": {
+      "role": "You are an expert tutorial creator specializing in how-to content analysis.",
+      "instructions": [
+        "Create a clear, action-oriented how-to title",
+        "Place in optimal tutorial hierarchy",
+        "Extract comprehensive metadata for tutorial organization",
+        "Assess tutorial complexity and skill requirements"
+      ],
+      "template": "EXISTING KNOWLEDGE: {HIERARCHY_CONTEXT}\n\nTASK: Analyze content and create comprehensive tutorial-focused metadata.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "title": "Clear how-to title (How to...)",
+        "hierarchy": {
+          "level1": "Tutorial Domain",
+          "level2": "Tutorial Category",
+          "level3": "Specific How-To",
+          "level4": "Tutorial Focus"
+        },
+        "metadata": {
+          "tools_required": ["tool1", "tool2"],
+          "skills_needed": ["skill1", "skill2"],
+          "main_steps": ["step1", "step2"],
+          "topics": ["topic1", "topic2"],
+          "tags": ["#howto", "#tutorial", "#guide"],
+          "related": ["related tutorial 1", "connected guide 2"]
+        },
+        "tutorial_context": {
+          "difficulty_level": "beginner|intermediate|advanced",
+          "time_required": "X minutes/hours",
+          "prerequisites": ["requirement1", "requirement2"],
+          "estimated_reading_time": "X minutes"
+        },
+        "source_type": "tutorial|guide|documentation|video|course",
+        "overview": "2-3 sentences highlighting what you'll learn and accomplish"
+      }
+    },
+    "content": {
+      "role": "You are an expert tutorial analyst specializing in step-by-step content extraction.",
+      "instructions": [
+        "Extract clear, actionable steps and practical instructions",
+        "Focus on implementation and execution"
+      ],
+      "template": "CONTEXT: {TITLE} | Difficulty: {DIFFICULTY_LEVEL} | Time: {TIME_REQUIRED}\n\nFOCUS: Extract clear, actionable steps and practical instructions for implementation.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "step_by_step_instructions": [
+          "Step 1: Clear action with specific details and expected outcome",
+          "Step 2: Next action with verification method and troubleshooting",
+          "Step 3: Following step with completion criteria and next steps"
+        ],
+        "key_techniques": [
+          "Technique 1: Important method or approach with explanation",
+          "Technique 2: Critical skill or technique with application"
+        ],
+        "common_pitfalls": [
+          "Pitfall 1: Common mistake and how to avoid it",
+          "Pitfall 2: Frequent error and prevention method"
+        ],
+        "success_indicators": [
+          "Indicator 1: How to know you're doing it right",
+          "Indicator 2: Signs of successful completion"
+        ],
+        "detailed_summary": "Comprehensive summary emphasizing key steps and successful completion"
+      }
+    },
+    "perspectives": {
+      "role": "You are an expert at multi-approach tutorial analysis.",
+      "instructions": [
+        "Provide alternative methods and approaches",
+        "Create practical examples and variations"
+      ],
+      "template": "CONTEXT: {TITLE} | {OVERVIEW}\n\nTASK: Provide alternative methods and practical examples for different approaches.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "alternative_methods": [
+          {
+            "method": "Alternative approach or technique",
+            "description": "How this method works differently",
+            "when_to_use": "Situations where this method is preferred",
+            "pros_cons": "Benefits and limitations of this approach"
+          }
+        ],
+        "practical_examples": [
+          {
+            "scenario": "Specific use case or situation",
+            "example": "Concrete example showing the process",
+            "variations": "How to adapt for different contexts"
+          }
+        ]
+      }
+    },
+    "connections": {
+      "role": "You are an expert at identifying tutorial connections and workflow integration.",
+      "instructions": [
+        "Map connections to related tutorials and processes",
+        "Identify workflow integration opportunities"
+      ],
+      "template": "CONTEXT: {TITLE} | {TUTORIAL_CATEGORY} | Steps: {MAIN_STEPS}\n\nTASK: Map connections to related tutorials and identify workflow integration.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "related_tutorials": [
+          {
+            "tutorial": "Related how-to or tutorial",
+            "connection": "How this tutorial relates",
+            "sequence": "Whether this comes before, after, or alongside"
+          }
+        ],
+        "workflow_integration": [
+          {
+            "workflow": "Larger process or workflow",
+            "integration_point": "Where this tutorial fits",
+            "dependencies": "What needs to be done before or after"
+          }
+        ]
+      }
+    },
+    "learning": {
+      "role": "You are an expert tutorial mentor specializing in skill mastery.",
+      "instructions": [
+        "Identify mastery pathways and skill progression",
+        "Create actionable improvement steps"
+      ],
+      "template": "CONTEXT: {TITLE} | Difficulty: {DIFFICULTY_LEVEL} | Skills: {SKILLS_NEEDED}\n\nTASK: Identify mastery pathways and create actionable improvement steps.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "skill_progression": [
+          {
+            "level": "Beginner to Intermediate",
+            "focus": "What to master at this level",
+            "practice": "How to practice and improve",
+            "timeline": "Expected time to reach next level"
+          }
+        ],
+        "mastery_actions": [
+          {
+            "category": "Practice Exercises",
+            "actions": [
+              "Exercise 1: Specific practice task with measurable outcome",
+              "Exercise 2: Skill-building activity with progression marker"
+            ]
+          }
+        ],
+        "troubleshooting_guide": [
+          "Issue 1: Common problem and step-by-step solution",
+          "Issue 2: Frequent challenge and resolution method"
+        ]
+      }
+    }
+  }
+}

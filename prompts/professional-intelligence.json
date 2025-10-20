@@ -1,0 +1,159 @@
+{
+  "intent": "professional_intelligence",
+  "version": "1.0.0",
+  "prompts": {
+    "structure": {
+      "role": "You are an expert business analyst specializing in professional intelligence.",
+      "instructions": [
+        "Create a business-focused title that captures strategic value",
+        "Place in optimal business hierarchy",
+        "Extract comprehensive metadata for business intelligence",
+        "Assess business impact and strategic importance",
+        "Identify source type and business context"
+      ],
+      "template": "EXISTING KNOWLEDGE: {HIERARCHY_CONTEXT}\n\nTASK: Analyze content and create comprehensive business-focused metadata.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "title": "Business title emphasizing strategic value",
+        "hierarchy": {
+          "level1": "Business Domain",
+          "level2": "Business Area",
+          "level3": "Specific Topic",
+          "level4": "Business Focus"
+        },
+        "metadata": {
+          "stakeholders": ["stakeholder1", "stakeholder2"],
+          "topics": ["business topic 1", "strategic area 2"],
+          "key_concepts": ["business concept 1", "strategy 2"],
+          "tags": ["#business", "#strategy", "#intelligence"],
+          "related": ["related area 1", "connected domain 2"]
+        },
+        "business_context": {
+          "industry": "relevant industry or sector",
+          "business_impact": "high|medium|low",
+          "strategic_importance": "critical|important|informational",
+          "time_sensitivity": "urgent|normal|long-term",
+          "estimated_reading_time": "X minutes"
+        },
+        "source_type": "report|analysis|presentation|interview|briefing",
+        "overview": "2-3 sentences highlighting business value and strategic implications"
+      }
+    },
+    "content": {
+      "role": "You are an expert business content analyst specializing in strategic intelligence extraction.",
+      "instructions": [
+        "Extract business insights, strategic implications, and actionable intelligence",
+        "Focus on business value and competitive advantage"
+      ],
+      "template": "CONTEXT: {TITLE} | Domain: {DOMAIN} | Impact: {BUSINESS_IMPACT}\n\nFOCUS: Extract business insights, strategic implications, and actionable intelligence for competitive advantage.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "business_context": "Why this matters for business strategy and operations",
+        "key_insights": [
+          "Insight 1: Strategic finding with business implications",
+          "Insight 2: Market intelligence with competitive relevance",
+          "Insight 3: Operational insight with practical applications"
+        ],
+        "strategic_implications": [
+          "Implication 1: How this affects business strategy",
+          "Implication 2: Impact on competitive positioning",
+          "Implication 3: Operational or financial consequences"
+        ],
+        "actionable_intelligence": [
+          "Intelligence 1: Specific business opportunity or threat",
+          "Intelligence 2: Market trend with strategic relevance",
+          "Intelligence 3: Competitive insight with action potential"
+        ],
+        "detailed_summary": "Comprehensive summary emphasizing business value and strategic recommendations"
+      }
+    },
+    "perspectives": {
+      "role": "You are an expert at multi-stakeholder business analysis.",
+      "instructions": [
+        "Provide diverse business viewpoints",
+        "Create strategic examples and scenarios"
+      ],
+      "template": "CONTEXT: {TITLE} | {OVERVIEW}\n\nTASK: Provide diverse business viewpoints and strategic examples.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "stakeholder_perspectives": [
+          {
+            "stakeholder": "Executive Leadership",
+            "viewpoint": "Strategic and high-level business implications"
+          },
+          {
+            "stakeholder": "Operations Team",
+            "viewpoint": "Operational impact and implementation considerations"
+          },
+          {
+            "stakeholder": "Customers/Market",
+            "viewpoint": "Market perspective and customer impact"
+          }
+        ],
+        "scenario_analysis": [
+          {
+            "scenario": "Best case scenario",
+            "implications": "Positive outcomes and opportunities",
+            "actions": "How to maximize this scenario"
+          },
+          {
+            "scenario": "Worst case scenario",
+            "implications": "Risks and challenges",
+            "mitigation": "How to prevent or minimize impact"
+          }
+        ]
+      }
+    },
+    "connections": {
+      "role": "You are an expert at identifying business connections and market implications.",
+      "instructions": [
+        "Map connections to other business areas",
+        "Identify market and competitive implications"
+      ],
+      "template": "CONTEXT: {TITLE} | {DOMAIN} | Strategic Importance: {STRATEGIC_IMPORTANCE}\n\nTASK: Map connections to other business areas and identify market implications.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "business_connections": [
+          {
+            "business_area": "Connected business function or domain",
+            "connection_type": "strategic|operational|financial|competitive",
+            "detailed_explanation": "Specific ways these business areas interconnect"
+          }
+        ],
+        "market_implications": [
+          {
+            "market_area": "Affected market or industry segment",
+            "impact": "How this affects the market",
+            "opportunities": "Business opportunities created",
+            "threats": "Potential risks or challenges"
+          }
+        ]
+      }
+    },
+    "learning": {
+      "role": "You are an expert business strategist specializing in competitive intelligence.",
+      "instructions": [
+        "Identify strategic gaps and opportunities",
+        "Create actionable business recommendations"
+      ],
+      "template": "CONTEXT: {TITLE} | Impact: {BUSINESS_IMPACT} | Strategic Importance: {STRATEGIC_IMPORTANCE}\n\nTASK: Identify strategic gaps and create actionable business recommendations.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "strategic_gaps": [
+          "Gap 1: Missing capability or knowledge with business impact",
+          "Gap 2: Competitive disadvantage requiring attention"
+        ],
+        "business_recommendations": [
+          {
+            "category": "Strategic Actions",
+            "recommendations": [
+              "Recommendation 1: Specific strategic action with expected outcome",
+              "Recommendation 2: Business initiative with measurable benefit"
+            ],
+            "priority": "high|medium|low",
+            "timeline": "immediate|short-term|long-term"
+          }
+        ],
+        "success_metrics": [
+          "Metric 1: How to measure success of recommendations",
+          "Metric 2: Key performance indicator to track"
+        ]
+      }
+    }
+  }
+}

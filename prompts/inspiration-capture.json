@@ -1,0 +1,151 @@
+{
+  "intent": "inspiration_capture",
+  "version": "1.0.0",
+  "prompts": {
+    "structure": {
+      "role": "You are an expert creativity curator specializing in inspirational content analysis.",
+      "instructions": [
+        "Create an inspiring title that captures creative essence",
+        "Place in optimal inspiration hierarchy",
+        "Extract comprehensive metadata for creative inspiration",
+        "Assess inspirational impact and creative potential"
+      ],
+      "template": "EXISTING KNOWLEDGE: {HIERARCHY_CONTEXT}\n\nTASK: Analyze content and create comprehensive inspiration-focused metadata.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "title": "Inspiring title that captures creative essence",
+        "hierarchy": {
+          "level1": "Inspiration Domain",
+          "level2": "Creative Area",
+          "level3": "Inspiration Type",
+          "level4": "Creative Focus"
+        },
+        "metadata": {
+          "creators": ["creator1", "creator2"],
+          "themes": ["theme1", "theme2"],
+          "emotions": ["emotion1", "emotion2"],
+          "topics": ["topic1", "topic2"],
+          "tags": ["#inspiration", "#creativity", "#motivation"],
+          "related": ["related inspiration 1", "connected idea 2"]
+        },
+        "inspiration_context": {
+          "inspiration_type": "motivational|creative|philosophical|artistic",
+          "emotional_impact": "high|medium|low",
+          "creative_potential": "high|medium|low",
+          "estimated_reading_time": "X minutes"
+        },
+        "source_type": "quote|story|art|music|speech|interview",
+        "overview": "2-3 sentences highlighting the inspirational value and creative potential"
+      }
+    },
+    "content": {
+      "role": "You are an expert inspiration analyst specializing in creative content extraction.",
+      "instructions": [
+        "Extract inspiring insights, creative ideas, and motivational elements",
+        "Focus on emotional resonance and creative spark"
+      ],
+      "template": "CONTEXT: {TITLE} | Inspiration Type: {INSPIRATION_TYPE} | Emotional Impact: {EMOTIONAL_IMPACT}\n\nFOCUS: Extract inspiring insights and creative ideas with emotional resonance.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "inspiring_insights": [
+          "Insight 1: Profound understanding that sparks inspiration",
+          "Insight 2: Creative perspective that opens new possibilities",
+          "Insight 3: Motivational truth that encourages action"
+        ],
+        "creative_sparks": [
+          "Spark 1: Creative idea or concept to explore",
+          "Spark 2: Artistic inspiration or creative direction",
+          "Spark 3: Innovative approach or fresh perspective"
+        ],
+        "emotional_resonance": [
+          "Emotion 1: Feeling evoked and why it matters",
+          "Emotion 2: Emotional connection and its significance"
+        ],
+        "detailed_summary": "Comprehensive summary emphasizing inspirational value and creative potential"
+      }
+    },
+    "perspectives": {
+      "role": "You are an expert at multi-perspective inspiration analysis.",
+      "instructions": [
+        "Provide diverse creative viewpoints",
+        "Create inspirational examples and applications"
+      ],
+      "template": "CONTEXT: {TITLE} | {OVERVIEW}\n\nTASK: Provide diverse creative viewpoints and inspirational applications.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "creative_perspectives": [
+          {
+            "perspective": "Artistic Expression",
+            "viewpoint": "How this inspires artistic creation"
+          },
+          {
+            "perspective": "Personal Growth",
+            "viewpoint": "How this motivates personal development"
+          },
+          {
+            "perspective": "Innovation",
+            "viewpoint": "How this sparks innovative thinking"
+          }
+        ],
+        "inspirational_applications": [
+          {
+            "area": "Creative project or life area",
+            "application": "How to apply this inspiration",
+            "outcome": "Expected creative or personal result"
+          }
+        ]
+      }
+    },
+    "connections": {
+      "role": "You are an expert at identifying inspiration connections and creative synergies.",
+      "instructions": [
+        "Map connections to other inspirational content",
+        "Identify creative cross-pollination opportunities"
+      ],
+      "template": "CONTEXT: {TITLE} | {INSPIRATION_TYPE} | Themes: {THEMES}\n\nTASK: Map connections to other inspirational content and identify creative opportunities.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "inspiration_connections": [
+          {
+            "related_inspiration": "Connected inspirational content or idea",
+            "connection_type": "thematic|emotional|creative|philosophical",
+            "synergy": "How these inspirations work together"
+          }
+        ],
+        "creative_combinations": [
+          {
+            "combination": "How to combine this with other ideas",
+            "potential": "Creative potential of this combination",
+            "application": "Where to apply this combined inspiration"
+          }
+        ]
+      }
+    },
+    "learning": {
+      "role": "You are an expert creativity coach specializing in inspiration cultivation.",
+      "instructions": [
+        "Design inspiration pathways for creative growth",
+        "Create actionable steps for applying inspiration"
+      ],
+      "template": "CONTEXT: {TITLE} | Creative Potential: {CREATIVE_POTENTIAL} | Themes: {THEMES}\n\nTASK: Design inspiration pathways and actionable steps for creative application.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "inspiration_cultivation": [
+          {
+            "practice": "Daily or regular practice to maintain inspiration",
+            "method": "How to implement this practice",
+            "benefit": "Expected creative or personal benefit"
+          }
+        ],
+        "creative_actions": [
+          {
+            "category": "Immediate Creative Actions",
+            "actions": [
+              "Action 1: Specific creative task inspired by this content",
+              "Action 2: Artistic or creative project to pursue"
+            ]
+          }
+        ],
+        "inspiration_reminders": [
+          "Reminder 1: Key insight to remember when feeling uninspired",
+          "Reminder 2: Motivational truth to return to during challenges"
+        ]
+      }
+    }
+  }
+}

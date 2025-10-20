@@ -1,0 +1,154 @@
+{
+  "intent": "research_collection",
+  "version": "1.0.0",
+  "prompts": {
+    "structure": {
+      "role": "You are an expert research organizer specializing in academic content analysis.",
+      "instructions": [
+        "Create a research-focused title that captures academic essence",
+        "Place in optimal research hierarchy",
+        "Extract comprehensive metadata for research purposes",
+        "Assess research complexity and methodology",
+        "Identify source type and research context"
+      ],
+      "template": "EXISTING KNOWLEDGE: {HIERARCHY_CONTEXT}\n\nTASK: Analyze content and create comprehensive research-focused metadata.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "title": "Research title emphasizing academic value",
+        "hierarchy": {
+          "level1": "Research Domain",
+          "level2": "Research Area",
+          "level3": "Specific Topic",
+          "level4": "Research Focus"
+        },
+        "metadata": {
+          "authors": ["author1", "author2"],
+          "topics": ["research topic 1", "research topic 2"],
+          "key_concepts": ["research concept 1", "methodology 2"],
+          "tags": ["#research", "#academic", "#study"],
+          "related": ["related field 1", "connected research 2"]
+        },
+        "research_context": {
+          "methodology": "research approach used",
+          "related_studies": ["study 1", "study 2"],
+          "research_gap": "what this research addresses",
+          "complexity_level": "beginner|intermediate|advanced",
+          "estimated_reading_time": "X minutes"
+        },
+        "source_type": "paper|study|report|thesis|review",
+        "overview": "2-3 sentences highlighting research value and key findings"
+      }
+    },
+    "content": {
+      "role": "You are an expert research analyst specializing in academic content extraction.",
+      "instructions": [
+        "Extract research findings, methodologies, and academic insights",
+        "Focus on scholarly understanding"
+      ],
+      "template": "CONTEXT: {TITLE} | Domain: {DOMAIN} | Topic: {TOPIC}\n\nFOCUS: Extract research findings, methodologies, and academic insights for scholarly understanding.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "research_question": "Primary research question or hypothesis",
+        "key_findings": [
+          "Finding 1: Core research result with significance",
+          "Finding 2: Important discovery with implications",
+          "Finding 3: Key evidence with academic relevance"
+        ],
+        "methodology": [
+          "Method 1: Research approach with rationale",
+          "Method 2: Data collection technique with justification"
+        ],
+        "academic_insights": [
+          "Insight 1: Scholarly understanding and broader implications",
+          "Insight 2: Theoretical contribution and knowledge advancement"
+        ],
+        "detailed_summary": "Comprehensive summary emphasizing research contributions and academic significance"
+      }
+    },
+    "perspectives": {
+      "role": "You are an expert at multi-perspective research analysis.",
+      "instructions": [
+        "Provide diverse academic viewpoints",
+        "Create scholarly examples"
+      ],
+      "template": "CONTEXT: {TITLE} | {OVERVIEW}\n\nTASK: Provide diverse academic viewpoints and scholarly examples.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "academic_perspectives": [
+          {
+            "viewpoint": "Theoretical Framework",
+            "analysis": "Academic theory and conceptual foundation"
+          },
+          {
+            "viewpoint": "Methodological Approach",
+            "analysis": "Research methods and analytical techniques"
+          }
+        ],
+        "comparative_studies": [
+          {
+            "study": "Related research work",
+            "comparison": "How this research relates or differs",
+            "significance": "What this comparison reveals"
+          }
+        ]
+      }
+    },
+    "connections": {
+      "role": "You are an expert at identifying research connections and academic applications.",
+      "instructions": [
+        "Map connections to other research domains",
+        "Identify academic applications"
+      ],
+      "template": "CONTEXT: {TITLE} | {DOMAIN} | Key Concepts: {KEY_CONCEPTS}\n\nTASK: Map connections to other research domains and identify academic applications.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "research_connections": [
+          {
+            "related_field": "Connected research domain",
+            "connection_type": "theoretical|methodological|empirical",
+            "detailed_explanation": "Specific ways these research areas interconnect"
+          }
+        ],
+        "academic_applications": [
+          {
+            "domain": "Application area or field",
+            "application": "Specific research use case",
+            "implementation": "How to apply this research",
+            "benefits": "Expected academic outcomes"
+          }
+        ]
+      }
+    },
+    "learning": {
+      "role": "You are an expert research mentor specializing in academic skill development.",
+      "instructions": [
+        "Design research pathways for academic mastery",
+        "Create actionable research steps"
+      ],
+      "template": "CONTEXT: {TITLE} | Complexity: {COMPLEXITY} | Methodology: {METHODOLOGY}\n\nTASK: Design research pathways and actionable steps for academic mastery.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "research_gaps": [
+          "Gap 1: Missing research area with recommended approach",
+          "Gap 2: Advanced concept requiring deeper investigation"
+        ],
+        "research_pathways": [
+          {
+            "pathway_name": "Academic Research Path",
+            "steps": [
+              "Foundation: Core research concepts",
+              "Development: Methodology and analysis",
+              "Mastery: Original research contribution"
+            ],
+            "estimated_time": "4-8 weeks",
+            "difficulty": "intermediate"
+          }
+        ],
+        "actionable_next_steps": [
+          {
+            "category": "Research Actions",
+            "actions": [
+              "Action 1: Specific research task",
+              "Action 2: Academic exercise with outcome"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

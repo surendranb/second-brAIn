@@ -1,0 +1,142 @@
+{
+  "intent": "personal_development",
+  "version": "1.0.0",
+  "prompts": {
+    "structure": {
+      "role": "You are an expert personal development coach specializing in growth content analysis.",
+      "instructions": [
+        "Create a growth-focused title that captures development value",
+        "Place in optimal personal development hierarchy",
+        "Extract comprehensive metadata for personal growth",
+        "Assess development impact and skill building potential"
+      ],
+      "template": "EXISTING KNOWLEDGE: {HIERARCHY_CONTEXT}\n\nTASK: Analyze content and create comprehensive personal development metadata.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "title": "Development title emphasizing growth value",
+        "hierarchy": {
+          "level1": "Development Domain",
+          "level2": "Growth Area",
+          "level3": "Specific Skill",
+          "level4": "Development Focus"
+        },
+        "metadata": {
+          "skills": ["skill1", "skill2"],
+          "topics": ["development topic 1", "growth area 2"],
+          "key_concepts": ["concept 1", "principle 2"],
+          "tags": ["#growth", "#development", "#skills"],
+          "related": ["related skill 1", "connected area 2"]
+        },
+        "development_context": {
+          "skill_level": "beginner|intermediate|advanced",
+          "time_investment": "daily|weekly|monthly practice",
+          "difficulty": "easy|moderate|challenging",
+          "estimated_reading_time": "X minutes"
+        },
+        "source_type": "book|article|course|interview|guide",
+        "overview": "2-3 sentences highlighting personal development value and growth potential"
+      }
+    },
+    "content": {
+      "role": "You are an expert personal development analyst specializing in growth content extraction.",
+      "instructions": [
+        "Extract development insights, growth strategies, and actionable advice",
+        "Focus on personal transformation and skill building"
+      ],
+      "template": "CONTEXT: {TITLE} | Domain: {DOMAIN} | Skill Level: {SKILL_LEVEL}\n\nFOCUS: Extract development insights and actionable advice for personal transformation.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "development_insights": [
+          "Insight 1: Key understanding for personal growth",
+          "Insight 2: Important principle for development",
+          "Insight 3: Transformative concept for improvement"
+        ],
+        "actionable_strategies": [
+          "Strategy 1: Specific approach with implementation steps",
+          "Strategy 2: Practical method with expected outcomes",
+          "Strategy 3: Growth technique with measurable results"
+        ],
+        "skill_building": [
+          "Skill 1: Specific ability to develop with practice method",
+          "Skill 2: Important competency with development approach"
+        ],
+        "detailed_summary": "Comprehensive summary emphasizing personal growth opportunities and development path"
+      }
+    },
+    "perspectives": {
+      "role": "You are an expert at multi-perspective personal development analysis.",
+      "instructions": [
+        "Provide diverse growth viewpoints",
+        "Create personal development examples"
+      ],
+      "template": "CONTEXT: {TITLE} | {OVERVIEW}\n\nTASK: Provide diverse growth viewpoints and personal development examples.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "growth_perspectives": [
+          {
+            "perspective": "Personal Growth",
+            "analysis": "Individual development and self-improvement aspects"
+          },
+          {
+            "perspective": "Professional Development",
+            "analysis": "Career advancement and workplace skill building"
+          }
+        ],
+        "development_examples": [
+          {
+            "scenario": "Common development challenge",
+            "approach": "Recommended strategy or method",
+            "outcome": "Expected growth result"
+          }
+        ]
+      }
+    },
+    "connections": {
+      "role": "You are an expert at identifying personal development connections.",
+      "instructions": [
+        "Map connections to other development areas",
+        "Identify growth synergies"
+      ],
+      "template": "CONTEXT: {TITLE} | {DOMAIN} | Skills: {SKILLS}\n\nTASK: Map connections to other development areas and identify growth synergies.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "development_connections": [
+          {
+            "related_area": "Connected development domain",
+            "connection_type": "complementary|foundational|advanced",
+            "synergy": "How these areas support each other"
+          }
+        ],
+        "growth_applications": [
+          {
+            "life_area": "Personal or professional context",
+            "application": "How to apply this development",
+            "benefits": "Expected improvements and outcomes"
+          }
+        ]
+      }
+    },
+    "learning": {
+      "role": "You are an expert personal development mentor specializing in growth planning.",
+      "instructions": [
+        "Design development pathways for personal growth",
+        "Create actionable improvement steps"
+      ],
+      "template": "CONTEXT: {TITLE} | Skill Level: {SKILL_LEVEL} | Development Focus: {FOCUS}\n\nTASK: Design development pathways and actionable improvement steps.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "development_plan": [
+          {
+            "phase": "Foundation Building",
+            "duration": "2-4 weeks",
+            "focus": "Core skills and basic understanding",
+            "actions": ["Action 1", "Action 2"]
+          }
+        ],
+        "growth_milestones": [
+          "Milestone 1: Specific achievement with timeline",
+          "Milestone 2: Measurable progress indicator"
+        ],
+        "daily_practices": [
+          "Practice 1: Daily habit for skill development",
+          "Practice 2: Regular activity for growth"
+        ]
+      }
+    }
+  }
+}

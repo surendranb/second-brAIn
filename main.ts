@@ -7,6 +7,7 @@ import { AISummarizerSettingsTab } from './settings';
 import { DEFAULT_SUMMARIZATION_PROMPT, HIERARCHY_ANALYSIS_PROMPT, ENHANCED_SUMMARIZATION_PROMPT } from './prompts';
 import { HierarchyManager } from './hierarchy-manager';
 import { PromptLoader } from './prompt-loader';
+import { MOCIntelligence } from './moc-intelligence';
 
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
 // const execPromise = promisify(exec); // No longer using execPromise for transcript
@@ -591,7 +592,7 @@ class SummaryView extends ItemView {
 
     constructor(leaf: WorkspaceLeaf, private plugin: AISummarizerPlugin) {
         super(leaf);
-        this.promptLoader = new PromptLoader(this.app);
+        this.promptLoader = new PromptLoader();
     }
 
     getViewType() {
@@ -1398,7 +1399,7 @@ class SummaryView extends ItemView {
         try {
             const debugFolder = this.plugin.settings.debug.debugFolder;
             const fullPath = subfolder ? `${debugFolder}/${subfolder}` : debugFolder;
-            
+
             // Ensure debug folder exists
             const folderExists = this.app.vault.getAbstractFileByPath(fullPath);
             if (!folderExists) {
@@ -2753,10 +2754,13 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private async analyzeStructureAndMetadata(text: string, hierarchyContext: string, additionalInstructions: string = '', customPrompt?: string): Promise<any> {
-        const basePrompt = customPrompt || this.plugin.settings.analysisPrompts.structure;
+        if (!customPrompt) {
+            throw new Error('No prompt provided for structure analysis');
+        }
+        const basePrompt = customPrompt;
         const context = {
             hierarchyContext,
-            content: text.substring(0, 6000)
+            content: text
         };
         const structurePrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
         const intent = this.intentDropdown?.value || 'unknown';
@@ -2776,7 +2780,10 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private async analyzeContentDepth(text: string, structure: any, additionalInstructions: string = '', customPrompt?: string): Promise<any> {
-        const basePrompt = customPrompt || this.plugin.settings.analysisPrompts.content;
+        if (!customPrompt) {
+            throw new Error('No prompt provided for content analysis');
+        }
+        const basePrompt = customPrompt;
         const context = {
             content: text,
             title: structure.title || 'Unknown',
@@ -2801,7 +2808,10 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private async analyzePerspectivesAndExamples(text: string, structure: any, additionalInstructions: string = '', customPrompt?: string): Promise<any> {
-        const basePrompt = customPrompt || this.plugin.settings.analysisPrompts.perspectives;
+        if (!customPrompt) {
+            throw new Error('No prompt provided for perspectives analysis');
+        }
+        const basePrompt = customPrompt;
         const context = {
             content: text,
             title: structure.title || 'Unknown',
@@ -2825,7 +2835,10 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private async analyzeConnectionsAndApplications(text: string, structure: any, additionalInstructions: string = '', customPrompt?: string): Promise<any> {
-        const basePrompt = customPrompt || this.plugin.settings.analysisPrompts.connections;
+        if (!customPrompt) {
+            throw new Error('No prompt provided for connections analysis');
+        }
+        const basePrompt = customPrompt;
         const context = {
             content: text,
             title: structure.title || 'Unknown',
@@ -2850,7 +2863,10 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private async analyzeLearningAndNextSteps(text: string, structure: any, additionalInstructions: string = '', customPrompt?: string): Promise<any> {
-        const basePrompt = customPrompt || this.plugin.settings.analysisPrompts.learning;
+        if (!customPrompt) {
+            throw new Error('No prompt provided for learning analysis');
+        }
+        const basePrompt = customPrompt;
         const context = {
             content: text,
             title: structure.title || 'Unknown',
@@ -3153,7 +3169,17 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         if (result.deep_insights?.length) {
             content += `## Deep Insights\n`;
             result.deep_insights.forEach((insight: string, index: number) => {
-                content += `### ${index + 1}. ${insight.split(':')[0]}\n${insight}\n\n`;
+                // Check if insight has a title format (starts with "Title:")
+                const colonIndex = insight.indexOf(':');
+                if (colonIndex > 0 && colonIndex < 100) {
+                    // Has a title format
+                    const title = insight.substring(0, colonIndex).trim();
+                    const body = insight.substring(colonIndex + 1).trim();
+                    content += `### ${index + 1}. ${title}\n${body}\n\n`;
+                } else {
+                    // No title format, use the full insight
+                    content += `### Insight ${index + 1}\n${insight}\n\n`;
+                }
             });
         }
 
@@ -3161,7 +3187,17 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         if (result.core_concepts?.length) {
             content += `## Core Concepts\n`;
             result.core_concepts.forEach((concept: string) => {
-                content += `### ${concept.split(':')[0]}\n${concept}\n\n`;
+                // Check if concept has a title format (starts with "Title:")
+                const colonIndex = concept.indexOf(':');
+                if (colonIndex > 0 && colonIndex < 100) {
+                    // Has a title format
+                    const title = concept.substring(0, colonIndex).trim();
+                    const body = concept.substring(colonIndex + 1).trim();
+                    content += `### ${title}\n${body}\n\n`;
+                } else {
+                    // No title format, use the full concept
+                    content += `### ${concept}\n\n`;
+                }
             });
         }
 
@@ -3184,8 +3220,26 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         // Case Studies
         if (result.case_studies?.length) {
             content += `## Case Studies\n`;
-            result.case_studies.forEach((study: string, index: number) => {
-                content += `### Case Study ${index + 1}\n${study}\n\n`;
+            result.case_studies.forEach((study: any, index: number) => {
+                if (typeof study === 'string') {
+                    content += `### Case Study ${index + 1}\n${study}\n\n`;
+                } else if (study && typeof study === 'object') {
+                    // Handle structured case study objects
+                    const title = study.case_study_name || `Case Study ${index + 1}`;
+                    content += `### ${title}\n`;
+                    if (study.description) {
+                        content += `${study.description}\n\n`;
+                    }
+                    if (study.lessons_learned && Array.isArray(study.lessons_learned)) {
+                        content += `**Key Lessons:**\n`;
+                        study.lessons_learned.forEach((lesson: string) => {
+                            content += `- ${lesson}\n`;
+                        });
+                        content += `\n`;
+                    }
+                } else {
+                    content += `### Case Study ${index + 1}\n${String(study)}\n\n`;
+                }
             });
         }
 
@@ -3241,8 +3295,21 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         // Knowledge Gaps
         if (result.knowledge_gaps?.length) {
             content += `> [!gap] Knowledge Gaps to Explore\n`;
-            result.knowledge_gaps.forEach((gap: string) => {
-                content += `> - [ ] ${gap}\n`;
+            result.knowledge_gaps.forEach((gap: any) => {
+                if (typeof gap === 'string') {
+                    content += `> - [ ] ${gap}\n`;
+                } else if (gap && typeof gap === 'object') {
+                    // Handle structured gap objects
+                    const gapText = gap.gap || gap.title || String(gap);
+                    const explanation = gap.explanation || gap.description;
+                    if (explanation) {
+                        content += `> - [ ] **${gapText}**: ${explanation}\n`;
+                    } else {
+                        content += `> - [ ] ${gapText}\n`;
+                    }
+                } else {
+                    content += `> - [ ] ${String(gap)}\n`;
+                }
             });
             content += '\n';
         }
@@ -3555,8 +3622,21 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         // Add knowledge gaps section with callout and checkboxes
         if (sections.knowledge_gaps && Array.isArray(sections.knowledge_gaps)) {
             formattedContent += `> [!gap] Knowledge Gaps\n`;
-            sections.knowledge_gaps.forEach((gap: string) => {
-                formattedContent += `> - [ ] ${gap}\n`;
+            sections.knowledge_gaps.forEach((gap: any) => {
+                if (typeof gap === 'string') {
+                    formattedContent += `> - [ ] ${gap}\n`;
+                } else if (gap && typeof gap === 'object') {
+                    // Handle structured gap objects
+                    const gapText = gap.gap || gap.title || String(gap);
+                    const explanation = gap.explanation || gap.description;
+                    if (explanation) {
+                        formattedContent += `> - [ ] **${gapText}**: ${explanation}\n`;
+                    } else {
+                        formattedContent += `> - [ ] ${gapText}\n`;
+                    }
+                } else {
+                    formattedContent += `> - [ ] ${String(gap)}\n`;
+                }
             });
             formattedContent += '\n';
         }
@@ -4055,10 +4135,12 @@ class MOCManager {
     private app: App;
     private settings: PluginSettings;
     private hierarchyManager?: any;
+    private mocIntelligence: MOCIntelligence;
 
     constructor(app: App, settings: PluginSettings) {
         this.app = app;
         this.settings = settings;
+        this.mocIntelligence = new MOCIntelligence(app);
     }
 
     async createMOCTemplate(hierarchy: MOCHierarchy): Promise<string> {
@@ -5005,6 +5087,17 @@ This is a ${levelName.toLowerCase()} for organizing knowledge related to **${lev
             await this.app.vault.modify(mocFile, updatedContent);
             console.log('[MOCManager] MOC updated successfully');
 
+            // Apply intelligence to enhance the MOC with synthesis
+            console.log('[MOCManager] Applying intelligence to MOC...');
+            await this.mocIntelligence.updateMOCWithIntelligence(mocPath);
+            console.log('[MOCManager] MOC intelligence applied successfully');
+
+            // Update parent MOC structure to include this child
+            await this.updateParentMOCStructure(mocPath, noteTitle);
+
+            // Update parent MOCs in the hierarchy
+            await this.updateParentMOCs(mocPath);
+
             // Update note count in central hierarchy
             if (this.hierarchyManager) {
                 // Extract hierarchy from the MOC path - this is a simplified approach
@@ -5035,6 +5128,129 @@ This is a ${levelName.toLowerCase()} for organizing knowledge related to **${lev
 
         console.log('[MOCManager] Extracted filename for link:', fileNameWithoutExtension);
         return fileNameWithoutExtension;
+    }
+
+    /**
+     * Updates parent MOCs in the hierarchy to maintain connections
+     */
+    private async updateParentMOCs(childMocPath: string): Promise<void> {
+        try {
+            console.log('[MOCManager] 🔄 Updating parent MOCs for:', childMocPath);
+            
+            // Extract hierarchy information from the child MOC path
+            const pathParts = childMocPath.split('/');
+            console.log('[MOCManager] 📁 Path parts:', pathParts);
+            
+            const mocFolder = this.settings.mocFolder || 'MOCs';
+            const parentPaths: string[] = [];
+            
+            // For path like: MOCs/Mathematics/Number Theory/Analytic Number Theory/00-Perfect Numbers MOC.md
+            // We want to update:
+            // 1. MOCs/Mathematics/Number Theory/00-Analytic Number Theory MOC.md
+            // 2. MOCs/Mathematics/00-Number Theory MOC.md  
+            // 3. MOCs/00-Mathematics MOC.md
+            
+            // Start from the directory containing the child MOC and work upward
+            let currentPath = pathParts.slice(0, -1); // Remove the MOC filename
+            
+            while (currentPath.length > 1) {
+                const dirName = currentPath[currentPath.length - 1];
+                const parentDir = currentPath.slice(0, -1).join('/');
+                const parentMocName = `00-${dirName} MOC.md`;
+                const parentMocPath = `${parentDir}/${parentMocName}`;
+                
+                console.log('[MOCManager] 🔍 Checking parent MOC:', parentMocPath);
+                
+                // Check if parent MOC exists
+                const parentFile = this.app.vault.getAbstractFileByPath(parentMocPath);
+                if (parentFile) {
+                    console.log('[MOCManager] ✅ Found parent MOC:', parentMocPath);
+                    parentPaths.push(parentMocPath);
+                } else {
+                    console.log('[MOCManager] ❌ Parent MOC not found:', parentMocPath);
+                }
+                
+                // Move up one level
+                currentPath = currentPath.slice(0, -1);
+                
+                // Stop when we reach the MOCs folder
+                if (currentPath[currentPath.length - 1] === mocFolder) {
+                    break;
+                }
+            }
+            
+            console.log('[MOCManager] 📋 Parent MOCs to update:', parentPaths);
+            
+            // Update each parent MOC with intelligence
+            for (const parentPath of parentPaths) {
+                console.log('[MOCManager] 🧠 Applying intelligence to parent MOC:', parentPath);
+                await this.mocIntelligence.updateMOCWithIntelligence(parentPath);
+                console.log('[MOCManager] ✅ Parent MOC updated:', parentPath);
+            }
+            
+            console.log('[MOCManager] 🎉 All parent MOCs updated successfully');
+        } catch (error) {
+            console.error('[MOCManager] ❌ Error updating parent MOCs:', error);
+            console.error('[MOCManager] 📊 Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+        }
+    }
+
+    /**
+     * Updates parent MOC structure to include new child MOC
+     */
+    private async updateParentMOCStructure(childMocPath: string, noteTitle: string): Promise<void> {
+        try {
+            console.log('[MOCManager] 🔗 Updating parent MOC structure for:', childMocPath);
+            
+            // Extract the child MOC info
+            const pathParts = childMocPath.split('/');
+            const childMocName = pathParts[pathParts.length - 1].replace('00-', '').replace(' MOC.md', '');
+            const childDir = pathParts[pathParts.length - 2];
+            
+            // Find the immediate parent MOC
+            const parentDir = pathParts.slice(0, -1).join('/');
+            const parentMocName = `00-${childDir} MOC.md`;
+            const parentMocPath = `${parentDir}/${parentMocName}`;
+            
+            console.log('[MOCManager] 🔍 Looking for parent MOC:', parentMocPath);
+            
+            const parentFile = this.app.vault.getAbstractFileByPath(parentMocPath);
+            if (!parentFile) {
+                console.log('[MOCManager] ❌ Parent MOC not found:', parentMocPath);
+                return;
+            }
+            
+            let parentContent = await this.app.vault.read(parentFile as TFile);
+            console.log('[MOCManager] ✅ Found parent MOC, updating structure');
+            
+            // Add child to Sub-Levels section if not already there
+            const childLink = `- [[00-${childMocName} MOC]] (Concept)`;
+            
+            if (!parentContent.includes(childLink)) {
+                // Find Sub-Levels section and add the child
+                const subLevelsMatch = parentContent.match(/(## 🔽 Sub-Levels\n)([\s\S]*?)(?=\n##|\n\n##)/);
+                if (subLevelsMatch) {
+                    const existingSubLevels = subLevelsMatch[2].trim();
+                    const newSubLevels = existingSubLevels 
+                        ? `${existingSubLevels}\n${childLink}`
+                        : childLink;
+                    
+                    parentContent = parentContent.replace(
+                        /(## 🔽 Sub-Levels\n)[\s\S]*?(?=\n##|\n\n##)/,
+                        `$1${newSubLevels}\n\n`
+                    );
+                    
+                    await this.app.vault.modify(parentFile as TFile, parentContent);
+                    console.log('[MOCManager] ✅ Added child to parent Sub-Levels:', childLink);
+                }
+            }
+            
+        } catch (error) {
+            console.error('[MOCManager] ❌ Error updating parent MOC structure:', error);
+        }
     }
 
     async getAllExistingMOCs(): Promise<any[]> {

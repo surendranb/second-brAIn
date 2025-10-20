@@ -1,0 +1,143 @@
+{
+  "intent": "event_documentation",
+  "version": "1.0.0",
+  "prompts": {
+    "structure": {
+      "role": "You are an expert event organizer specializing in meeting and event documentation.",
+      "instructions": [
+        "Create a clear event-focused title",
+        "Place in optimal event hierarchy",
+        "Extract comprehensive metadata for event tracking",
+        "Assess event importance and follow-up needs",
+        "Identify event type and context"
+      ],
+      "template": "EXISTING KNOWLEDGE: {HIERARCHY_CONTEXT}\n\nTASK: Analyze content and create comprehensive event-focused metadata.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "title": "Event title with date and key focus",
+        "hierarchy": {
+          "level1": "Event Category",
+          "level2": "Event Series/Project",
+          "level3": "Specific Event",
+          "level4": "Event Session"
+        },
+        "metadata": {
+          "attendees": ["person1", "person2"],
+          "topics": ["topic 1", "topic 2"],
+          "decisions": ["decision 1", "decision 2"],
+          "tags": ["#meeting", "#event", "#project"],
+          "related": ["related event 1", "connected project 2"]
+        },
+        "event_context": {
+          "event_type": "meeting|conference|workshop|presentation",
+          "date": "event date",
+          "duration": "event length",
+          "location": "event location",
+          "purpose": "event objective"
+        },
+        "source_type": "meeting|conference|workshop|presentation|discussion",
+        "overview": "2-3 sentences highlighting event purpose and key outcomes"
+      }
+    },
+    "content": {
+      "role": "You are an expert meeting analyst specializing in event content extraction.",
+      "instructions": [
+        "Extract key decisions, action items, and important discussions",
+        "Focus on actionable outcomes"
+      ],
+      "template": "CONTEXT: {TITLE} | Event Type: {EVENT_TYPE} | Date: {DATE}\n\nFOCUS: Extract key decisions, action items, and important discussions for actionable outcomes.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "key_decisions": [
+          "Decision 1: What was decided and rationale",
+          "Decision 2: Important choice made and reasoning",
+          "Decision 3: Key resolution and implications"
+        ],
+        "action_items": [
+          "Action 1: Specific task with owner and deadline",
+          "Action 2: Follow-up item with responsibility and timeline",
+          "Action 3: Next step with accountability and due date"
+        ],
+        "important_discussions": [
+          "Discussion 1: Key topic covered and main points",
+          "Discussion 2: Important debate and different viewpoints",
+          "Discussion 3: Significant conversation and outcomes"
+        ],
+        "detailed_summary": "Comprehensive summary emphasizing decisions made and next steps"
+      }
+    },
+    "perspectives": {
+      "role": "You are an expert at multi-stakeholder event analysis.",
+      "instructions": [
+        "Provide different stakeholder viewpoints",
+        "Identify various perspectives on decisions"
+      ],
+      "template": "CONTEXT: {TITLE} | {OVERVIEW}\n\nTASK: Provide different stakeholder viewpoints and perspectives on decisions.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "stakeholder_perspectives": [
+          {
+            "stakeholder": "Stakeholder group or role",
+            "viewpoint": "Their perspective on the event outcomes",
+            "concerns": "Any concerns or reservations expressed"
+          }
+        ],
+        "alternative_approaches": [
+          {
+            "approach": "Alternative solution discussed",
+            "pros_cons": "Benefits and drawbacks considered",
+            "decision_rationale": "Why this approach was or wasn't chosen"
+          }
+        ]
+      }
+    },
+    "connections": {
+      "role": "You are an expert at identifying event connections and project implications.",
+      "instructions": [
+        "Map connections to other events and projects",
+        "Identify follow-up implications"
+      ],
+      "template": "CONTEXT: {TITLE} | {EVENT_TYPE} | Decisions: {DECISIONS}\n\nTASK: Map connections to other events and projects, identify follow-up implications.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "related_events": [
+          {
+            "event": "Related meeting or event",
+            "connection": "How this event relates",
+            "impact": "How this event affects the related one"
+          }
+        ],
+        "project_implications": [
+          {
+            "project": "Affected project or initiative",
+            "impact": "How event decisions affect this project",
+            "next_steps": "Required follow-up actions"
+          }
+        ]
+      }
+    },
+    "learning": {
+      "role": "You are an expert event facilitator specializing in meeting improvement.",
+      "instructions": [
+        "Identify lessons learned and process improvements",
+        "Create actionable follow-up steps"
+      ],
+      "template": "CONTEXT: {TITLE} | Event Type: {EVENT_TYPE} | Outcomes: {OUTCOMES}\n\nTASK: Identify lessons learned and create actionable follow-up steps.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "lessons_learned": [
+          "Lesson 1: What worked well and why",
+          "Lesson 2: What could be improved and how"
+        ],
+        "follow_up_actions": [
+          {
+            "category": "Immediate Actions",
+            "actions": [
+              "Action 1: Urgent follow-up with deadline",
+              "Action 2: Critical next step with owner"
+            ]
+          }
+        ],
+        "process_improvements": [
+          "Improvement 1: How to make future events more effective",
+          "Improvement 2: Process change to implement"
+        ]
+      }
+    }
+  }
+}

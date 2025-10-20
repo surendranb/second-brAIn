@@ -1,0 +1,173 @@
+{
+  "intent": "knowledge_building",
+  "version": "1.0.0",
+  "prompts": {
+    "structure": {
+      "role": "You are an expert knowledge organizer specializing in educational content analysis.",
+      "instructions": [
+        "Create a learning-focused title that captures educational essence",
+        "Place in optimal knowledge hierarchy (use existing domains when possible)",
+        "Extract comprehensive metadata for deep learning",
+        "Assess learning complexity and prerequisites",
+        "Identify source type and learning context"
+      ],
+      "template": "EXISTING KNOWLEDGE: {HIERARCHY_CONTEXT}\n\nTASK: Analyze content and create comprehensive learning-focused metadata.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "title": "Educational title emphasizing learning value",
+        "hierarchy": {
+          "level1": "Primary Knowledge Domain",
+          "level2": "Learning Area",
+          "level3": "Specific Topic",
+          "level4": "Key Concept"
+        },
+        "metadata": {
+          "speakers": ["speaker1", "speaker2"],
+          "topics": ["core topic 1", "core topic 2"],
+          "key_concepts": ["fundamental concept 1", "key principle 2"],
+          "tags": ["#learning", "#concept", "#framework"],
+          "related": ["connected field 1", "related domain 2"]
+        },
+        "learning_context": {
+          "prerequisites": ["required knowledge 1", "background concept 2"],
+          "related_concepts": ["connected idea 1", "related theory 2"],
+          "learning_path": ["foundation step", "intermediate step", "advanced application"],
+          "complexity_level": "beginner|intermediate|advanced",
+          "estimated_reading_time": "X minutes"
+        },
+        "source_type": "interview|lecture|article|research|discussion",
+        "action_items": ["learning action 1", "practice task 2"],
+        "overview": "2-3 sentences highlighting educational value and key learning outcomes"
+      }
+    },
+    "content": {
+      "role": "You are an expert content analyst specializing in knowledge extraction for deep learning.",
+      "instructions": [
+        "Extract educational insights, core principles, and conceptual frameworks",
+        "Focus on comprehensive understanding"
+      ],
+      "template": "CONTEXT: {TITLE} | Domain: {DOMAIN} | Topic: {TOPIC}\n\nFOCUS: Extract educational insights, core principles, and conceptual frameworks for comprehensive understanding.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "context": "Why this knowledge matters and its educational significance",
+        "key_facts": [
+          "Fact 1: Core information with learning relevance",
+          "Fact 2: Important data with conceptual significance",
+          "Fact 3: Key evidence with practical implications"
+        ],
+        "deep_insights": [
+          "Insight 1: Fundamental understanding and broader implications",
+          "Insight 2: Pattern recognition and knowledge connections",
+          "Insight 3: Underlying principles and mental models"
+        ],
+        "core_concepts": [
+          "Concept 1: #concept Core principle with clear explanation",
+          "Framework 2: #framework Key theory with learning applications",
+          "Model 3: #theory Important mental model with practical use"
+        ],
+        "detailed_summary": "Comprehensive summary emphasizing key learning outcomes and knowledge integration"
+      }
+    },
+    "perspectives": {
+      "role": "You are an expert at multi-perspective analysis and educational example creation.",
+      "instructions": [
+        "Provide diverse viewpoints to deepen understanding",
+        "Create concrete learning examples"
+      ],
+      "template": "CONTEXT: {TITLE} | {OVERVIEW}\n\nTASK: Provide diverse viewpoints and concrete learning examples to deepen understanding.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "multiple_perspectives": [
+          {
+            "viewpoint": "Theoretical Framework",
+            "analysis": "Academic concepts and underlying principles"
+          },
+          {
+            "viewpoint": "Practical Application",
+            "analysis": "Real-world implementation and use cases"
+          },
+          {
+            "viewpoint": "Learning Strategy",
+            "analysis": "How to effectively learn and apply this knowledge"
+          }
+        ],
+        "analogies_examples": [
+          {
+            "concept": "Core concept being explained",
+            "analogy": "Clear analogy that makes concept accessible",
+            "real_world_example": "Concrete example demonstrating the concept"
+          }
+        ],
+        "case_studies": [
+          "Case study 1: Specific application showing concept in action",
+          "Case study 2: Different context demonstrating versatility"
+        ]
+      }
+    },
+    "connections": {
+      "role": "You are an expert at identifying knowledge connections and practical applications.",
+      "instructions": [
+        "Map connections to other knowledge domains",
+        "Identify practical applications"
+      ],
+      "template": "CONTEXT: {TITLE} | {DOMAIN} | Key Concepts: {KEY_CONCEPTS}\n\nTASK: Map connections to other knowledge domains and identify practical applications.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "knowledge_connections": [
+          {
+            "related_field": "Connected domain or discipline",
+            "connection_type": "conceptual|methodological|practical|theoretical",
+            "detailed_explanation": "Specific ways these knowledge areas interconnect"
+          }
+        ],
+        "practical_applications": [
+          {
+            "domain": "Application area or field",
+            "application": "Specific use case or implementation",
+            "implementation": "How to practically apply this knowledge",
+            "benefits": "Expected outcomes and value"
+          }
+        ],
+        "implications_consequences": [
+          "Implication 1: Broader impact on understanding or practice",
+          "Consequence 2: What this means for related fields or applications"
+        ]
+      }
+    },
+    "learning": {
+      "role": "You are an expert learning designer specializing in knowledge progression and skill development.",
+      "instructions": [
+        "Design learning pathways for knowledge mastery",
+        "Create actionable next steps"
+      ],
+      "template": "CONTEXT: {TITLE} | Complexity: {COMPLEXITY} | Prerequisites: {PREREQUISITES}\n\nTASK: Design learning pathways and actionable next steps for knowledge mastery.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
+      "output_schema": {
+        "knowledge_gaps": [
+          "Gap 1: Missing foundation with recommended study approach",
+          "Gap 2: Advanced concept requiring deeper exploration"
+        ],
+        "learning_pathways": [
+          {
+            "pathway_name": "Progressive Learning Path",
+            "steps": [
+              "Foundation: Core concepts and principles",
+              "Development: Intermediate applications and connections",
+              "Mastery: Advanced synthesis and original thinking"
+            ],
+            "estimated_time": "2-4 weeks",
+            "difficulty": "intermediate"
+          }
+        ],
+        "actionable_next_steps": [
+          {
+            "category": "Immediate Actions",
+            "actions": [
+              "Action 1: Specific learning task with clear outcome",
+              "Action 2: Practice exercise with measurable result"
+            ]
+          }
+        ],
+        "reflection_questions": [
+          "Question 1: How does this connect to your existing knowledge?",
+          "Question 2: What are the practical implications for your work/interests?"
+        ]
+      }
+    }
+  }
+}
