@@ -86,6 +86,11 @@ export interface MOCCreationOptions {
     note_title?: string;
     apply_intelligence?: boolean;
     update_parents?: boolean;
+    add_note?: {
+        path: string;
+        title: string;
+        learning_context?: LearningContext;
+    };
 }
 
 // MOC Update Options
