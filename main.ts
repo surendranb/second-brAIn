@@ -9,6 +9,16 @@ import { MOCIntelligence } from './moc-intelligence';
 import { MOCManager } from './moc-manager';
 import { HierarchyAnalyzer } from './hierarchy-analyzer';
 import { PluginIntegration, LLMService, TraceManager } from './src/services';
+import { 
+    sanitizeFileName, 
+    findUniqueFileName, 
+    generateId, 
+    extractPlatformFromUrl, 
+    formatMOCContextForAI,
+    estimateTokens,
+    calculateCost,
+    formatTokens
+} from './src/utils';
 
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
 
@@ -1521,20 +1531,7 @@ ${JSON.stringify(response, null, 2)}
 
 
 
-    private extractPlatformFromUrl(url: string): string {
-        try {
-            const domain = new URL(url).hostname.replace('www.', '');
 
-            // Extract the main platform name from domain
-            const parts = domain.split('.');
-            if (parts.length >= 2) {
-                return parts[parts.length - 2]; // e.g., "youtube" from "youtube.com"
-            }
-            return domain;
-        } catch {
-            return 'unknown';
-        }
-    }
 
     private async initializeLangfuse(): Promise<void> {
         if (!this.plugin.settings.langfuse.enabled || this.langfuseInitialized) {
@@ -1566,11 +1563,11 @@ ${JSON.stringify(response, null, 2)}
         const duration = Date.now() - startTime;
 
         // Calculate accurate token usage and cost
-        const inputTokens = this.estimateTokens(prompt);
-        const outputTokens = this.estimateTokens(JSON.stringify(result));
+        const inputTokens = estimateTokens(prompt);
+        const outputTokens = estimateTokens(JSON.stringify(result));
         const totalTokens = inputTokens + outputTokens;
         const model = this.modelDropdown?.value || 'gemini-2.5-flash';
-        const cost = this.calculateCost(inputTokens, outputTokens, model);
+        const cost = calculateCost(inputTokens, outputTokens, model);
 
         console.log(`[Langfuse] AI Response - Duration: ${duration}ms, Tokens: ${totalTokens} (${inputTokens} in, ${outputTokens} out), Cost: $${cost.toFixed(4)}`);
 
@@ -1579,7 +1576,7 @@ ${JSON.stringify(response, null, 2)}
 
         // Create complete generation with all data at once
         try {
-            const generationId = this.generateId();
+            const generationId = generateId();
             await this.sendToLangfuse('generations', {
                 id: generationId,
                 traceId: this.currentTraceId,
@@ -1609,20 +1606,14 @@ ${JSON.stringify(response, null, 2)}
         return result;
     }
 
-    private generateId(): string {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            const r = Math.random() * 16 | 0;
-            const v = c == 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    }
+
 
     private async startLangfuseTrace(metadata: any = {}): Promise<void> {
         if (!this.plugin.settings.langfuse.enabled) {
             return;
         }
 
-        this.currentTraceId = this.generateId();
+        this.currentTraceId = generateId();
 
         try {
             await this.sendToLangfuse('traces', {
@@ -1697,63 +1688,13 @@ ${JSON.stringify(response, null, 2)}
         }
     }
 
-    private estimateTokens(text: string): number {
-        // Rough estimation: ~4 characters per token
-        return Math.ceil(text.length / 4);
-    }
 
-    private calculateCost(inputTokens: number, outputTokens: number, model: string): number {
-        // Gemini pricing per million tokens
-        const pricing: Record<string, {
-            input: { small: number; large: number; threshold: number };
-            output: { small: number; large: number; threshold: number };
-        }> = {
-            'gemini-2.5-pro': {
-                input: { small: 1.25, large: 2.50, threshold: 200000 },
-                output: { small: 10.00, large: 15.00, threshold: 200000 }
-            },
-            'gemini-2.5-flash': {
-                input: { small: 0.30, large: 0.30, threshold: Infinity },
-                output: { small: 2.50, large: 2.50, threshold: Infinity }
-            },
-            'gemini-2.5-flash-lite': {
-                input: { small: 0.10, large: 0.10, threshold: Infinity },
-                output: { small: 0.40, large: 0.40, threshold: Infinity }
-            },
-            'gemini-2.0-flash': {
-                input: { small: 0.10, large: 0.10, threshold: Infinity },
-                output: { small: 0.40, large: 0.40, threshold: Infinity }
-            }
-        };
-
-        const modelPricing = pricing[model] || pricing['gemini-2.5-flash']; // Default fallback
-
-        // Calculate input cost
-        const inputRate = inputTokens > modelPricing.input.threshold
-            ? modelPricing.input.large
-            : modelPricing.input.small;
-        const inputCost = (inputTokens / 1000000) * inputRate;
-
-        // Calculate output cost
-        const outputRate = inputTokens > modelPricing.output.threshold
-            ? modelPricing.output.large
-            : modelPricing.output.small;
-        const outputCost = (outputTokens / 1000000) * outputRate;
-
-        return inputCost + outputCost;
-    }
-
-    private formatTokens(tokens: number): string {
-        if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
-        if (tokens >= 1000) return `${(tokens / 1000).toFixed(0)}K`;
-        return `${tokens}`;
-    }
 
     private updateUsageStats(inputTokens: number, outputTokens: number, model: string): void {
         if (!this.plugin.settings.trackUsage) return;
 
         const totalTokens = inputTokens + outputTokens;
-        const cost = this.calculateCost(inputTokens, outputTokens, model);
+        const cost = calculateCost(inputTokens, outputTokens, model);
 
         // Update current note stats
         this.plugin.settings.usageStats.current.tokens += totalTokens;
@@ -1817,11 +1758,11 @@ ${JSON.stringify(response, null, 2)}
         const stats = this.plugin.settings.usageStats;
         const { lifetime, session, current } = stats;
 
-        let text = `📊 ${lifetime.notes} notes • ${this.formatTokens(lifetime.tokens)} tokens • $${lifetime.cost.toFixed(2)}`;
+        let text = `📊 ${lifetime.notes} notes • ${formatTokens(lifetime.tokens)} tokens • $${lifetime.cost.toFixed(2)}`;
 
         if (current.tokens > 0) {
             // During generation - show current note progress
-            text += ` • This note: ${this.formatTokens(current.tokens)} tokens, ~$${current.cost.toFixed(3)}`;
+            text += ` • This note: ${formatTokens(current.tokens)} tokens, ~$${current.cost.toFixed(3)}`;
         } else if (session.notes > 0) {
             // Session summary
             text += ` • Today: ${session.notes} notes, $${session.cost.toFixed(2)}`;
@@ -3864,7 +3805,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private async createNoteWithSummary(summary: string, title: string, url: string, metadata?: any, fullResult?: any, intent?: ProcessingIntent): Promise<TFile | null> {
-        const fileName = this.sanitizeFileName(title + '.md');
+        const fileName = sanitizeFileName(title + '.md');
         let folderPath = this.plugin.settings.mocFolder; // fallback to root MOC folder
 
         // Handle topic folders for "how_to" intent
@@ -3964,7 +3905,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 type: url.includes('youtube.com') ? 'youtube' : 'web',
                 url: url,
                 source_type: fullResult?.source_type || 'traditional',
-                detected_platform: this.extractPlatformFromUrl(url)
+                detected_platform: extractPlatformFromUrl(url)
             },
             status: 'draft',
             created: new Date().toISOString(),
@@ -4029,7 +3970,7 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
             }
 
             // Handle file name conflicts by finding a unique name
-            const finalFileName = await this.findUniqueFileName(folderPath, fileName);
+            const finalFileName = await findUniqueFileName(this.app, folderPath, fileName);
             if (finalFileName !== fileName) {
                 console.log('[CreateNote] File name conflict resolved:', fileName, '→', finalFileName);
             }
@@ -4060,59 +4001,9 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
         }
     }
 
-    private sanitizeFileName(fileName: string): string {
-        return fileName.replace(/[\\/:*?"<>|]/g, '_');
-    }
 
-    private async findUniqueFileName(folderPath: string, fileName: string): Promise<string> {
-        // Check if the original filename is available
-        const originalPath = `${folderPath}/${fileName}`;
-        const existingFile = this.app.vault.getAbstractFileByPath(originalPath);
 
-        if (!existingFile) {
-            return fileName; // Original name is available
-        }
 
-        // Extract name and extension
-        const nameParts = fileName.split('.');
-        const extension = nameParts.pop() || '';
-        const baseName = nameParts.join('.');
-
-        // Try numbered variants
-        let counter = 1;
-        while (counter <= 999) { // Prevent infinite loops
-            const numberedName = `${baseName} (${counter}).${extension}`;
-            const numberedPath = `${folderPath}/${numberedName}`;
-            const conflictFile = this.app.vault.getAbstractFileByPath(numberedPath);
-
-            if (!conflictFile) {
-                console.log('[CreateNote] Found unique filename:', numberedName);
-                return numberedName;
-            }
-
-            counter++;
-        }
-
-        // If we get here, fall back to timestamp-based naming
-        const timestamp = new Date().getTime();
-        const timestampName = `${baseName}_${timestamp}.${extension}`;
-        console.log('[CreateNote] Using timestamp-based filename:', timestampName);
-        return timestampName;
-    }
-
-    private formatMOCContextForAI(existingMOCs: any[]): string {
-        if (existingMOCs.length === 0) {
-            return "No existing MOCs. Create first hierarchy.";
-        }
-
-        // Create compact summary by domain only
-        const domains = new Set<string>();
-        existingMOCs.forEach(moc => {
-            if (moc.domain) domains.add(moc.domain);
-        });
-
-        return `Existing domains: ${Array.from(domains).join(', ')}`;
-    }
 }
 
 class FolderSelectionModal extends Modal {
