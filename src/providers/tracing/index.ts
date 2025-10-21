@@ -1,9 +1,8 @@
 /**
  * Tracing Providers barrel export
- * Provider implementations will be added in subsequent tasks
  */
 
-// Placeholder for future provider implementations
-// export { LangfuseProvider } from './LangfuseProvider';
+export { LangfuseProvider } from './LangfuseProvider';
+export { ConsoleProvider } from './ConsoleProvider';
+// Additional providers will be added in subsequent tasks
 // export { OTELProvider } from './OTELProvider';
-// export { ConsoleProvider } from './ConsoleProvider';
