@@ -509,17 +509,85 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
         // Create properly formatted overview section
         const overviewSection = this.createFormattedOverviewSection(analysis);
 
-        // Find the insertion point - after the info block but before navigation sections
-        const insertionPoint = this.findInsertionPoint(content);
+        // Check if intelligence sections already exist and replace them
+        const existingIntelligence = this.detectExistingIntelligence(content);
         
-        if (insertionPoint !== -1) {
-            // Insert with proper spacing
-            content = content.substring(0, insertionPoint) + '\n' + overviewSection + '\n' + content.substring(insertionPoint);
-            await this.app.vault.modify(mocFile, content);
-            console.log('[MOCIntelligence] Successfully applied intelligence to MOC');
+        if (existingIntelligence.found) {
+            console.log('[MOCIntelligence] Replacing existing intelligence sections to avoid duplication');
+            // Replace existing intelligence sections
+            content = content.substring(0, existingIntelligence.startIndex) + 
+                     overviewSection + 
+                     content.substring(existingIntelligence.endIndex);
         } else {
-            console.warn('[MOCIntelligence] Could not find suitable insertion point for intelligence content');
+            console.log('[MOCIntelligence] No existing intelligence found, inserting new sections');
+            // Find the insertion point - after the info block but before navigation sections
+            const insertionPoint = this.findInsertionPoint(content);
+            
+            if (insertionPoint !== -1) {
+                // Insert with proper spacing
+                content = content.substring(0, insertionPoint) + '\n' + overviewSection + '\n' + content.substring(insertionPoint);
+            } else {
+                console.warn('[MOCIntelligence] Could not find suitable insertion point for intelligence content');
+                return;
+            }
         }
+
+        await this.app.vault.modify(mocFile, content);
+        console.log('[MOCIntelligence] Successfully applied intelligence to MOC (replaced duplicates)');
+    }
+
+    /**
+     * Detects existing intelligence sections to avoid duplication
+     */
+    private detectExistingIntelligence(content: string): { found: boolean; startIndex: number; endIndex: number } {
+        const intelligenceSections = [
+            '## Overview',
+            '## Key Themes', 
+            '## Conceptual Relationships',
+            '## Learning Progress',
+            '## Knowledge Gaps',
+            '## Cross-Domain Connections',
+            '## Key Insights'
+        ];
+
+        let firstIntelligenceIndex = -1;
+        let lastIntelligenceIndex = -1;
+
+        // Find the first intelligence section
+        for (const section of intelligenceSections) {
+            const index = content.indexOf(section);
+            if (index !== -1) {
+                if (firstIntelligenceIndex === -1 || index < firstIntelligenceIndex) {
+                    firstIntelligenceIndex = index;
+                }
+            }
+        }
+
+        if (firstIntelligenceIndex === -1) {
+            return { found: false, startIndex: -1, endIndex: -1 };
+        }
+
+        // Find where intelligence sections end (before navigation or other sections)
+        const navigationSections = ['## 🔼', '## 🔽', '## 🔄', '## Learning Paths', '## Core Concepts', '## Related Topics', '## Prerequisites', '## Notes'];
+        let endIndex = content.length;
+
+        for (const navSection of navigationSections) {
+            const navIndex = content.indexOf(navSection, firstIntelligenceIndex);
+            if (navIndex !== -1 && navIndex < endIndex) {
+                endIndex = navIndex;
+            }
+        }
+
+        // Trim back to avoid eating navigation sections
+        while (endIndex > firstIntelligenceIndex && content[endIndex - 1] === '\n') {
+            endIndex--;
+        }
+
+        return { 
+            found: true, 
+            startIndex: firstIntelligenceIndex,
+            endIndex: endIndex
+        };
     }
 
     /**

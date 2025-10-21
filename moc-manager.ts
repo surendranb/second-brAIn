@@ -1,367 +1,489 @@
 /**
- * MOC Manager - Core MOC System Operations
+ * MOC Manager - Extracted from main.ts (incremental extraction)
  * Handles MOC creation, updates, and hierarchy management
  */
 
-import { App, TFile } from 'obsidian';
-import { MOCHierarchy, LearningContext, MOCCreationOptions, MOCUpdateOptions, MOCLevel, MOCType } from './moc-types';
-import { HierarchyManager } from './hierarchy-manager';
+import { App, TFile, TFolder } from 'obsidian';
 import { MOCIntelligence } from './moc-intelligence';
+
+// Types that need to be defined (matching main.ts)
+interface PluginSettings {
+    mocFolder?: string;
+    [key: string]: any;
+}
+
+interface MOCHierarchy {
+    level1: string; // Knowledge Domain (e.g., "Computer Science")
+    level2: string; // Learning Area (e.g., "Machine Learning") 
+    level3?: string; // Specific Topic (e.g., "Neural Networks")
+    level4?: string; // Key Concept (e.g., "Backpropagation")
+}
+
+interface LearningContext {
+    prerequisites: string[];
+    complexity_level: 'beginner' | 'intermediate' | 'advanced';
+    [key: string]: any;
+}
 
 export class MOCManager {
     private app: App;
-    private hierarchyManager: HierarchyManager;
+    private settings: PluginSettings;
+    private hierarchyManager?: any;
     private mocIntelligence: MOCIntelligence;
-    private mocFolder: string;
+    private plugin?: any; // Reference to main plugin for AI service access
 
-    constructor(app: App, settings: any) {
+    constructor(app: App, settings: PluginSettings, plugin?: any) {
         this.app = app;
-        this.hierarchyManager = new HierarchyManager(app, settings);
+        this.settings = settings;
+        this.plugin = plugin;
         this.mocIntelligence = new MOCIntelligence(app);
-        this.mocFolder = settings.mocFolder || 'MOCs';
     }
 
-    /**
-     * Creates or ensures a MOC exists for the given hierarchy
-     */
-    async ensureMOCExists(options: MOCCreationOptions): Promise<string> {
-        console.log('[MOCManager] 🏗️ Ensuring MOC exists for hierarchy:', options.hierarchy);
+    // Add method to set hierarchyManager reference (required by plugin)
+    setHierarchyManager(hierarchyManager: any): void {
+        this.hierarchyManager = hierarchyManager;
+    }
 
-        const mocPath = this.generateMOCPath(options.hierarchy);
-        const mocFile = this.app.vault.getAbstractFileByPath(mocPath);
-
-        if (mocFile) {
-            console.log('[MOCManager] ✅ MOC already exists:', mocPath);
-            
-            // Update existing MOC if requested
-            if (options.add_note || options.apply_intelligence) {
-                await this.updateMOC(mocPath, options);
-            }
-            
-            return mocPath;
+    // Enhanced ensureMOCExists with MOC creation and parent updates
+    async ensureMOCExists(hierarchy: MOCHierarchy): Promise<string> {
+        console.log('[MOCManager] 🚀 Starting MOC creation process for:', `${hierarchy.level1} > ${hierarchy.level2}`);
+        
+        // Validate hierarchy first
+        if (!hierarchy.level1 || !hierarchy.level2) {
+            throw new Error(`Invalid hierarchy - missing required levels. Level1: ${hierarchy.level1}, Level2: ${hierarchy.level2}`);
         }
 
-        // Create new MOC
-        console.log('[MOCManager] 🆕 Creating new MOC:', mocPath);
-        await this.createMOC(mocPath, options);
-        
-        return mocPath;
+        // Create MOC structure for all levels
+        const mocStructure = this.createHierarchicalStructure(hierarchy);
+        console.log('[MOCManager] 🗂️ MOC structure to create:', mocStructure);
+
+        // Create all MOC levels and update parents
+        for (let i = 0; i < mocStructure.length; i++) {
+            const levelInfo = mocStructure[i];
+            await this.ensureSingleMOCExists(levelInfo, hierarchy, mocStructure);
+            
+            // Update parent MOC with this child (if not root level)
+            if (i > 0) {
+                const parentInfo = mocStructure[i - 1];
+                await this.updateParentMOCStructure(parentInfo.path, levelInfo);
+            }
+        }
+
+        // Return the most specific MOC path
+        const mostSpecific = mocStructure[mocStructure.length - 1];
+        console.log('[MOCManager] 🎯 Most specific MOC path:', mostSpecific.path);
+        return mostSpecific.path;
     }
 
-    /**
-     * Creates a new MOC file
-     */
-    private async createMOC(mocPath: string, options: MOCCreationOptions): Promise<void> {
-        const mocContent = this.generateMOCContent(options.hierarchy, options.learning_context);
-        
+    // Create hierarchical structure info
+    private createHierarchicalStructure(hierarchy: MOCHierarchy): any[] {
+        const mocFolder = this.settings.mocFolder || 'MOCs';
+        const levels = [];
+
+        // Level 1: Domain (in root MOCs folder)
+        levels.push({
+            level: 1,
+            title: hierarchy.level1,
+            path: `${mocFolder}/00-${hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_')} MOC.md`,
+            directory: mocFolder
+        });
+
+        // Level 2: Area (in domain subfolder)
+        const domainDir = `${mocFolder}/${hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_')}`;
+        levels.push({
+            level: 2,
+            title: hierarchy.level2,
+            path: `${domainDir}/00-${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')} MOC.md`,
+            directory: domainDir
+        });
+
+        // Level 3: Topic (in area subfolder)
+        if (hierarchy.level3) {
+            const areaDir = `${domainDir}/${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')}`;
+            levels.push({
+                level: 3,
+                title: hierarchy.level3,
+                path: `${areaDir}/00-${hierarchy.level3.replace(/[\\/:*?"<>|]/g, '_')} MOC.md`,
+                directory: areaDir
+            });
+        }
+
+        // Level 4: Concept (in topic subfolder)
+        if (hierarchy.level4) {
+            const topicDir = hierarchy.level3
+                ? `${domainDir}/${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')}/${hierarchy.level3.replace(/[\\/:*?"<>|]/g, '_')}`
+                : `${domainDir}/${hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_')}`;
+            levels.push({
+                level: 4,
+                title: hierarchy.level4,
+                path: `${topicDir}/00-${hierarchy.level4.replace(/[\\/:*?"<>|]/g, '_')} MOC.md`,
+                directory: topicDir
+            });
+        }
+
+        return levels;
+    }
+
+    // AI-powered method to find semantically similar existing MOCs
+    private async findSimilarExistingMOC(levelInfo: any, hierarchy: MOCHierarchy): Promise<string | null> {
+        try {
+            console.log(`[MOCManager] 🤖 Using AI to find similar MOCs for: ${levelInfo.title}`);
+            
+            // Get all MOC files in the target directory
+            const targetDir = levelInfo.directory;
+            const folder = this.app.vault.getAbstractFileByPath(targetDir);
+            
+            if (!folder || !(folder instanceof TFolder)) {
+                console.log(`[MOCManager] 📁 Directory doesn't exist yet: ${targetDir}`);
+                return null;
+            }
+
+            // Find all MOC files in the directory
+            const mocFiles = folder.children
+                .filter(file => file instanceof TFile && file.name.endsWith('.md') && file.name.startsWith('00-'))
+                .map(file => file as TFile);
+
+            if (mocFiles.length === 0) {
+                console.log(`[MOCManager] 📂 No existing MOCs found in directory: ${targetDir}`);
+                return null;
+            }
+
+            // Read existing MOC titles and content for AI comparison
+            const existingMOCs = [];
+            for (const mocFile of mocFiles) {
+                const content = await this.app.vault.read(mocFile);
+                const titleMatch = content.match(/^# (.+)$/m);
+                const title = titleMatch ? titleMatch[1] : mocFile.basename.replace('00-', '').replace(' MOC', '');
+                
+                existingMOCs.push({
+                    path: mocFile.path,
+                    title: title,
+                    filename: mocFile.name
+                });
+            }
+
+            // Use AI to determine if any existing MOC is similar enough
+            const aiDecision = await this.askAIForMOCSimilarity(levelInfo.title, existingMOCs, hierarchy);
+            
+            if (aiDecision.shouldReuse && aiDecision.selectedMOC) {
+                console.log(`[MOCManager] ✅ AI decided to reuse existing MOC: ${aiDecision.selectedMOC}`);
+                return aiDecision.selectedMOC;
+            }
+
+            console.log(`[MOCManager] 🆕 AI decided to create new MOC for: ${levelInfo.title}`);
+            return null;
+
+        } catch (error) {
+            console.error('[MOCManager] ❌ Error in AI MOC similarity check:', error);
+            return null; // Fall back to creating new MOC
+        }
+    }
+
+    // Ask AI to determine if existing MOCs are similar enough to reuse
+    private async askAIForMOCSimilarity(newTitle: string, existingMOCs: any[], hierarchy: MOCHierarchy): Promise<{shouldReuse: boolean, selectedMOC?: string, reasoning?: string}> {
+        const prompt = `You are an expert knowledge management system. I need to decide whether to reuse an existing MOC (Map of Content) or create a new one.
+
+**Context:**
+- Domain: ${hierarchy.level1}
+- Area: ${hierarchy.level2}
+- Topic: ${hierarchy.level3 || 'N/A'}
+- New concept title: "${newTitle}"
+
+**Existing MOCs in this directory:**
+${existingMOCs.map(moc => `- "${moc.title}" (file: ${moc.filename})`).join('\n')}
+
+**Decision criteria:**
+- Reuse if the concepts are essentially the same (e.g., "Quantum Electrodynamics" and "Quantum Electrodynamics (QED)")
+- Reuse if one is a clear subset/superset of the other
+- Create new if they represent distinct concepts, even if related
+- Consider scientific/technical naming conventions and abbreviations
+
+**Required response format (JSON only):**
+{
+  "shouldReuse": boolean,
+  "selectedMOC": "path/to/existing/moc.md" or null,
+  "reasoning": "brief explanation of decision"
+}`;
+
+        try {
+            console.log(`[MOCManager] 🤖 Asking AI to decide MOC similarity for: "${newTitle}"`);
+            
+            // Use the actual AI service instead of hardcoded heuristics
+            const aiResponse = await this.makeAIRequest(prompt);
+            
+            console.log(`[MOCManager] 🤖 AI decision received:`, aiResponse);
+            
+            // Validate AI response format
+            if (typeof aiResponse.shouldReuse === 'boolean') {
+                return {
+                    shouldReuse: aiResponse.shouldReuse,
+                    selectedMOC: aiResponse.selectedMOC || null,
+                    reasoning: aiResponse.reasoning || 'AI decision without reasoning'
+                };
+            } else {
+                console.warn('[MOCManager] ⚠️ Invalid AI response format, falling back to no reuse');
+                return { 
+                    shouldReuse: false, 
+                    reasoning: 'Invalid AI response format' 
+                };
+            }
+            
+        } catch (error) {
+            console.error('[MOCManager] ❌ Error asking AI for MOC similarity:', error);
+            return { 
+                shouldReuse: false, 
+                reasoning: `AI request failed: ${error.message}` 
+            };
+        }
+    }
+
+
+
+    // AI service integration - delegate to main plugin's AI service
+    private async makeAIRequest(prompt: string): Promise<any> {
+        if (!this.plugin) {
+            throw new Error('Plugin reference not available for AI requests');
+        }
+
+        // Access the AI service through the plugin's view
+        const leaves = this.app.workspace.getLeavesOfType('ai-summarizer-summary');
+        if (leaves.length === 0) {
+            throw new Error('AI Summarizer view not available');
+        }
+
+        const view = leaves[0].view as any;
+        if (!view.makeAIRequest) {
+            throw new Error('AI service not available in view');
+        }
+
+        return await view.makeAIRequest(prompt);
+    }
+
+    // Ensure a single MOC exists
+    private async ensureSingleMOCExists(levelInfo: any, hierarchy: MOCHierarchy, allLevels: any[]): Promise<void> {
+        console.log(`[MOCManager] 🔍 Ensuring MOC exists for level ${levelInfo.level}:`, levelInfo.path);
+
+        // First check if exact file already exists
+        const existingFile = this.app.vault.getAbstractFileByPath(levelInfo.path);
+        if (existingFile) {
+            console.log(`[MOCManager] ✅ MOC already exists: ${levelInfo.path}`);
+            return;
+        }
+
+        // Check for semantically similar existing MOCs using AI
+        const similarMOC = await this.findSimilarExistingMOC(levelInfo, hierarchy);
+        if (similarMOC) {
+            console.log(`[MOCManager] 🎯 Found similar existing MOC: ${similarMOC} - will reuse instead of creating new one`);
+            // Update the levelInfo to use the existing MOC path
+            levelInfo.path = similarMOC;
+            levelInfo.isExisting = true;
+            return;
+        }
+
         // Ensure directory exists
-        const mocDir = mocPath.substring(0, mocPath.lastIndexOf('/'));
-        await this.ensureDirectoryExists(mocDir);
+        const folder = this.app.vault.getAbstractFileByPath(levelInfo.directory);
+        if (!folder) {
+            console.log(`[MOCManager] 📁 Creating directory: ${levelInfo.directory}`);
+            await this.app.vault.createFolder(levelInfo.directory);
+        }
+
+        // Create MOC content
+        const mocContent = this.createHierarchicalMOCTemplate(levelInfo, hierarchy, allLevels);
         
         // Create the MOC file
-        await this.app.vault.create(mocPath, mocContent);
-        console.log('[MOCManager] ✅ Created MOC file:', mocPath);
-
-        // Add to hierarchy tracking
-        await this.hierarchyManager.addToHierarchy(options.hierarchy);
-
-        // Add note if provided
-        if (options.add_note) {
-            await this.addNoteToMOC(mocPath, options.add_note.path, options.add_note.title, options.add_note.learning_context);
-        }
-
-        // Apply intelligence if requested
-        if (options.apply_intelligence) {
-            await this.mocIntelligence.updateMOCWithIntelligence(mocPath);
-        }
-
-        // Update parent MOCs if requested
-        if (options.update_parents) {
-            await this.updateParentMOCStructure(options.hierarchy);
-        }
+        console.log(`[MOCManager] 📝 Creating MOC file: ${levelInfo.path}`);
+        await this.app.vault.create(levelInfo.path, mocContent);
+        console.log(`[MOCManager] ✅ MOC created successfully: ${levelInfo.path}`);
     }
 
-    /**
-     * Updates an existing MOC
-     */
-    async updateMOC(mocPath: string, options: MOCUpdateOptions): Promise<void> {
-        console.log('[MOCManager] 🔄 Updating MOC:', mocPath);
+    // Create MOC template with hierarchical navigation
+    private createHierarchicalMOCTemplate(levelInfo: any, hierarchy: MOCHierarchy, allLevels: any[]): string {
+        const timestamp = new Date().toISOString();
+        const currentIndex = allLevels.findIndex(l => l.level === levelInfo.level);
+        const parentLevel = currentIndex > 0 ? allLevels[currentIndex - 1] : null;
+        const childLevels = allLevels.filter(l => l.level > levelInfo.level);
 
-        // Add note if provided
-        if (options.add_note) {
-            await this.addNoteToMOC(mocPath, options.add_note.path, options.add_note.title, options.add_note.learning_context);
+        const frontmatter = {
+            type: 'moc',
+            title: levelInfo.title,
+            domain: hierarchy.level1,
+            level: levelInfo.level,
+            created: timestamp,
+            updated: timestamp,
+            tags: ['moc', hierarchy.level1.toLowerCase().replace(/\s+/g, '-'), `level-${levelInfo.level}`],
+            note_count: 0,
+            learning_paths: []
+        };
+
+        let navigationSection = '';
+
+        // Add parent navigation (if not root level)
+        if (parentLevel) {
+            navigationSection += `## 🔼 Parent Level\n- [[00-${parentLevel.title} MOC]] (${this.getLevelName(parentLevel.level)})\n\n`;
         }
 
-        // Apply intelligence if requested
-        if (options.apply_intelligence) {
-            await this.mocIntelligence.updateMOCWithIntelligence(mocPath);
+        // Add child navigation (if has children) - This is the Sub-Levels section
+        if (childLevels.length > 0) {
+            navigationSection += `## 🔽 Sub-Levels\n`;
+            childLevels.forEach(child => {
+                navigationSection += `- [[00-${child.title} MOC]] (${this.getLevelName(child.level)})\n`;
+            });
+            navigationSection += '\n';
         }
 
-        // Update parent MOCs if requested
-        if (options.update_parents) {
-            const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
-            if (mocFile) {
-                const content = await this.app.vault.read(mocFile);
-                const hierarchy = this.extractHierarchyFromMOC(content);
-                if (hierarchy) {
-                    await this.updateParentMOCStructure(hierarchy);
-                }
-            }
-        }
-    }
-
-    /**
-     * Adds a note to a MOC's Notes section
-     */
-    private async addNoteToMOC(mocPath: string, notePath: string, noteTitle: string, learningContext?: LearningContext): Promise<void> {
-        const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
-        if (!mocFile) return;
-
-        let content = await this.app.vault.read(mocFile);
-        
-        // Find the Notes section
-        const notesSection = content.indexOf('## Notes');
-        if (notesSection === -1) {
-            console.warn('[MOCManager] No Notes section found in MOC:', mocPath);
-            return;
-        }
-
-        // Add the note link
-        const complexityLevel = learningContext?.complexity_level || 'intermediate';
-        const noteLink = `- [[${noteTitle}]] (${complexityLevel})`;
-        
-        // Insert the note link
-        const insertPoint = content.indexOf('\n', notesSection + 8); // After "## Notes"
-        content = content.substring(0, insertPoint) + '\n' + noteLink + content.substring(insertPoint);
-        
-        await this.app.vault.modify(mocFile, content);
-        console.log('[MOCManager] ✅ Added note to MOC:', noteTitle);
-    }
-
-    /**
-     * Updates parent MOC structures to include new child MOCs
-     */
-    private async updateParentMOCStructure(hierarchy: MOCHierarchy): Promise<void> {
-        console.log('[MOCManager] 🔗 Updating parent MOC structure for:', hierarchy);
-
-        // Update each parent level
-        if (hierarchy.level4) {
-            // Update level 3 parent
-            const parentHierarchy = { level1: hierarchy.level1, level2: hierarchy.level2, level3: hierarchy.level3 };
-            await this.addChildToParentMOC(parentHierarchy, hierarchy.level4, 'concept');
-        }
-        
-        if (hierarchy.level3) {
-            // Update level 2 parent
-            const parentHierarchy = { level1: hierarchy.level1, level2: hierarchy.level2 };
-            await this.addChildToParentMOC(parentHierarchy, hierarchy.level3, 'topic');
-        }
-        
-        if (hierarchy.level2) {
-            // Update level 1 parent
-            const parentHierarchy = { level1: hierarchy.level1, level2: '' };
-            await this.addChildToParentMOC(parentHierarchy, hierarchy.level2, 'area');
-        }
-    }
-
-    /**
-     * Adds a child MOC to a parent's Sub-Levels section
-     */
-    private async addChildToParentMOC(parentHierarchy: MOCHierarchy, childName: string, childType: MOCType): Promise<void> {
-        const parentPath = this.generateMOCPath(parentHierarchy);
-        const parentFile = this.app.vault.getAbstractFileByPath(parentPath) as TFile;
-        
-        if (!parentFile) {
-            console.log('[MOCManager] ⚠️ Parent MOC not found:', parentPath);
-            return;
-        }
-
-        let content = await this.app.vault.read(parentFile);
-        
-        // Find the Sub-Levels section
-        const subLevelsMatch = content.match(/## 🔽 Sub-Levels\n([\s\S]*?)(?=\n##|\n---|\n\*|$)/);
-        if (!subLevelsMatch) {
-            console.log('[MOCManager] ⚠️ No Sub-Levels section found in parent MOC:', parentPath);
-            return;
-        }
-
-        const subLevelsContent = subLevelsMatch[1];
-        const childMOCName = `00-${childName} MOC`;
-        const childLink = `- [[${childMOCName}]] (${this.capitalizeFirst(childType)})`;
-
-        // Check if child already exists
-        if (subLevelsContent.includes(childMOCName)) {
-            console.log('[MOCManager] ✅ Child already exists in parent Sub-Levels:', childName);
-            return;
-        }
-
-        // Add the child link
-        const newSubLevelsContent = subLevelsContent.trim() + '\n' + childLink;
-        content = content.replace(subLevelsMatch[0], `## 🔽 Sub-Levels\n${newSubLevelsContent}\n`);
-        
-        await this.app.vault.modify(parentFile, content);
-        console.log('[MOCManager] ✅ Added child to parent Sub-Levels:', childName, '→', parentPath);
-    }
-
-    /**
-     * Generates the file path for a MOC based on its hierarchy
-     */
-    private generateMOCPath(hierarchy: MOCHierarchy): string {
-        let path = this.mocFolder;
-        
-        if (hierarchy.level1) path += `/${hierarchy.level1}`;
-        if (hierarchy.level2) path += `/${hierarchy.level2}`;
-        if (hierarchy.level3) path += `/${hierarchy.level3}`;
-        
-        // Determine the MOC name based on the deepest level
-        let mocName = '';
-        if (hierarchy.level4) {
-            mocName = `00-${hierarchy.level4} MOC.md`;
-        } else if (hierarchy.level3) {
-            mocName = `00-${hierarchy.level3} MOC.md`;
-        } else if (hierarchy.level2) {
-            mocName = `00-${hierarchy.level2} MOC.md`;
-        } else {
-            mocName = `00-${hierarchy.level1} MOC.md`;
-        }
-        
-        return `${path}/${mocName}`;
-    }
-
-    /**
-     * Generates MOC content based on hierarchy and learning context
-     */
-    private generateMOCContent(hierarchy: MOCHierarchy, learningContext?: LearningContext): string {
-        const level = this.getMOCLevel(hierarchy);
-        const type = this.getMOCType(level);
-        const title = this.getMOCTitle(hierarchy);
-        
-        return `---
-type: "moc"
-title: "${title}"
-domain: "${hierarchy.level1}"
-level: ${level}
-created: "${new Date().toISOString()}"
-updated: "${new Date().toISOString()}"
-tags: ["moc","${hierarchy.level1.toLowerCase()}","level-${level}"]
-note_count: 0
-learning_paths: []
+        const content = `---
+${Object.entries(frontmatter)
+                .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+                .join('\n')}
 ---
 
-# ${title}
+# ${levelInfo.title}
 
-> [!info] Knowledge ${this.capitalizeFirst(type)}
-> This MOC represents the **${title}** ${type} within the **${hierarchy.level1}** domain.
-${level === 4 ? `> This is the most specific level for **${title}** concepts.` : ''}
+> [!info] Knowledge ${this.getLevelName(levelInfo.level)}
+> This MOC represents the **${levelInfo.title}** ${this.getLevelName(levelInfo.level).toLowerCase()} within the **${hierarchy.level1}** domain.
 
-${this.generateParentLink(hierarchy)}
-
-## 🔄 Related Concepts
-<!-- Related concepts will be linked here automatically -->
-
-## Learning Paths
-${this.generateLearningPaths(hierarchy, learningContext)}
+${navigationSection}## Learning Paths
+<!-- Learning paths will be added as content grows -->
 
 ## Core Concepts
-- [[00-${title} MOC]]
+<!-- Core concepts will be identified as content is added -->
 
 ## Related Topics
 <!-- Related topics will be added automatically as new notes are created -->
 
-${this.generatePrerequisites(learningContext)}
+## Prerequisites
+<!-- Prerequisites will be populated from note learning contexts -->
 
 ## Notes
 <!-- Notes will be added automatically to the most specific level -->
 
 ---
-*This ${this.capitalizeFirst(type)} MOC was automatically generated and will be updated as new content is added.*`;
+*This ${this.getLevelName(levelInfo.level)} MOC was automatically generated and will be updated as new content is added.*`;
+
+        return content;
     }
 
-    /**
-     * Helper methods
-     */
-    private getMOCLevel(hierarchy: MOCHierarchy): MOCLevel {
-        if (hierarchy.level4) return 4;
-        if (hierarchy.level3) return 3;
-        if (hierarchy.level2) return 2;
-        return 1;
-    }
-
-    private getMOCType(level: MOCLevel): MOCType {
+    // Get level name for display
+    private getLevelName(level: number): string {
         switch (level) {
-            case 1: return 'domain';
-            case 2: return 'area';
-            case 3: return 'topic';
-            case 4: return 'concept';
+            case 1: return 'Domain';
+            case 2: return 'Area';
+            case 3: return 'Topic';
+            case 4: return 'Concept';
+            default: return 'Level';
         }
     }
 
-    private getMOCTitle(hierarchy: MOCHierarchy): string {
-        if (hierarchy.level4) return hierarchy.level4;
-        if (hierarchy.level3) return hierarchy.level3;
-        if (hierarchy.level2) return hierarchy.level2;
-        return hierarchy.level1;
-    }
-
-    private generateParentLink(hierarchy: MOCHierarchy): string {
-        if (hierarchy.level4 && hierarchy.level3) {
-            return `## 🔼 Parent Level\n- [[00-${hierarchy.level3} MOC]] (Topic)\n\n`;
-        }
-        if (hierarchy.level3 && hierarchy.level2) {
-            return `## 🔼 Parent Level\n- [[00-${hierarchy.level2} MOC]] (Area)\n\n`;
-        }
-        if (hierarchy.level2 && hierarchy.level1) {
-            return `## 🔼 Parent Level\n- [[00-${hierarchy.level1} MOC]] (Domain)\n\n`;
-        }
-        return '';
-    }
-
-    private generateLearningPaths(hierarchy: MOCHierarchy, learningContext?: LearningContext): string {
-        const paths = [];
+    // Update parent MOC structure with new child
+    private async updateParentMOCStructure(parentMocPath: string, childLevelInfo: any): Promise<void> {
+        console.log(`[MOCManager] 🔗 Updating parent MOC with child: ${parentMocPath}`);
         
-        if (hierarchy.level2) paths.push(`- [[${hierarchy.level2} Learning Path]]`);
-        if (hierarchy.level3) paths.push(`- [[${hierarchy.level3} Learning Path]]`);
-        if (hierarchy.level4) paths.push(`- [[${hierarchy.level4} Learning Path]]`);
-        
-        return paths.length > 0 ? paths.join('\n') : '<!-- Learning paths will be generated automatically -->';
-    }
-
-    private generatePrerequisites(learningContext?: LearningContext): string {
-        if (!learningContext?.prerequisites || learningContext.prerequisites.length === 0) {
-            return '## Prerequisites\n<!-- Prerequisites will be populated from note learning contexts -->\n';
-        }
-        
-        const prereqs = learningContext.prerequisites.map(p => `- [[${p}]]`).join('\n');
-        return `## Prerequisites\n${prereqs}\n`;
-    }
-
-    private capitalizeFirst(str: string): string {
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    }
-
-    private async ensureDirectoryExists(dirPath: string): Promise<void> {
-        const parts = dirPath.split('/');
-        let currentPath = '';
-        
-        for (const part of parts) {
-            currentPath += (currentPath ? '/' : '') + part;
-            const folder = this.app.vault.getAbstractFileByPath(currentPath);
-            
-            if (!folder) {
-                await this.app.vault.createFolder(currentPath);
+        try {
+            const parentFile = this.app.vault.getAbstractFileByPath(parentMocPath) as TFile;
+            if (!parentFile) {
+                console.log(`[MOCManager] ⚠️ Parent MOC not found: ${parentMocPath}`);
+                return;
             }
+
+            let parentContent = await this.app.vault.read(parentFile);
+            const childLink = `- [[00-${childLevelInfo.title} MOC]] (${this.getLevelName(childLevelInfo.level)})`;
+
+            // Check if child is already in Sub-Levels section
+            if (parentContent.includes(childLink)) {
+                console.log(`[MOCManager] ✅ Child already in parent Sub-Levels: ${childLevelInfo.title}`);
+                return;
+            }
+
+            // Find Sub-Levels section and add child
+            const subLevelsMatch = parentContent.match(/(## 🔽 Sub-Levels\n)([\s\S]*?)(?=\n##|$)/);
+            if (subLevelsMatch) {
+                const existingSubLevels = subLevelsMatch[2];
+                const newSubLevels = existingSubLevels.trim() + '\n' + childLink + '\n';
+                parentContent = parentContent.replace(subLevelsMatch[0], `## 🔽 Sub-Levels\n${newSubLevels}\n`);
+            } else {
+                // Add Sub-Levels section if it doesn't exist
+                const insertPoint = parentContent.indexOf('## Learning Paths');
+                if (insertPoint !== -1) {
+                    const subLevelsSection = `## 🔽 Sub-Levels\n${childLink}\n\n`;
+                    parentContent = parentContent.slice(0, insertPoint) + subLevelsSection + parentContent.slice(insertPoint);
+                }
+            }
+
+            await this.app.vault.modify(parentFile, parentContent);
+            console.log(`[MOCManager] ✅ Parent MOC updated with child: ${childLevelInfo.title}`);
+
+        } catch (error) {
+            console.error(`[MOCManager] ❌ Error updating parent MOC:`, error);
         }
     }
 
-    private extractHierarchyFromMOC(content: string): MOCHierarchy | null {
-        // Extract hierarchy from MOC frontmatter or content
-        const domainMatch = content.match(/domain:\s*"([^"]+)"/);
-        if (!domainMatch) return null;
+    // Simplified version of getMostSpecificMOCPath
+    async getMostSpecificMOCPath(hierarchy: MOCHierarchy): Promise<string> {
+        return this.ensureMOCExists(hierarchy);
+    }
 
-        // This is a simplified extraction - could be enhanced
-        return {
-            level1: domainMatch[1],
-            level2: '' // Would need more sophisticated parsing
-        };
+    // Basic method for getting MOC directory
+    getMostSpecificMOCDirectory(hierarchy: MOCHierarchy): string {
+        const mocFolder = this.settings.mocFolder || 'MOCs';
+        const domainFolder = hierarchy.level1.replace(/[\\/:*?"<>|]/g, '_');
+        const areaFolder = hierarchy.level2.replace(/[\\/:*?"<>|]/g, '_');
+        
+        if (hierarchy.level4 && hierarchy.level3) {
+            return `${mocFolder}/${domainFolder}/${areaFolder}/${hierarchy.level3.replace(/[\\/:*?"<>|]/g, '_')}`;
+        } else if (hierarchy.level3) {
+            return `${mocFolder}/${domainFolder}/${areaFolder}`;
+        } else {
+            return `${mocFolder}/${domainFolder}`;
+        }
+    }
+
+    // Enhanced updateMOC method - adds notes to MOC and applies intelligence
+    async updateMOC(mocPath: string, notePath: string, noteTitle: string, learningContext?: LearningContext): Promise<void> {
+        console.log('[MOCManager] Adding note to MOC:', noteTitle);
+        console.log('[MOCManager] MOC path:', mocPath);
+        console.log('[MOCManager] Note path:', notePath);
+        
+        try {
+            const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
+            if (!mocFile) {
+                console.error('[MOCManager] ❌ MOC file not found:', mocPath);
+                return;
+            }
+
+            let content = await this.app.vault.read(mocFile);
+            
+            // Extract filename for linking
+            const noteFileName = notePath.split('/').pop()?.replace('.md', '') || noteTitle;
+            const noteLink = `- [[${noteFileName}]]${learningContext ? ` (${learningContext.complexity_level})` : ''}`;
+
+            // Find Notes section and add the note
+            const notesSection = content.match(/## Notes\n([\s\S]*?)(?=\n##|\n---|\n\*|$)/);
+            if (notesSection) {
+                const existingNotes = notesSection[1];
+                
+                // Check if note is already listed
+                if (!existingNotes.includes(noteLink)) {
+                    const updatedNotes = existingNotes.trim() === '<!-- Notes will be added automatically to the most specific level -->' 
+                        ? noteLink + '\n'
+                        : existingNotes.trim() + '\n' + noteLink + '\n';
+                    
+                    content = content.replace(notesSection[0], `## Notes\n${updatedNotes}\n`);
+                    await this.app.vault.modify(mocFile, content);
+                    console.log('[MOCManager] ✅ Note added to MOC:', noteTitle);
+                } else {
+                    console.log('[MOCManager] ✅ Note already in MOC:', noteTitle);
+                }
+            } else {
+                console.warn('[MOCManager] ⚠️ No Notes section found in MOC');
+            }
+
+            // Apply intelligence to the MOC
+            console.log('[MOCManager] 🧠 Applying intelligence to MOC...');
+            await this.mocIntelligence.updateMOCWithIntelligence(mocPath);
+            console.log('[MOCManager] ✅ Intelligence applied to MOC');
+
+        } catch (error) {
+            console.error('[MOCManager] ❌ Error updating MOC:', error);
+        }
     }
 }
