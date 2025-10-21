@@ -1,5 +1,4 @@
 import { Plugin, WorkspaceLeaf, ItemView, Notice, TFolder, Setting, PluginSettingTab, App, TFile, Modal, requestUrl } from 'obsidian';
-import { GoogleGenerativeAI, GenerateContentRequest } from '@google/generative-ai';
 import { promisify } from 'util';
 import * as path from 'path';
 import { AISummarizerSettingsTab } from './settings';
@@ -9,6 +8,7 @@ import { PromptLoader } from './prompt-loader';
 import { MOCIntelligence } from './moc-intelligence';
 import { MOCManager } from './moc-manager';
 import { HierarchyAnalyzer } from './hierarchy-analyzer';
+import { PluginIntegration, LLMService, TraceManager } from './src/services';
 
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
 
@@ -563,7 +563,7 @@ class SummaryView extends ItemView {
     private generateButton: HTMLButtonElement;
     private resultArea: HTMLDivElement;
     private loadingIndicator: HTMLDivElement;
-    private geminiClient: GoogleGenerativeAI | null = null;
+
     private modelDropdown: HTMLSelectElement;
     private intentDropdown: HTMLSelectElement;
     private topicDropdown: HTMLSelectElement;
@@ -831,8 +831,6 @@ class SummaryView extends ItemView {
 
         // Add stats footer
         this.createStatsFooter();
-
-        this.geminiClient = new GoogleGenerativeAI(this.plugin.settings.gemini.apiKey);
     }
 
     private addCustomStyles() {
@@ -2271,29 +2269,22 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 
         let selectedModel = '';
 
-        if (this.plugin.settings.provider === 'gemini') {
-            selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
-            if (!this.plugin.settings.gemini.apiKey) {
-                throw new Error('Gemini API key not configured');
-            }
-            if (!this.geminiClient) {
-                this.geminiClient = new GoogleGenerativeAI(this.plugin.settings.gemini.apiKey);
-            }
-
-            const model = this.geminiClient.getGenerativeModel({ model: selectedModel });
-            const result = await model.generateContent({
-                contents: [{
-                    role: 'user',
-                    parts: [{ text: hierarchyPrompt }]
-                }]
+        // Use new modular services
+        const traceManager = this.plugin.getTraceManager();
+        if (traceManager) {
+            const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
+            const response = await traceManager.generateText({
+                prompt: hierarchyPrompt,
+                model: selectedModel,
+                temperature: 0.3,
+                maxTokens: 1000
             });
-            const responseText = result.response.text();
-
+            
             // Parse the response
-            return await this.parseHierarchyResponse(responseText);
+            return await this.parseHierarchyResponse(response.text);
         }
 
-        throw new Error('No AI provider configured');
+        throw new Error('AI services not available');
     }
 
     private async parseHierarchyResponse(responseText: string): Promise<{ hierarchy: MOCHierarchy, learning_context: LearningContext }> {
@@ -3063,12 +3054,16 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         let responseText = '';
 
         try {
-            if (this.plugin.settings.provider === 'gemini') {
+            // Use new modular services
+            const traceManager = this.plugin.getTraceManager();
+            if (traceManager) {
                 const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
-                const model = this.geminiClient!.getGenerativeModel({ model: selectedModel });
-
-                const result = await model.generateContent(prompt);
-                responseText = result.response.text();
+                const response = await traceManager.generateText({
+                    prompt: prompt,
+                    model: selectedModel,
+                    temperature: 0.3
+                });
+                responseText = response.text;
 
                 // Extract JSON from markdown blocks
                 const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -3334,31 +3329,21 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const basePrompt = prompt === this.plugin.settings.defaultPrompt ? DEFAULT_SUMMARIZATION_PROMPT : prompt;
         const enhancedPrompt = `${basePrompt}\n\n${ENHANCED_SUMMARIZATION_PROMPT.split('\n\n').slice(1).join('\n\n')}\n\nEXISTING KNOWLEDGE HIERARCHY:\n${hierarchyContext}`;
 
-        if (this.plugin.settings.provider === 'gemini') {
+        // Use new modular services
+        const traceManager = this.plugin.getTraceManager();
+        if (traceManager) {
             const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
-            console.log('[SummarizeContent] Using Gemini model:', selectedModel);
-            if (!this.plugin.settings.gemini.apiKey) {
-                new Notice('Please set your Gemini API key in the settings.');
-                console.error('[SummarizeContent] Gemini API key missing.');
-                return { summary: '', title: 'Untitled', metadata: {}, hierarchy: undefined, learning_context: undefined };
-            }
-            if (!this.geminiClient) {
-                this.geminiClient = new GoogleGenerativeAI(this.plugin.settings.gemini.apiKey);
-            }
+            console.log('[SummarizeContent] Using model:', selectedModel);
+            
             try {
-                // Try native JSON mode for Gemini (may not be supported by current SDK)
-                const model = this.geminiClient.getGenerativeModel({
-                    model: selectedModel
+                console.log('[SummarizeContent] 🚀 Sending request to AI service');
+                const response = await traceManager.generateText({
+                    prompt: enhancedPrompt + "\n\n" + text,
+                    model: selectedModel,
+                    temperature: 0.3,
+                    maxTokens: 4000
                 });
-                const request: GenerateContentRequest = {
-                    contents: [{
-                        role: 'user',
-                        parts: [{ text: enhancedPrompt + "\n\n" + text }]
-                    }]
-                };
-                console.log('[SummarizeContent] 🚀 Sending JSON mode request to Gemini API');
-                const result = await model.generateContent(request);
-                const responseText = result.response.text();
+                const responseText = response.text;
                 console.log('[SummarizeContent] ✅ Gemini JSON response length:', responseText.length);
 
                 // Gemini still returns JSON in markdown blocks, so we need to extract it
@@ -4222,9 +4207,17 @@ class AISummarizerPlugin extends Plugin {
     mocManager: MOCManager;
     hierarchyAnalyzer: HierarchyAnalyzer;
     hierarchyManager: HierarchyManager;
+    
+    // New modular services
+    private serviceIntegration: PluginIntegration;
+    private llmService?: LLMService;
+    private traceManager?: TraceManager;
 
     async onload() {
         await this.loadSettings();
+
+        // Initialize modular services
+        await this.initializeServices();
 
         // Initialize MOC components with error handling
         try {
@@ -4281,6 +4274,16 @@ class AISummarizerPlugin extends Plugin {
 
     async saveSettings() {
         await this.saveData(this.settings);
+        
+        // Reinitialize services when settings change
+        if (this.serviceIntegration) {
+            try {
+                await this.serviceIntegration.reinitialize(this.settings);
+                this.updateServiceReferences();
+            } catch (error) {
+                console.error('[Plugin] Failed to reinitialize services after settings change:', error);
+            }
+        }
     }
 
     private async checkForMigrationNeeds(): Promise<void> {
@@ -4329,6 +4332,69 @@ class AISummarizerPlugin extends Plugin {
             });
             modal.open();
         });
+    }
+    
+    /**
+     * Initialize modular services
+     */
+    private async initializeServices(): Promise<void> {
+        try {
+            console.log('[Plugin] Initializing modular services...');
+            
+            this.serviceIntegration = new PluginIntegration();
+            await this.serviceIntegration.initialize(this.settings);
+            
+            this.updateServiceReferences();
+            
+            console.log('[Plugin] ✅ Modular services initialized successfully');
+        } catch (error) {
+            console.error('[Plugin] ❌ Failed to initialize modular services:', error);
+            // Don't throw - allow plugin to continue with legacy functionality
+            new Notice('Failed to initialize AI services. Using legacy mode.');
+        }
+    }
+    
+    /**
+     * Update service references after initialization or settings change
+     */
+    private updateServiceReferences(): void {
+        if (this.serviceIntegration && this.serviceIntegration.isReady()) {
+            this.llmService = this.serviceIntegration.getLLMService();
+            this.traceManager = this.serviceIntegration.getTraceManager();
+        }
+    }
+    
+    /**
+     * Get LLM service (with fallback to legacy mode)
+     */
+    getLLMService(): LLMService | null {
+        return this.llmService || null;
+    }
+    
+    /**
+     * Get trace manager (with fallback to legacy mode)
+     */
+    getTraceManager(): TraceManager | null {
+        return this.traceManager || null;
+    }
+    
+    /**
+     * Plugin cleanup
+     */
+    async onunload() {
+        console.log('[Plugin] Unloading plugin...');
+        
+        // Clean up modular services
+        if (this.serviceIntegration) {
+            try {
+                await this.serviceIntegration.cleanup();
+                console.log('[Plugin] ✅ Services cleaned up successfully');
+            } catch (error) {
+                console.error('[Plugin] ❌ Error cleaning up services:', error);
+            }
+        }
+        
+        console.log('[Plugin] Plugin unloaded');
     }
 }
 
