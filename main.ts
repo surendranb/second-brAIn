@@ -9,7 +9,6 @@ import { PromptLoader } from './prompt-loader';
 import { MOCIntelligence } from './moc-intelligence';
 import { MOCManager } from './moc-manager';
 import { HierarchyAnalyzer } from './hierarchy-analyzer';
-import { PluginIntegration, LLMService, TraceManager } from './src/services';
 
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
 
@@ -4223,17 +4222,9 @@ class AISummarizerPlugin extends Plugin {
     mocManager: MOCManager;
     hierarchyAnalyzer: HierarchyAnalyzer;
     hierarchyManager: HierarchyManager;
-    
-    // New modular services
-    private serviceIntegration: PluginIntegration;
-    private llmService?: LLMService;
-    private traceManager?: TraceManager;
 
     async onload() {
         await this.loadSettings();
-
-        // Initialize modular services
-        await this.initializeServices();
 
         // Initialize MOC components with error handling
         try {
@@ -4290,60 +4281,6 @@ class AISummarizerPlugin extends Plugin {
 
     async saveSettings() {
         await this.saveData(this.settings);
-        
-        // Reinitialize services when settings change
-        if (this.serviceIntegration) {
-            try {
-                await this.serviceIntegration.reinitialize(this.settings);
-                this.updateServiceReferences();
-            } catch (error) {
-                console.error('[Plugin] Failed to reinitialize services after settings change:', error);
-            }
-        }
-    }
-    
-    /**
-     * Initialize modular services
-     */
-    private async initializeServices(): Promise<void> {
-        try {
-            console.log('[Plugin] Initializing modular services...');
-            
-            this.serviceIntegration = new PluginIntegration();
-            await this.serviceIntegration.initialize(this.settings);
-            
-            this.updateServiceReferences();
-            
-            console.log('[Plugin] ✅ Modular services initialized successfully');
-        } catch (error) {
-            console.error('[Plugin] ❌ Failed to initialize modular services:', error);
-            // Don't throw - allow plugin to continue with legacy functionality
-            new Notice('Failed to initialize AI services. Using legacy mode.');
-        }
-    }
-    
-    /**
-     * Update service references after initialization or settings change
-     */
-    private updateServiceReferences(): void {
-        if (this.serviceIntegration && this.serviceIntegration.isReady()) {
-            this.llmService = this.serviceIntegration.getLLMService();
-            this.traceManager = this.serviceIntegration.getTraceManager();
-        }
-    }
-    
-    /**
-     * Get LLM service (with fallback to legacy mode)
-     */
-    getLLMService(): LLMService | null {
-        return this.llmService || null;
-    }
-    
-    /**
-     * Get trace manager (with fallback to legacy mode)
-     */
-    getTraceManager(): TraceManager | null {
-        return this.traceManager || null;
     }
 
     private async checkForMigrationNeeds(): Promise<void> {
@@ -4392,25 +4329,6 @@ class AISummarizerPlugin extends Plugin {
             });
             modal.open();
         });
-    }
-    
-    /**
-     * Plugin cleanup
-     */
-    async onunload() {
-        console.log('[Plugin] Unloading plugin...');
-        
-        // Clean up modular services
-        if (this.serviceIntegration) {
-            try {
-                await this.serviceIntegration.cleanup();
-                console.log('[Plugin] ✅ Services cleaned up successfully');
-            } catch (error) {
-                console.error('[Plugin] ❌ Error cleaning up services:', error);
-            }
-        }
-        
-        console.log('[Plugin] Plugin unloaded');
     }
 }
 
