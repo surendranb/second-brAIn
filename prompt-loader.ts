@@ -1,4 +1,4 @@
-import { ProcessingIntent } from './main';
+import { ProcessingIntent } from './src/config';
 
 export interface PromptTemplate {
     role: string;

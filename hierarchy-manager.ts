@@ -340,4 +340,5 @@ export class HierarchyManager {
 
 // Import necessary types
 import { App, TFile } from 'obsidian';
-import { MOCHierarchy, PluginSettings } from './main'; 
+import { MOCHierarchy } from './main';
+import { PluginSettings } from './src/config'; 

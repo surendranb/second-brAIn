@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import AISummarizerPlugin, { Provider, GeminiModel, GEMINI_MODELS, ProcessingIntent } from './main';
+import AISummarizerPlugin from './main';
+import { Provider, GeminiModel, GEMINI_MODELS, ProcessingIntent } from './src/config';
 import { IntentPrompts, PromptLoader } from './prompt-loader';
 
 export class AISummarizerSettingsTab extends PluginSettingTab {
