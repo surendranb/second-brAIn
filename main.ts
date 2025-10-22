@@ -73,7 +73,7 @@ class SummaryView extends ItemView {
     private topicDropdown: HTMLSelectElement;
     private topicSection: HTMLDivElement;
     private promptLoader: PromptLoader;
-    private langfuseInitialized: boolean = false;
+    // Using TraceManager for tracing
     private currentTraceId: string | null = null;
     private progressContainer: HTMLDivElement;
     private statusMessage: HTMLDivElement;
@@ -164,15 +164,14 @@ class SummaryView extends ItemView {
     }
 
     /**
-     * Modern trace start - replaces startLangfuseTrace
+     * Start tracing for note generation
      */
-    private async startModernTrace(metadata: any = {}): Promise<string | null> {
+    private async startTrace(metadata: any = {}): Promise<string | null> {
         const traceManager = this.getTraceManager();
         
         if (!traceManager) {
-            console.warn('[Modern Trace] TraceManager not available, using legacy method');
-            await this.startLangfuseTrace(metadata);
-            return this.currentTraceId;
+            console.warn('[Trace] TraceManager not available');
+            return null;
         }
 
         try {
@@ -180,7 +179,8 @@ class SummaryView extends ItemView {
                 name: 'brAIn-note-generation',
                 input: {
                     url: metadata.url || 'unknown',
-                    intent: metadata.intent || 'unknown'
+                    intent: metadata.intent || 'unknown',
+                    content_length: metadata.content_length || 0
                 },
                 metadata: {
                     provider: this.plugin.settings.provider,
@@ -192,24 +192,22 @@ class SummaryView extends ItemView {
             });
 
             this.currentTraceId = traceId;
-            console.log(`[Modern Trace] Started trace: ${traceId}`);
+            console.log(`[Trace] Started trace: ${traceId}`);
             return traceId;
         } catch (error) {
-            console.error('[Modern Trace] Failed to start trace, falling back to legacy:', error);
-            await this.startLangfuseTrace(metadata);
-            return this.currentTraceId;
+            console.error('[Trace] Failed to start trace:', error);
+            return null;
         }
     }
 
     /**
-     * Modern trace end - replaces endLangfuseTrace
+     * End tracing for note generation
      */
-    private async endModernTrace(): Promise<void> {
+    private async endTrace(): Promise<void> {
         const traceManager = this.getTraceManager();
         
         if (!traceManager || !this.currentTraceId) {
-            console.warn('[Modern Trace] TraceManager not available or no active trace, using legacy method');
-            await this.endLangfuseTrace();
+            console.warn('[Trace] TraceManager not available or no active trace');
             return;
         }
 
@@ -222,11 +220,104 @@ class SummaryView extends ItemView {
                 }
             });
 
-            console.log(`[Modern Trace] Ended trace: ${this.currentTraceId}`);
+            console.log(`[Trace] Ended trace: ${this.currentTraceId}`);
             this.currentTraceId = null;
         } catch (error) {
-            console.error('[Modern Trace] Failed to end trace, falling back to legacy:', error);
-            await this.endLangfuseTrace();
+            console.error('[Trace] Failed to end trace:', error);
+        }
+    }
+
+    /**
+     * Make AI request with tracing
+     */
+    private async makeTracedAIRequest(prompt: string, metadata: any = {}): Promise<any> {
+        const traceManager = this.getTraceManager();
+        
+        if (!traceManager || !this.currentTraceId) {
+            console.warn('[AI] No TraceManager or active trace, using basic AI request');
+            return this.makeAIRequestDirect(prompt);
+        }
+
+        const traceContext = {
+            traceId: this.currentTraceId,
+            generationName: metadata.pass || 'ai-generation',
+            pass: metadata.pass,
+            intent: metadata.intent
+        };
+
+        const request = {
+            prompt,
+            model: this.modelDropdown?.value || 'gemini-2.5-flash',
+            temperature: 0.3,
+            maxTokens: 4000,
+            metadata: {
+                pass: metadata.pass,
+                intent: metadata.intent
+            }
+        };
+
+        try {
+            const response = await traceManager.generateTextWithinTrace(request, traceContext);
+            
+            // Try to parse JSON response
+            try {
+                return JSON.parse(response.text);
+            } catch (parseError) {
+                console.log('[AI] JSON parse failed, trying cleanup...');
+                console.log('[AI] Raw response preview:', response.text.substring(0, 200));
+                
+                try {
+                    const cleanedResponse = this.cleanJsonResponse(response.text);
+                    console.log('[AI] Cleaned response preview:', cleanedResponse.substring(0, 200));
+                    return JSON.parse(cleanedResponse);
+                } catch (cleanupError) {
+                    console.error('[AI] Cleanup also failed:', cleanupError.message);
+                    console.log('[AI] Failed response:', response.text.substring(0, 500));
+                    
+                    // Return a basic fallback structure to prevent complete failure
+                    return {
+                        title: 'AI Response Error',
+                        metadata: { tags: ['#ai-error'] },
+                        hierarchy: { level1: 'General', level2: 'Miscellaneous' },
+                        learning_context: { complexity_level: 'intermediate' },
+                        overview: 'The AI returned malformed JSON. Please try again.',
+                        error: true
+                    };
+                }
+            }
+        } catch (error) {
+            console.error('[AI] Failed to get AI response:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * AI request without tracing (fallback)
+     */
+    private async makeAIRequestDirect(prompt: string): Promise<any> {
+        const llmService = this.getLLMService();
+        if (!llmService) {
+            throw new Error('No LLM service available');
+        }
+
+        const request = {
+            prompt,
+            model: this.modelDropdown?.value || 'gemini-2.5-flash',
+            temperature: 0.3,
+            maxTokens: 4000
+        };
+
+        const response = await llmService.generateText(request);
+        
+        // Try to parse JSON response
+        const jsonMatch = response.text.match(/```(?:json)?\s*([\s\S]*?)```/);
+        const jsonText = jsonMatch ? jsonMatch[1].trim() : response.text.trim();
+        
+        try {
+            return JSON.parse(jsonText);
+        } catch (parseError) {
+            const cleanedResponse = this.cleanJsonResponse(jsonText);
+            return JSON.parse(cleanedResponse);
         }
     }
 
@@ -1026,7 +1117,7 @@ class SummaryView extends ItemView {
         newTopicOption.text = '+ Create new topic...';
         this.topicDropdown.appendChild(newTopicOption);
 
-        console.log(`[DEBUG] Topic dropdown populated with ${this.topicDropdown.options.length} options`);
+        // Topic dropdown populated
     }
 
     private addExistingFoldersToDropdown() {
@@ -1051,14 +1142,14 @@ class SummaryView extends ItemView {
                 });
             }
         } catch (error) {
-            console.log('[TopicFolders] Could not load existing folders:', error);
+            // Could not load existing folders
         }
     }
 
     private toggleTopicSelection() {
         const isHowToIntent = this.intentDropdown.value === 'how_to';
         this.topicSection.style.display = isHowToIntent ? 'block' : 'none';
-        console.log(`[DEBUG] Topic selection ${isHowToIntent ? 'shown' : 'hidden'} for intent: ${this.intentDropdown.value}`);
+        // Topic selection toggled based on intent
     }
 
     private async showFolderBrowser(): Promise<string | null> {
@@ -1118,9 +1209,9 @@ class SummaryView extends ItemView {
             const filePath = `${fullPath}/${fullFilename}`;
 
             await this.app.vault.create(filePath, content);
-            console.log(`[Debug] Saved debug file: ${filePath}`);
+            // Debug file saved
         } catch (error) {
-            console.error('[Debug] Failed to save debug file:', error);
+            // Debug file save failed
         }
     }
 
@@ -1202,14 +1293,14 @@ ${JSON.stringify(response, null, 2)}
             const rootFolderExists = this.app.vault.getAbstractFileByPath(rootFolder);
             if (!rootFolderExists) {
                 await this.app.vault.createFolder(rootFolder);
-                console.log(`[TopicFolders] Created root folder: ${rootFolder}`);
+                // Root folder created
             }
 
             // Ensure topic folder exists
             const topicFolderExists = this.app.vault.getAbstractFileByPath(topicFolderPath);
             if (!topicFolderExists) {
                 await this.app.vault.createFolder(topicFolderPath);
-                console.log(`[TopicFolders] Created topic folder: ${topicFolderPath}`);
+                // Topic folder created
             }
 
             return topicFolderPath;
@@ -1223,7 +1314,7 @@ ${JSON.stringify(response, null, 2)}
         if (!this.plugin.settings.topicFolders.topics.includes(topicName)) {
             this.plugin.settings.topicFolders.topics.push(topicName);
             await this.plugin.saveSettings();
-            console.log(`[TopicFolders] Added new topic to settings: ${topicName}`);
+            // Topic added to settings
         }
     }
 
@@ -1231,26 +1322,16 @@ ${JSON.stringify(response, null, 2)}
 
 
 
-    private async initializeLangfuse(): Promise<void> {
-        if (!this.plugin.settings.langfuse.enabled || this.langfuseInitialized) {
-            return;
-        }
+    // Tracing initialization handled by TraceManager
 
-        // Temporarily disabled due to SDK compatibility issues
-        // Basic console logging is enabled instead
-        this.langfuseInitialized = true;
-        console.log('[Langfuse] Console logging mode enabled (full tracing temporarily disabled)');
-    }
-
-    private async makeTracedAIRequest(prompt: string, metadata: any = {}): Promise<any> {
-        if (!this.plugin.settings.langfuse.enabled) {
-            return this.makeAIRequest(prompt);
-        }
+    private async makeTracedAIRequestLegacy(prompt: string, metadata: any = {}): Promise<any> {
+        // Legacy method - should be removed
 
         // Use existing trace or create new one if none exists
         if (!this.currentTraceId) {
             console.warn('[Langfuse] No active trace found, creating new one');
-            await this.startLangfuseTrace(metadata);
+            // Legacy method removed - using TraceManager instead
+            console.warn('[Legacy] startLangfuseTrace call removed - using TraceManager');
         }
 
         // Log the request for basic observability
@@ -1275,6 +1356,9 @@ ${JSON.stringify(response, null, 2)}
         // Create complete generation with all data at once
         try {
             const generationId = generateId();
+            // Legacy method removed - using TraceManager instead
+            console.warn('[Legacy] sendToLangfuse call removed - using TraceManager');
+            /*
             await this.sendToLangfuse('generations', {
                 id: generationId,
                 traceId: this.currentTraceId,
@@ -1296,7 +1380,8 @@ ${JSON.stringify(response, null, 2)}
                     intent: metadata.intent || 'unknown'
                 }
             });
-            console.log(`[Langfuse] Successfully created generation for ${metadata.pass}`);
+            */
+            console.log(`[Legacy] Generation creation removed - using TraceManager`);
         } catch (error) {
             console.warn('[Langfuse] Failed to create generation:', error);
         }
@@ -1306,85 +1391,7 @@ ${JSON.stringify(response, null, 2)}
 
 
 
-    private async startLangfuseTrace(metadata: any = {}): Promise<void> {
-        if (!this.plugin.settings.langfuse.enabled) {
-            return;
-        }
-
-        this.currentTraceId = generateId();
-
-        try {
-            await this.sendToLangfuse('traces', {
-                id: this.currentTraceId,
-                name: 'brAIn-note-generation',
-                metadata: {
-                    provider: this.plugin.settings.provider,
-                    model: this.modelDropdown?.value || 'unknown',
-                    intent: metadata.intent || 'unknown',
-                    url: metadata.url || 'unknown',
-                    timestamp: new Date().toISOString()
-                },
-                timestamp: new Date().toISOString()
-            });
-
-            console.log(`[Langfuse] Started trace: ${this.currentTraceId}`);
-        } catch (error) {
-            console.warn('[Langfuse] Failed to create trace:', error);
-            this.currentTraceId = null;
-        }
-    }
-
-    private async endLangfuseTrace(): Promise<void> {
-        if (!this.plugin.settings.langfuse.enabled || !this.currentTraceId) {
-            return;
-        }
-
-        try {
-            // Update trace with end time
-            await this.sendToLangfuse(`traces/${this.currentTraceId}`, {
-                endTime: new Date().toISOString()
-            }, 'PATCH');
-
-            console.log(`[Langfuse] Ended trace: ${this.currentTraceId}`);
-        } catch (error) {
-            console.warn('[Langfuse] Failed to end trace:', error);
-        } finally {
-            this.currentTraceId = null;
-        }
-    }
-
-    private async sendToLangfuse(endpoint: string, data: any, method: string = 'POST'): Promise<void> {
-        const url = `${this.plugin.settings.langfuse.baseUrl}/api/public/${endpoint}`;
-
-        try {
-            console.log(`[Langfuse] Sending ${method} to ${endpoint}`, {
-                url,
-                dataKeys: Object.keys(data),
-                hasAuth: !!this.plugin.settings.langfuse.publicKey
-            });
-
-            const response = await requestUrl({
-                url: url,
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Basic ${btoa(this.plugin.settings.langfuse.publicKey + ':' + this.plugin.settings.langfuse.secretKey)}`
-                },
-                body: JSON.stringify(data)
-            });
-
-            console.log(`[Langfuse] Successfully sent ${method} to ${endpoint}`, response.status);
-        } catch (error) {
-            console.error(`[Langfuse] API error for ${method} ${endpoint}:`, {
-                error: error.message || error,
-                status: error.status,
-                url: url,
-                dataKeys: Object.keys(data)
-            });
-            // Don't throw - just log the error so it doesn't break note generation
-            console.warn(`[Langfuse] Continuing without tracing due to API error`);
-        }
-    }
+    // Legacy Langfuse methods removed - now using TraceManager service
 
 
 
@@ -1682,7 +1689,7 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
     }
 
     private async startNoteGeneration() {
-        console.log('[startNoteGeneration] Starting flow...');
+        // Starting note generation flow
         const url = this.urlInput.value;
         const prompt = this.promptInput.value;
         const selectedIntent = this.intentDropdown.value as ProcessingIntent;
@@ -1706,9 +1713,8 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
         this.updateStatusSteps(0, 'Initiating process...'); // Initial status before fetching
 
         try {
-            console.log('[startNoteGeneration] Clearing UI elements...');
+            // Clearing UI elements
             if (!this.resultArea) {
-                console.error('[startNoteGeneration] resultArea is undefined!');
                 this.resultArea = this.containerEl.createEl('div', { cls: 'ai-summarizer-result' }) as HTMLDivElement;
             }
             this.resultArea.innerText = '';
@@ -1717,10 +1723,10 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             // Step 1: Fetch
             // Initial status update for fetching
             this.updateStatusSteps(0, 'Connecting to source and extracting content...');
-            console.log('[startNoteGeneration] Starting content fetch...');
+            // Starting content fetch
 
             if (url.includes('youtube.com')) {
-                console.log('[startNoteGeneration] Fetching YouTube transcript...');
+                // Fetching YouTube transcript
                 // The fetchTranscriptFromPython function now handles its own status updates for retries
                 try {
                     content = await this.fetchTranscriptFromPython(url);
@@ -1730,18 +1736,16 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
                 } catch (error) {
                     // error is expected to be a string message from the Python script or an Error object
                     const errorMessage = typeof error === 'string' ? error : (error as Error).message;
-                    console.error('[startNoteGeneration] Transcript fetch failed:', errorMessage);
                     new Notice('Failed to fetch transcript. ' + errorMessage);
                     this.updateStatusSteps(0, 'Failed to fetch transcript: ' + errorMessage, true);
                     return;
                 }
             } else {
-                // ... (existing web content fetching logic, ensure it also updates status correctly)
-                console.log('[startNoteGeneration] Fetching web content...');
+                // Fetching web content
                 this.updateStatusSteps(0, 'Fetching web content...'); // Status for web content
                 content = await this.fetchContentFromWebLink(url);
                 if (!content || content.startsWith('Error:') || content.includes('[ERROR]')) {
-                    console.error('[startNoteGeneration] Content fetch failed');
+                    // Content fetch failed
                     new Notice('Failed to fetch content. Please check the URL.');
                     this.updateStatusSteps(0, 'Failed to fetch content. Please check the URL.', true);
                     return;
@@ -1751,7 +1755,7 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
 
             // Additional validation to ensure we have meaningful content
             if (!content || content.trim().length < 10) { // Adjusted length check, as even short transcripts can be valid
-                console.error('[startNoteGeneration] Content too short or empty');
+                // Content too short or empty
                 const noticeMsg = 'Failed to fetch meaningful content. The content may be too short or the URL is incorrect.';
                 new Notice(noticeMsg);
                 this.updateStatusSteps(0, noticeMsg, true);
@@ -2174,8 +2178,8 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     private async generateComprehensiveNote(text: string, prompt: string, url: string, hierarchyContext: string, intent: ProcessingIntent): Promise<any> {
         console.log('[GenerateComprehensiveNote] 🎯 Starting multi-pass comprehensive analysis');
 
-        // Start Langfuse trace for this note generation
-        await this.startLangfuseTrace({
+        // Start trace for this note generation
+        await this.startTrace({
             intent: intent,
             url: url,
             content_length: text.length
@@ -2187,8 +2191,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             console.log('[GenerateComprehensiveNote] 📝 Additional instructions from UI:', additionalInstructions || '(empty)');
             console.log('[GenerateComprehensiveNote] 🎯 Using intent-specific prompts for:', intent);
 
-            // Initialize Langfuse if needed
-            await this.initializeLangfuse();
+            // TraceManager handles initialization automatically
 
             // Load intent-specific prompts
             const intentPrompts = await this.promptLoader.loadPromptsForIntent(intent);
@@ -2247,8 +2250,8 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 
             return comprehensiveResult;
         } finally {
-            // Always end Langfuse trace, even if there's an error
-            await this.endLangfuseTrace();
+            // Always end trace, even if there's an error
+            await this.endTrace();
         }
     }
 
@@ -2521,39 +2524,40 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private cleanJsonResponse(jsonString: string): string {
-        console.log('[JSON Cleaning] 🔧 Starting enhanced JSON cleanup...');
+        console.log('[JSON Cleaning] 🔧 Simple JSON extraction...');
         let cleaned = jsonString.trim();
 
-        // Remove any text before the first { or [
+        // Remove markdown code blocks if present
+        if (cleaned.startsWith('```json')) {
+            cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleaned.startsWith('```')) {
+            cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+
+        // Find the JSON object boundaries
         const firstBrace = cleaned.indexOf('{');
-        const firstBracket = cleaned.indexOf('[');
-        const firstJson = Math.min(
-            firstBrace === -1 ? Infinity : firstBrace,
-            firstBracket === -1 ? Infinity : firstBracket
-        );
-        if (firstJson !== Infinity) {
-            cleaned = cleaned.substring(firstJson);
+        if (firstBrace !== -1) {
+            cleaned = cleaned.substring(firstBrace);
+            
+            // Find the matching closing brace
+            let braceCount = 0;
+            let endIndex = -1;
+            for (let i = 0; i < cleaned.length; i++) {
+                if (cleaned[i] === '{') braceCount++;
+                if (cleaned[i] === '}') braceCount--;
+                if (braceCount === 0) {
+                    endIndex = i;
+                    break;
+                }
+            }
+            
+            if (endIndex !== -1) {
+                cleaned = cleaned.substring(0, endIndex + 1);
+            }
         }
 
-        // Remove any text after the last } or ]
-        const lastBrace = cleaned.lastIndexOf('}');
-        const lastBracket = cleaned.lastIndexOf(']');
-        const lastJson = Math.max(lastBrace, lastBracket);
-        if (lastJson !== -1) {
-            cleaned = cleaned.substring(0, lastJson + 1);
-        }
-
-        // Enhanced cleaning for common JSON-breaking patterns
-        cleaned = this.fixJsonStringEscaping(cleaned);
-
-        // Length check - if response is too long, it's likely malformed
-        if (cleaned.length > 50000) {
-            console.log('[JSON Cleaning] ⚠️ Response too long, truncating...');
-            cleaned = this.truncateJsonResponse(cleaned);
-        }
-
-        console.log('[JSON Cleaning] ✅ Cleanup complete, length:', cleaned.length);
-        return cleaned;
+        console.log('[JSON Cleaning] ✅ Simple extraction complete, length:', cleaned.length);
+        return cleaned.trim();
     }
 
     private fixJsonStringEscaping(jsonString: string): string {

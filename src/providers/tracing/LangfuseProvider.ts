@@ -1,5 +1,5 @@
 /**
- * Langfuse Provider - Langfuse tracing implementation
+ * Langfuse Provider - Langfuse tracing implementation using batch ingestion API
  */
 
 import { requestUrl } from 'obsidian';
@@ -10,6 +10,15 @@ import type {
   SpanMetadata,
   TracingConfig 
 } from '../../types';
+
+// Langfuse ingestion event types
+interface LangfuseEvent {
+  id: string;
+  timestamp: string;
+  type: string;
+  body: any;
+  metadata?: any;
+}
 
 export class LangfuseProvider implements TraceProvider {
   readonly name = 'langfuse';
@@ -23,7 +32,7 @@ export class LangfuseProvider implements TraceProvider {
   }
 
   /**
-   * Start a new trace
+   * Start a new trace using batch ingestion API
    */
   async startTrace(metadata: TraceMetadata): Promise<string> {
     if (!this.isConfigured()) {
@@ -31,22 +40,26 @@ export class LangfuseProvider implements TraceProvider {
     }
 
     const traceId = this.generateId();
+    const eventId = this.generateId();
     
     try {
-      await this.sendToLangfuse('traces', {
-        id: traceId,
-        name: metadata.name || 'ai-operation',
-        userId: metadata.userId,
-        sessionId: metadata.sessionId,
-        input: metadata.input,
-        metadata: {
-          ...metadata.metadata,
+      const event: LangfuseEvent = {
+        id: eventId,
+        timestamp: new Date().toISOString(),
+        type: 'trace-create',
+        body: {
+          id: traceId,
+          name: metadata.name || 'ai-operation',
+          userId: metadata.userId,
+          sessionId: metadata.sessionId,
+          input: metadata.input,
+          metadata: metadata.metadata,
           tags: metadata.tags,
           timestamp: new Date().toISOString()
-        },
-        timestamp: new Date().toISOString()
-      });
+        }
+      };
 
+      await this.sendBatchToLangfuse([event]);
       console.log(`[Langfuse] Started trace: ${traceId}`);
       return traceId;
     } catch (error) {
@@ -56,7 +69,7 @@ export class LangfuseProvider implements TraceProvider {
   }
 
   /**
-   * End a trace
+   * End a trace using batch ingestion API
    */
   async endTrace(traceId: string, metadata?: TraceMetadata): Promise<void> {
     if (traceId === 'no-trace' || !this.isConfigured()) {
@@ -64,30 +77,28 @@ export class LangfuseProvider implements TraceProvider {
     }
 
     try {
-      const updateData: any = {
-        endTime: new Date().toISOString()
+      const eventId = this.generateId();
+      const event: LangfuseEvent = {
+        id: eventId,
+        timestamp: new Date().toISOString(),
+        type: 'trace-update',
+        body: {
+          id: traceId,
+          output: metadata?.output,
+          metadata: metadata?.metadata
+        }
       };
 
-      if (metadata?.output !== undefined) {
-        updateData.output = metadata.output;
-      }
-
-      if (metadata?.metadata) {
-        updateData.metadata = {
-          ...updateData.metadata,
-          ...metadata.metadata
-        };
-      }
-
-      await this.sendToLangfuse(`traces/${traceId}`, updateData, 'PATCH');
+      await this.sendBatchToLangfuse([event]);
       console.log(`[Langfuse] Ended trace: ${traceId}`);
     } catch (error) {
-      console.warn('[Langfuse] Failed to end trace:', error);
+      // Langfuse API errors shouldn't break the flow - just log and continue  
+      console.warn('[Langfuse] Failed to end trace (continuing):', error.message || error);
     }
   }
 
   /**
-   * Update a trace with additional metadata
+   * Update a trace with additional metadata using batch ingestion API
    */
   async updateTrace(traceId: string, metadata: TraceMetadata): Promise<void> {
     if (traceId === 'no-trace' || !this.isConfigured()) {
@@ -95,17 +106,24 @@ export class LangfuseProvider implements TraceProvider {
     }
 
     try {
-      const updateData: any = {};
+      const eventId = this.generateId();
+      const event: LangfuseEvent = {
+        id: eventId,
+        timestamp: new Date().toISOString(),
+        type: 'trace-update',
+        body: {
+          id: traceId,
+          name: metadata.name,
+          userId: metadata.userId,
+          sessionId: metadata.sessionId,
+          input: metadata.input,
+          output: metadata.output,
+          metadata: metadata.metadata,
+          tags: metadata.tags
+        }
+      };
 
-      if (metadata.name) updateData.name = metadata.name;
-      if (metadata.userId) updateData.userId = metadata.userId;
-      if (metadata.sessionId) updateData.sessionId = metadata.sessionId;
-      if (metadata.input !== undefined) updateData.input = metadata.input;
-      if (metadata.output !== undefined) updateData.output = metadata.output;
-      if (metadata.metadata) updateData.metadata = metadata.metadata;
-      if (metadata.tags) updateData.tags = metadata.tags;
-
-      await this.sendToLangfuse(`traces/${traceId}`, updateData, 'PATCH');
+      await this.sendBatchToLangfuse([event]);
       console.log(`[Langfuse] Updated trace: ${traceId}`);
     } catch (error) {
       console.warn('[Langfuse] Failed to update trace:', error);
@@ -113,7 +131,7 @@ export class LangfuseProvider implements TraceProvider {
   }
 
   /**
-   * Start a generation (LLM call) within a trace
+   * Start a generation (LLM call) within a trace using batch ingestion API
    */
   async startGeneration(traceId: string, metadata: GenerationMetadata): Promise<string> {
     if (traceId === 'no-trace' || !this.isConfigured()) {
@@ -121,22 +139,29 @@ export class LangfuseProvider implements TraceProvider {
     }
 
     const generationId = this.generateId();
+    const eventId = this.generateId();
     
     try {
-      await this.sendToLangfuse('generations', {
-        id: generationId,
-        traceId: traceId,
-        name: metadata.name || 'llm-generation',
-        model: metadata.model,
-        modelParameters: metadata.modelParameters,
-        input: this.truncateForPrivacy(metadata.prompt),
-        startTime: new Date().toISOString(),
-        metadata: {
-          ...metadata.metadata,
-          tags: metadata.tags
+      const event: LangfuseEvent = {
+        id: eventId,
+        timestamp: new Date().toISOString(),
+        type: 'generation-create',
+        body: {
+          id: generationId,
+          traceId: traceId,
+          name: metadata.name || 'llm-generation',
+          model: metadata.model,
+          modelParameters: metadata.modelParameters,
+          input: metadata.prompt,
+          startTime: new Date().toISOString(),
+          metadata: {
+            ...metadata.metadata,
+            tags: metadata.tags
+          }
         }
-      });
+      };
 
+      await this.sendBatchToLangfuse([event]);
       console.log(`[Langfuse] Started generation: ${generationId}`);
       return generationId;
     } catch (error) {
@@ -146,7 +171,7 @@ export class LangfuseProvider implements TraceProvider {
   }
 
   /**
-   * End a generation with completion data
+   * End a generation with completion data using batch ingestion API
    */
   async endGeneration(generationId: string, metadata?: GenerationMetadata): Promise<void> {
     if (generationId === 'no-generation' || !this.isConfigured()) {
@@ -154,45 +179,38 @@ export class LangfuseProvider implements TraceProvider {
     }
 
     try {
-      const updateData: any = {
-        endTime: new Date().toISOString()
+      const eventId = this.generateId();
+      const event: LangfuseEvent = {
+        id: eventId,
+        timestamp: new Date().toISOString(),
+        type: 'generation-update',
+        body: {
+          id: generationId,
+          endTime: new Date().toISOString(),
+          output: metadata?.completion,
+          usage: metadata?.usage ? {
+            input: metadata.usage.promptTokens,
+            output: metadata.usage.completionTokens,
+            total: metadata.usage.totalTokens,
+            unit: 'TOKENS'
+          } : undefined,
+          metadata: {
+            ...metadata?.metadata,
+            cost_usd: metadata?.cost
+          }
+        }
       };
 
-      if (metadata?.completion) {
-        updateData.output = this.truncateForPrivacy(metadata.completion);
-      }
-
-      if (metadata?.usage) {
-        updateData.usage = {
-          promptTokens: metadata.usage.promptTokens,
-          completionTokens: metadata.usage.completionTokens,
-          totalTokens: metadata.usage.totalTokens
-        };
-      }
-
-      if (metadata?.cost !== undefined) {
-        updateData.metadata = {
-          ...updateData.metadata,
-          cost_usd: metadata.cost
-        };
-      }
-
-      if (metadata?.metadata) {
-        updateData.metadata = {
-          ...updateData.metadata,
-          ...metadata.metadata
-        };
-      }
-
-      await this.sendToLangfuse(`generations/${generationId}`, updateData, 'PATCH');
+      await this.sendBatchToLangfuse([event]);
       console.log(`[Langfuse] Ended generation: ${generationId}`);
     } catch (error) {
-      console.warn('[Langfuse] Failed to end generation:', error);
+      // Langfuse API errors shouldn't break the flow - just log and continue
+      console.warn('[Langfuse] Failed to end generation (continuing):', error.message || error);
     }
   }
 
   /**
-   * Update a generation with additional metadata
+   * Update a generation with additional metadata using batch ingestion API
    */
   async updateGeneration(generationId: string, metadata: GenerationMetadata): Promise<void> {
     if (generationId === 'no-generation' || !this.isConfigured()) {
@@ -200,22 +218,32 @@ export class LangfuseProvider implements TraceProvider {
     }
 
     try {
-      const updateData: any = {};
+      const eventId = this.generateId();
+      const event: LangfuseEvent = {
+        id: eventId,
+        timestamp: new Date().toISOString(),
+        type: 'generation-update',
+        body: {
+          id: generationId,
+          name: metadata.name,
+          model: metadata.model,
+          modelParameters: metadata.modelParameters,
+          input: metadata.prompt,
+          output: metadata.completion,
+          usage: metadata.usage ? {
+            input: metadata.usage.promptTokens,
+            output: metadata.usage.completionTokens,
+            total: metadata.usage.totalTokens,
+            unit: 'TOKENS'
+          } : undefined,
+          metadata: {
+            ...metadata.metadata,
+            cost_usd: metadata.cost
+          }
+        }
+      };
 
-      if (metadata.name) updateData.name = metadata.name;
-      if (metadata.model) updateData.model = metadata.model;
-      if (metadata.modelParameters) updateData.modelParameters = metadata.modelParameters;
-      if (metadata.prompt) updateData.input = this.truncateForPrivacy(metadata.prompt);
-      if (metadata.completion) updateData.output = this.truncateForPrivacy(metadata.completion);
-      if (metadata.usage) updateData.usage = metadata.usage;
-      if (metadata.cost !== undefined) {
-        updateData.metadata = { ...updateData.metadata, cost_usd: metadata.cost };
-      }
-      if (metadata.metadata) {
-        updateData.metadata = { ...updateData.metadata, ...metadata.metadata };
-      }
-
-      await this.sendToLangfuse(`generations/${generationId}`, updateData, 'PATCH');
+      await this.sendBatchToLangfuse([event]);
       console.log(`[Langfuse] Updated generation: ${generationId}`);
     } catch (error) {
       console.warn('[Langfuse] Failed to update generation:', error);
@@ -223,7 +251,7 @@ export class LangfuseProvider implements TraceProvider {
   }
 
   /**
-   * Start a span (general operation) within a trace
+   * Start a span (general operation) within a trace using batch ingestion API
    */
   async startSpan(traceId: string, name: string, metadata?: SpanMetadata): Promise<string> {
     if (traceId === 'no-trace' || !this.isConfigured()) {
@@ -231,17 +259,24 @@ export class LangfuseProvider implements TraceProvider {
     }
 
     const spanId = this.generateId();
+    const eventId = this.generateId();
     
     try {
-      await this.sendToLangfuse('spans', {
-        id: spanId,
-        traceId: traceId,
-        name: name,
-        input: metadata?.input,
-        startTime: new Date().toISOString(),
-        metadata: metadata?.metadata
-      });
+      const event: LangfuseEvent = {
+        id: eventId,
+        timestamp: new Date().toISOString(),
+        type: 'span-create',
+        body: {
+          id: spanId,
+          traceId: traceId,
+          name: name,
+          input: metadata?.input,
+          startTime: new Date().toISOString(),
+          metadata: metadata?.metadata
+        }
+      };
 
+      await this.sendBatchToLangfuse([event]);
       console.log(`[Langfuse] Started span: ${spanId} (${name})`);
       return spanId;
     } catch (error) {
@@ -251,7 +286,7 @@ export class LangfuseProvider implements TraceProvider {
   }
 
   /**
-   * End a span with completion data
+   * End a span with completion data using batch ingestion API
    */
   async endSpan(spanId: string, metadata?: SpanMetadata): Promise<void> {
     if (spanId === 'no-span' || !this.isConfigured()) {
@@ -259,22 +294,20 @@ export class LangfuseProvider implements TraceProvider {
     }
 
     try {
-      const updateData: any = {
-        endTime: new Date().toISOString()
+      const eventId = this.generateId();
+      const event: LangfuseEvent = {
+        id: eventId,
+        timestamp: new Date().toISOString(),
+        type: 'span-update',
+        body: {
+          id: spanId,
+          endTime: new Date().toISOString(),
+          output: metadata?.output,
+          metadata: metadata?.metadata
+        }
       };
 
-      if (metadata?.output !== undefined) {
-        updateData.output = metadata.output;
-      }
-
-      if (metadata?.metadata) {
-        updateData.metadata = {
-          ...updateData.metadata,
-          ...metadata.metadata
-        };
-      }
-
-      await this.sendToLangfuse(`spans/${spanId}`, updateData, 'PATCH');
+      await this.sendBatchToLangfuse([event]);
       console.log(`[Langfuse] Ended span: ${spanId}`);
     } catch (error) {
       console.warn('[Langfuse] Failed to end span:', error);
@@ -301,35 +334,46 @@ export class LangfuseProvider implements TraceProvider {
   }
 
   /**
-   * Send data to Langfuse API
+   * Send batch of events to Langfuse ingestion API
    */
-  private async sendToLangfuse(endpoint: string, data: any, method: string = 'POST'): Promise<void> {
-    const url = `${this.baseUrl}/api/public/${endpoint}`;
+  private async sendBatchToLangfuse(events: LangfuseEvent[]): Promise<void> {
+    const url = `${this.baseUrl}/api/public/ingestion`;
 
     try {
-      console.log(`[Langfuse] Sending ${method} to ${endpoint}`, {
+      console.log(`[Langfuse] Sending batch to ingestion API`, {
         url,
-        dataKeys: Object.keys(data),
+        eventCount: events.length,
+        eventTypes: events.map(e => e.type),
         hasAuth: !!this.config?.publicKey
       });
 
       const response = await requestUrl({
         url: url,
-        method: method,
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Basic ${btoa(this.config!.publicKey + ':' + this.config!.secretKey)}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+          batch: events,
+          metadata: {
+            sdk_name: 'obsidian-second-brain',
+            sdk_version: '1.0.0'
+          }
+        })
       });
 
-      console.log(`[Langfuse] Successfully sent ${method} to ${endpoint}`, response.status);
+      console.log(`[Langfuse] Successfully sent batch to ingestion API`, {
+        status: response.status,
+        eventCount: events.length
+      });
     } catch (error) {
-      console.error(`[Langfuse] API error for ${method} ${endpoint}:`, {
+      console.error(`[Langfuse] Batch ingestion API error:`, {
         error: error.message || error,
         status: (error as any).status,
         url: url,
-        dataKeys: Object.keys(data)
+        eventCount: events.length,
+        eventTypes: events.map(e => e.type)
       });
       // Don't throw - just log the error so it doesn't break operations
       console.warn(`[Langfuse] Continuing without tracing due to API error`);
@@ -347,11 +391,5 @@ export class LangfuseProvider implements TraceProvider {
     });
   }
 
-  /**
-   * Truncate text for privacy and API limits
-   */
-  private truncateForPrivacy(text?: string): string | undefined {
-    if (!text) return undefined;
-    return text.length > 500 ? text.substring(0, 500) + '...' : text;
-  }
+  // Removed truncateForPrivacy() - using inputs/outputs directly for complete eval data
 }

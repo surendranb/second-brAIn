@@ -71,6 +71,9 @@ export interface TracingConfig {
 export interface TraceContext {
   traceId: string;
   spanId?: string;
+  generationName?: string;
+  pass?: string;
+  intent?: string;
   metadata?: Record<string, any>;
 }
 

@@ -27,7 +27,13 @@ export class TraceManager {
    * Generate text with automatic tracing
    */
   async generateText(request: LLMRequest, traceContext?: TraceContext): Promise<LLMResponse> {
-    const traceId = traceContext?.traceId || await this.startTrace({
+    // If we have a trace context, use it for structured tracing
+    if (traceContext?.traceId) {
+      return this.generateTextWithinTrace(request, traceContext);
+    }
+    
+    // Otherwise, create a simple auto-trace (legacy behavior)
+    const traceId = await this.startTrace({
       name: 'llm-generation',
       input: { prompt: request.prompt, model: request.model },
       metadata: request.metadata
@@ -51,9 +57,7 @@ export class TraceManager {
         metadata: response.metadata
       });
       
-      if (!traceContext?.traceId) {
-        await this.endTrace(traceId, { output: response.text });
-      }
+      await this.endTrace(traceId, { output: response.text });
       
       return response;
     } catch (error) {
@@ -61,11 +65,74 @@ export class TraceManager {
         metadata: { error: error.message }
       });
       
-      if (!traceContext?.traceId) {
-        await this.endTrace(traceId, { 
-          metadata: { error: error.message, status: 'error' }
-        });
+      await this.endTrace(traceId, { 
+        metadata: { error: error.message, status: 'error' }
+      });
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Generate text within an existing trace (for structured multi-pass analysis)
+   */
+  async generateTextWithinTrace(request: LLMRequest, traceContext: TraceContext): Promise<LLMResponse> {
+    const startTime = Date.now();
+    
+    const generationId = await this.provider.startGeneration(traceContext.traceId, {
+      name: traceContext.generationName || 'ai-generation',
+      model: request.model,
+      prompt: request.prompt,
+      modelParameters: {
+        temperature: request.temperature,
+        maxTokens: request.maxTokens
+      },
+      metadata: {
+        pass: traceContext.pass,
+        intent: traceContext.intent,
+        ...request.metadata
       }
+    });
+    
+    try {
+      const response = await this.llmService.generateText(request);
+      const duration = Date.now() - startTime;
+      
+      // Calculate cost if not provided
+      const cost = this.calculateCost(
+        response.usage?.promptTokens || 0,
+        response.usage?.completionTokens || 0,
+        request.model || 'gemini-2.5-flash'
+      );
+      
+      await this.provider.endGeneration(generationId, {
+        completion: response.text,
+        usage: response.usage,
+        cost: cost,
+        metadata: {
+          duration_ms: duration,
+          cost_usd: cost,
+          pass: traceContext.pass,
+          intent: traceContext.intent,
+          status: 'completed'
+        }
+      });
+      
+      console.log(`[TraceManager] Generation completed - Pass: ${traceContext.pass}, Duration: ${duration}ms, Cost: $${cost.toFixed(4)}`);
+      
+      return response;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      await this.provider.endGeneration(generationId, {
+        metadata: { 
+          error: error.message,
+          duration_ms: duration,
+          pass: traceContext.pass,
+          intent: traceContext.intent,
+          status: 'error'
+        }
+      });
       
       throw error;
     }
@@ -146,5 +213,21 @@ export class TraceManager {
     if (this.provider.isConfigured()) {
       await this.provider.flush();
     }
+  }
+
+  /**
+   * Calculate cost for token usage (basic implementation)
+   */
+  private calculateCost(promptTokens: number, completionTokens: number, model: string): number {
+    // Basic cost calculation - should be enhanced based on actual model pricing
+    const costs: Record<string, { input: number, output: number }> = {
+      'gemini-2.5-flash': { input: 0.000075, output: 0.0003 },
+      'gemini-2.5-pro': { input: 0.00125, output: 0.005 },
+      'gemini-1.5-flash': { input: 0.000075, output: 0.0003 },
+      'gemini-1.5-pro': { input: 0.00125, output: 0.005 }
+    };
+    
+    const modelCost = costs[model] || costs['gemini-2.5-flash'];
+    return (promptTokens * modelCost.input) + (completionTokens * modelCost.output);
   }
 }
