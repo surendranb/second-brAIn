@@ -269,6 +269,12 @@ export class NoteProcessor {
             const passName = passes[i];
             console.log(`[NoteProcessor] AI Pass ${i + 1}: ${passName}`);
 
+            // Add delay between AI calls to prevent rate limiting (except for first call)
+            if (i > 0) {
+                console.log(`[NoteProcessor] Waiting 5 seconds before next AI call to prevent rate limiting...`);
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+
             // Get prompt for this pass
             const prompt = await this.getPromptForPass(i, input.intent);
             const fullPrompt = `${prompt}\n\nContent to analyze:\n${content}`;
@@ -358,11 +364,18 @@ export class NoteProcessor {
         ].filter(level => level.name);
 
         // Update each MOC with AI intelligence
-        for (const mocLevel of mocLevels) {
+        for (let i = 0; i < mocLevels.length; i++) {
+            const mocLevel = mocLevels[i];
             const mocPath = this.plugin.mocManager.getMOCPath(hierarchy, mocLevel.level);
             
             if (mocPath) {
                 console.log(`[NoteProcessor] Updating MOC: ${mocPath}`);
+                
+                // Add delay between MOC AI calls to prevent rate limiting (except for first call)
+                if (i > 0) {
+                    console.log(`[NoteProcessor] Waiting 5 seconds before next MOC AI call to prevent rate limiting...`);
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
                 
                 // Call AI to update MOC with intelligence
                 await this.traceManager.generateText(
