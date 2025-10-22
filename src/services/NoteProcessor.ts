@@ -112,7 +112,22 @@ export class NoteProcessor {
             return { note, traceId };
 
         } catch (error) {
-            this.updateStatus(7, `Error: ${error.message}`, true);
+            // Determine which step failed based on the error context
+            let errorStep = 7; // Default to final step
+            let errorMessage = `Error: ${error.message}`;
+            
+            if (error.message.includes('Gemini API error') || error.message.includes('503')) {
+                errorStep = 2; // AI Analysis step
+                errorMessage = `AI Analysis failed: ${error.message}`;
+            } else if (error.message.includes('transcript') || error.message.includes('content')) {
+                errorStep = 0; // Content extraction step
+                errorMessage = `Content extraction failed: ${error.message}`;
+            } else if (error.message.includes('note') || error.message.includes('file')) {
+                errorStep = 4; // Note creation step
+                errorMessage = `Note creation failed: ${error.message}`;
+            }
+            
+            this.updateStatus(errorStep, errorMessage, true);
             await this.traceManager.endTrace(traceId, { 
                 output: { error: error.message } 
             });
@@ -281,22 +296,46 @@ export class NoteProcessor {
             const prompt = await this.getPromptForPass(i, input.intent);
             const fullPrompt = `${prompt}\n\nContent to analyze:\n${content}`;
 
-            // Call AI with tracing
-            const response = await this.traceManager.generateText(
-                {
-                    prompt: fullPrompt,
-                    model: this.plugin.settings.gemini.model,
-                    metadata: { pass: passName }
-                },
-                {
-                    traceId,
-                    generationName: `ai-pass-${i + 1}`,
-                    pass: passName,
-                    intent: input.intent
+            // Call AI with tracing and retry logic for 503 errors
+            let response;
+            let retryCount = 0;
+            const maxRetries = 2;
+            
+            while (retryCount <= maxRetries) {
+                try {
+                    response = await this.traceManager.generateText(
+                        {
+                            prompt: fullPrompt,
+                            model: this.plugin.settings.gemini.model,
+                            metadata: { pass: passName }
+                        },
+                        {
+                            traceId,
+                            generationName: `ai-pass-${i + 1}`,
+                            pass: passName,
+                            intent: input.intent
+                        }
+                    );
+                    break; // Success, exit retry loop
+                } catch (error) {
+                    if (error.message.includes('503') && retryCount < maxRetries) {
+                        retryCount++;
+                        const waitTime = retryCount * 10; // 10s, 20s
+                        console.log(`[NoteProcessor] AI Pass ${i + 1} failed with 503, retrying in ${waitTime}s (attempt ${retryCount}/${maxRetries})`);
+                        this.updateStatus(2, `AI overloaded, retrying in ${waitTime}s (attempt ${retryCount}/${maxRetries})...`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+                    } else {
+                        throw error; // Re-throw if not 503 or max retries reached
+                    }
                 }
-            );
+            }
 
             // Parse and merge results
+            if (!response) {
+                console.error(`[NoteProcessor] AI Pass ${i + 1} failed - no response received`);
+                continue;
+            }
+            
             try {
                 console.log(`[NoteProcessor] AI Pass ${i + 1} raw response:`, response.text.substring(0, 200) + '...');
                 
