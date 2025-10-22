@@ -299,7 +299,20 @@ export class NoteProcessor {
             // Parse and merge results
             try {
                 console.log(`[NoteProcessor] AI Pass ${i + 1} raw response:`, response.text.substring(0, 200) + '...');
-                const passResult = JSON.parse(response.text);
+                
+                // Clean the response text - remove markdown code blocks
+                let cleanedText = response.text.trim();
+                
+                // Remove markdown code block markers
+                if (cleanedText.startsWith('```json')) {
+                    cleanedText = cleanedText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                } else if (cleanedText.startsWith('```')) {
+                    cleanedText = cleanedText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+                }
+                
+                console.log(`[NoteProcessor] AI Pass ${i + 1} cleaned response:`, cleanedText.substring(0, 200) + '...');
+                
+                const passResult = JSON.parse(cleanedText);
                 fullResult = { ...fullResult, ...passResult };
                 console.log(`[NoteProcessor] AI Pass ${i + 1} parsed successfully:`, Object.keys(passResult));
             } catch (error) {
