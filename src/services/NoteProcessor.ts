@@ -450,41 +450,16 @@ export class NoteProcessor {
             { level: 4, name: hierarchy.level4 }
         ].filter(level => level.name);
 
-        // Update each MOC with AI intelligence
-        for (let i = 0; i < mocLevels.length; i++) {
-            const mocLevel = mocLevels[i];
-            const mocPath = this.plugin.mocManager.getMOCPath(hierarchy, mocLevel.level);
-            
-            if (mocPath) {
-                console.log(`[NoteProcessor] Updating MOC: ${mocPath}`);
-                
-                // Add delay between MOC AI calls to prevent rate limiting (except for first call)
-                if (i > 0) {
-                    console.log(`[NoteProcessor] Waiting 10 seconds before next MOC AI call to prevent rate limiting...`);
-                    await new Promise(resolve => setTimeout(resolve, 10000));
-                }
-                
-                // Call AI to update MOC with intelligence
-                await this.traceManager.generateText(
-                    {
-                        prompt: `Update MOC intelligence for: ${mocLevel.name}`,
-                        model: this.plugin.settings.gemini.model,
-                        metadata: { 
-                            mocLevel: mocLevel.level,
-                            mocName: mocLevel.name,
-                            mocPath 
-                        }
-                    },
-                    {
-                        traceId,
-                        generationName: `moc-update-level-${mocLevel.level}`,
-                        intent: 'moc-update'
-                    }
-                );
-
-                // Apply MOC intelligence update
-                await this.plugin.mocIntelligence.updateMOCWithIntelligence(mocPath);
-            }
+        // Use the existing cascadeIntelligenceUpward method instead of manual MOC updates
+        console.log(`[NoteProcessor] Using cascading intelligence update for hierarchy`);
+        
+        try {
+            // This method handles all MOC updates with proper AI intelligence
+            await this.plugin.mocManager.cascadeIntelligenceUpward(hierarchy);
+            console.log(`[NoteProcessor] Cascading intelligence update complete`);
+        } catch (error) {
+            console.warn(`[NoteProcessor] Cascading intelligence update failed:`, error);
+            // Continue without failing the entire process
         }
     }
 }
