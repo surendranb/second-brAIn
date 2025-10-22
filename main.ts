@@ -551,7 +551,7 @@ class SummaryView extends ItemView {
         this.generateButton.style.display = 'none';
 
         // Clean flow test button
-        const cleanButton = inputCard.createEl('button', { text: '🧪 Test Clean Flow', cls: 'brain-clean-button' }) as HTMLButtonElement;
+        const cleanButton = inputCard.createEl('button', { text: '🧪 Summarize', cls: 'brain-clean-button' }) as HTMLButtonElement;
 
         // Progress Card
         const progressCard = mainContainer.createEl('div', { cls: 'brain-card brain-progress-card' });
