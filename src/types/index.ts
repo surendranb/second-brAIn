@@ -28,3 +28,12 @@ export type {
   PluginConfig,
   ServiceConfig
 } from './config';
+
+// Plugin-specific types
+export type {
+  MOCHierarchy,
+  LearningContext,
+  MOCMetadata,
+  MOC,
+  NoteHierarchyAnalysis
+} from './plugin';

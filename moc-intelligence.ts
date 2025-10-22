@@ -1,5 +1,5 @@
 import { App, TFile } from 'obsidian';
-import { MOCHierarchy, LearningContext } from './main';
+import { MOCHierarchy, LearningContext } from './src/types';
 
 export interface MOCAnalysis {
     overview: string;

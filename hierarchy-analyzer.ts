@@ -3,21 +3,7 @@
  * Handles content analysis and hierarchy determination
  */
 
-// Types that need to be defined (matching main.ts)
-interface MOCHierarchy {
-    level1: string; // Knowledge Domain (e.g., "Computer Science")
-    level2: string; // Learning Area (e.g., "Machine Learning") 
-    level3?: string; // Specific Topic (e.g., "Neural Networks")
-    level4?: string; // Key Concept (e.g., "Backpropagation")
-}
-
-interface LearningContext {
-    prerequisites: string[];
-    related_concepts: string[];
-    learning_path: string[];
-    complexity_level: 'beginner' | 'intermediate' | 'advanced';
-    [key: string]: any;
-}
+import { MOCHierarchy, LearningContext } from './src/types';
 
 interface NoteHierarchyAnalysis {
     hierarchy: MOCHierarchy;
