@@ -450,16 +450,51 @@ export class NoteProcessor {
             { level: 4, name: hierarchy.level4 }
         ].filter(level => level.name);
 
-        // Use the existing cascadeIntelligenceUpward method instead of manual MOC updates
-        console.log(`[NoteProcessor] Using cascading intelligence update for hierarchy`);
+        // Get MOC structure and update each level with proper tracing
+        const mocStructure = this.plugin.mocManager.createHierarchicalStructure(hierarchy);
+        console.log(`[NoteProcessor] Updating ${mocStructure.length} MOC levels with traced AI intelligence`);
         
-        try {
-            // This method handles all MOC updates with proper AI intelligence
-            await this.plugin.mocManager.cascadeIntelligenceUpward(hierarchy);
-            console.log(`[NoteProcessor] Cascading intelligence update complete`);
-        } catch (error) {
-            console.warn(`[NoteProcessor] Cascading intelligence update failed:`, error);
-            // Continue without failing the entire process
+        // Update intelligence for each level, starting from most specific and going up
+        for (let i = mocStructure.length - 1; i >= 0; i--) {
+            const levelInfo = mocStructure[i];
+            console.log(`[NoteProcessor] Updating MOC Level ${levelInfo.level}: ${levelInfo.title}`);
+            
+            // Add delay between MOC AI calls to prevent rate limiting (except for first call)
+            if (i < mocStructure.length - 1) {
+                console.log(`[NoteProcessor] Waiting 10 seconds before next MOC AI call to prevent rate limiting...`);
+                await new Promise(resolve => setTimeout(resolve, 10000));
+            }
+            
+            try {
+                // Call AI to analyze and update this MOC level with proper tracing
+                await this.traceManager.generateText(
+                    {
+                        prompt: `Analyze and update MOC intelligence for: ${levelInfo.title}\n\nMOC Path: ${levelInfo.path}\nLevel: ${levelInfo.level}`,
+                        model: this.plugin.settings.gemini.model,
+                        metadata: { 
+                            mocLevel: levelInfo.level,
+                            mocTitle: levelInfo.title,
+                            mocPath: levelInfo.path
+                        }
+                    },
+                    {
+                        traceId,
+                        generationName: `moc-intelligence-level-${levelInfo.level}`,
+                        pass: `MOC Level ${levelInfo.level}`,
+                        intent: 'moc-intelligence'
+                    }
+                );
+                
+                // Apply the MOC intelligence update using the existing method
+                await this.plugin.mocIntelligence.updateMOCWithIntelligence(levelInfo.path);
+                console.log(`[NoteProcessor] ✅ Intelligence updated for MOC Level ${levelInfo.level}`);
+                
+            } catch (error) {
+                console.error(`[NoteProcessor] ❌ Failed to update intelligence for MOC Level ${levelInfo.level}:`, error);
+                // Continue with other levels even if one fails
+            }
         }
+        
+        console.log(`[NoteProcessor] MOC cascade intelligence update complete`);
     }
 }

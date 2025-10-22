@@ -59,7 +59,7 @@ export class MOCManager {
     }
 
     // Create hierarchical structure info
-    private createHierarchicalStructure(hierarchy: MOCHierarchy): any[] {
+    public createHierarchicalStructure(hierarchy: MOCHierarchy): any[] {
         const mocFolder = this.settings.mocFolder || 'MOCs';
         const levels = [];
 
