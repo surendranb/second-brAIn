@@ -262,7 +262,10 @@ class SummaryView extends ItemView {
         const traceManager = this.getTraceManager();
 
         if (!traceManager || !this.currentTraceId) {
-            console.warn('[AI] No TraceManager or active trace, using basic AI request');
+            // Only warn if we're not using the new NoteProcessor flow
+            if (!this.plugin.noteProcessor) {
+                console.warn('[AI] No TraceManager or active trace, using basic AI request');
+            }
             return this.makeAIRequestDirect(prompt);
         }
 
