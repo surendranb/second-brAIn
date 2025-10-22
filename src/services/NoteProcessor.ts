@@ -354,6 +354,7 @@ export class NoteProcessor {
                 const passResult = JSON.parse(cleanedText);
                 fullResult = { ...fullResult, ...passResult };
                 console.log(`[NoteProcessor] AI Pass ${i + 1} parsed successfully:`, Object.keys(passResult));
+                console.log(`[NoteProcessor] AI Pass ${i + 1} sample content:`, JSON.stringify(passResult).substring(0, 300) + '...');
             } catch (error) {
                 console.warn(`[NoteProcessor] Failed to parse AI response for pass ${i + 1}:`, error);
                 console.log(`[NoteProcessor] Raw response that failed to parse:`, response.text);
@@ -454,7 +455,7 @@ export class NoteProcessor {
             summary += `\n`;
         }
         
-        // Add source reference
+        // Add source reference (only once)
         summary += `---\n\n> [!source] Source\n> ${url}\n`;
         
         return summary;
@@ -552,7 +553,7 @@ export class NoteProcessor {
                 );
                 
                 // Apply the MOC intelligence update using the existing method
-                await this.plugin.mocIntelligence.updateMOCWithIntelligence(levelInfo.path);
+                await this.plugin.mocManager.mocIntelligence.updateMOCWithIntelligence(levelInfo.path);
                 console.log(`[NoteProcessor] ✅ Intelligence updated for MOC Level ${levelInfo.level}`);
                 
             } catch (error) {

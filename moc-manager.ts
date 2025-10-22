@@ -12,7 +12,7 @@ export class MOCManager {
     private app: App;
     private settings: PluginSettings;
     private hierarchyManager?: any;
-    private mocIntelligence: MOCIntelligence;
+    public mocIntelligence: MOCIntelligence;
     private plugin?: any; // Reference to main plugin for AI service access
 
     constructor(app: App, settings: PluginSettings, plugin?: any) {
