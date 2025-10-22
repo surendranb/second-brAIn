@@ -146,7 +146,8 @@ export class MOCManager {
             }
 
             // Use AI to determine if any existing MOC is similar enough
-            const aiDecision = await this.askAIForMOCSimilarity(levelInfo.title, existingMOCs, hierarchy);
+            // Disable AI similarity check for now - always create new MOCs
+            const aiDecision = { shouldReuse: false, selectedMOC: null, reasoning: 'AI similarity check disabled for clean flow' };
             
             if (aiDecision.shouldReuse && aiDecision.selectedMOC) {
                 console.log(`[MOCManager] ✅ AI decided to reuse existing MOC: ${aiDecision.selectedMOC}`);

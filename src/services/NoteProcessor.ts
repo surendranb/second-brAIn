@@ -354,7 +354,6 @@ export class NoteProcessor {
                 const passResult = JSON.parse(cleanedText);
                 fullResult = { ...fullResult, ...passResult };
                 console.log(`[NoteProcessor] AI Pass ${i + 1} parsed successfully:`, Object.keys(passResult));
-                console.log(`[NoteProcessor] AI Pass ${i + 1} sample content:`, JSON.stringify(passResult).substring(0, 300) + '...');
             } catch (error) {
                 console.warn(`[NoteProcessor] Failed to parse AI response for pass ${i + 1}:`, error);
                 console.log(`[NoteProcessor] Raw response that failed to parse:`, response.text);
@@ -396,69 +395,145 @@ export class NoteProcessor {
         return fullResult;
     }
 
-    private createSummaryFromAnalysis(analysisResult: any, url: string): string {
-        const title = analysisResult.title || 'Extracted Content';
-        let summary = `# ${title}\n\n`;
-        
-        // Add overview if available
-        if (analysisResult.overview) {
-            summary += `## Overview\n\n${analysisResult.overview}\n\n`;
+    private createSummaryFromAnalysis(result: any, url: string): string {
+        let content = `# ${result.title}\n\n`;
+
+        // Overview
+        if (result.overview) {
+            content += `## Overview\n${result.overview}\n\n`;
         }
-        
-        // Add context if available
-        if (analysisResult.context) {
-            summary += `## Context\n\n${analysisResult.context}\n\n`;
+
+        // Context
+        if (result.context) {
+            content += `## Context & Background\n${result.context}\n\n`;
         }
-        
-        // Add key facts if available
-        if (analysisResult.key_facts && Array.isArray(analysisResult.key_facts)) {
-            summary += `## Key Facts\n\n`;
-            analysisResult.key_facts.forEach((fact: string, index: number) => {
-                summary += `${index + 1}. ${fact}\n`;
+
+        // Detailed Summary
+        if (result.detailed_summary) {
+            content += `## Comprehensive Summary\n${result.detailed_summary}\n\n`;
+        }
+
+        // Key Facts
+        if (result.key_facts?.length) {
+            content += `## Key Facts\n`;
+            result.key_facts.forEach((fact: string) => {
+                content += `- ${fact}\n`;
             });
-            summary += `\n`;
+            content += '\n';
         }
-        
-        // Add main insights if available
-        if (analysisResult.main_insights && Array.isArray(analysisResult.main_insights)) {
-            summary += `## Main Insights\n\n`;
-            analysisResult.main_insights.forEach((insight: string, index: number) => {
-                summary += `${index + 1}. ${insight}\n`;
+
+        // Deep Insights
+        if (result.deep_insights?.length) {
+            content += `## Deep Insights\n`;
+            result.deep_insights.forEach((insight: string, index: number) => {
+                const colonIndex = insight.indexOf(':');
+                if (colonIndex > 0 && colonIndex < 100) {
+                    const title = insight.substring(0, colonIndex).trim();
+                    const body = insight.substring(colonIndex + 1).trim();
+                    content += `### ${index + 1}. ${title}\n${body}\n\n`;
+                } else {
+                    content += `### Insight ${index + 1}\n${insight}\n\n`;
+                }
             });
-            summary += `\n`;
         }
-        
-        // Add perspectives if available
-        if (analysisResult.perspectives && Array.isArray(analysisResult.perspectives)) {
-            summary += `## Different Perspectives\n\n`;
-            analysisResult.perspectives.forEach((perspective: string, index: number) => {
-                summary += `${index + 1}. ${perspective}\n`;
+
+        // Core Concepts
+        if (result.core_concepts?.length) {
+            content += `## Core Concepts\n`;
+            result.core_concepts.forEach((concept: string) => {
+                const colonIndex = concept.indexOf(':');
+                if (colonIndex > 0 && colonIndex < 100) {
+                    const title = concept.substring(0, colonIndex).trim();
+                    const body = concept.substring(colonIndex + 1).trim();
+                    content += `### ${title}\n${body}\n\n`;
+                } else {
+                    content += `### ${concept}\n\n`;
+                }
             });
-            summary += `\n`;
         }
-        
-        // Add connections if available
-        if (analysisResult.connections && Array.isArray(analysisResult.connections)) {
-            summary += `## Connections & Applications\n\n`;
-            analysisResult.connections.forEach((connection: string, index: number) => {
-                summary += `${index + 1}. ${connection}\n`;
+
+        // Multiple Perspectives
+        if (result.multiple_perspectives?.length) {
+            content += `## Multiple Perspectives\n`;
+            result.multiple_perspectives.forEach((perspective: any) => {
+                content += `### ${perspective.viewpoint}\n${perspective.analysis}\n\n`;
             });
-            summary += `\n`;
         }
-        
-        // Add learning paths if available
-        if (analysisResult.learning_paths && Array.isArray(analysisResult.learning_paths)) {
-            summary += `## Learning Paths\n\n`;
-            analysisResult.learning_paths.forEach((path: string, index: number) => {
-                summary += `${index + 1}. ${path}\n`;
+
+        // Analogies and Examples
+        if (result.analogies_examples?.length) {
+            content += `## Analogies & Examples\n`;
+            result.analogies_examples.forEach((example: any) => {
+                content += `### ${example.concept}\n**Analogy**: ${example.analogy}\n\n**Real-World Example**: ${example.real_world_example}\n\n`;
             });
-            summary += `\n`;
         }
+
+        // Case Studies
+        if (result.case_studies?.length) {
+            content += `## Case Studies\n`;
+            result.case_studies.forEach((study: any, index: number) => {
+                if (typeof study === 'string') {
+                    content += `### Case Study ${index + 1}\n${study}\n\n`;
+                } else if (study && typeof study === 'object') {
+                    const title = study.case_study_name || `Case Study ${index + 1}`;
+                    content += `### ${title}\n`;
+                    if (study.description) {
+                        content += `${study.description}\n\n`;
+                    }
+                    if (study.lessons_learned && Array.isArray(study.lessons_learned)) {
+                        content += `**Key Lessons:**\n`;
+                        study.lessons_learned.forEach((lesson: string) => {
+                            content += `- ${lesson}\n`;
+                        });
+                        content += `\n`;
+                    }
+                } else {
+                    content += `### Case Study ${index + 1}\n${String(study)}\n\n`;
+                }
+            });
+        }
+
+        // Knowledge Connections
+        if (result.knowledge_connections?.length) {
+            content += `## Knowledge Connections\n`;
+            result.knowledge_connections.forEach((connection: any) => {
+                content += `### ${connection.related_field}\n**Connection Type**: ${connection.connection_type}\n\n${connection.detailed_explanation}\n\n`;
+            });
+        }
+
+        // Practical Applications
+        if (result.practical_applications?.length) {
+            content += `## Practical Applications\n`;
+            result.practical_applications.forEach((application: any) => {
+                content += `### ${application.domain}: ${application.application}\n**Implementation**: ${application.implementation}\n\n**Benefits**: ${application.benefits}\n\n`;
+            });
+        }
+
+        // Implications and Consequences
+        if (result.implications_consequences?.length) {
+            content += `## Implications & Consequences\n`;
+            result.implications_consequences.forEach((implication: string) => {
+                content += `- ${implication}\n`;
+            });
+            content += '\n';
+        }
+
+        // Learning Pathways
+        if (result.learning_pathways?.length) {
+            content += `## Learning Pathways\n`;
+            result.learning_pathways.forEach((pathway: any) => {
+                content += `### ${pathway.pathway_name}\n**Estimated Time**: ${pathway.estimated_time} | **Difficulty**: ${pathway.difficulty}\n\n`;
+                pathway.steps.forEach((step: string, index: number) => {
+                    content += `${index + 1}. ${step}\n`;
+                });
+                content += '\n';
+            });
+        }
+
+        // Add source reference
+        content += `---\n\n> [!source] Source\n> ${url}\n`;
         
-        // Add source reference (only once)
-        summary += `---\n\n> [!source] Source\n> ${url}\n`;
-        
-        return summary;
+        return content;
     }
 
     private async getPromptForPass(passIndex: number, intent: string): Promise<string> {

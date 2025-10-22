@@ -546,8 +546,9 @@ class SummaryView extends ItemView {
         const urlError = inputCard.createEl('div', { cls: 'brain-error-message' });
         urlError.style.display = 'none';
 
-        // Generate button
+        // Generate button (hidden - using clean flow now)
         this.generateButton = inputCard.createEl('button', { text: '✨ Generate Note', cls: 'brain-generate-button' }) as HTMLButtonElement;
+        this.generateButton.style.display = 'none';
 
         // Clean flow test button
         const cleanButton = inputCard.createEl('button', { text: '🧪 Test Clean Flow', cls: 'brain-clean-button' }) as HTMLButtonElement;
