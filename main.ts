@@ -110,7 +110,7 @@ class SummaryView extends ItemView {
             serviceIntegration: !!this.plugin.serviceIntegration,
             serviceIntegrationReady: this.plugin.serviceIntegration?.isReady()
         });
-        
+
         // Check if services are ready
         if (this.plugin.llmService && this.plugin.traceManager) {
             this.plugin.noteProcessor = new NoteProcessor(
@@ -1944,11 +1944,11 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
                     serviceIntegration: !!this.plugin.serviceIntegration,
                     serviceIntegrationReady: this.plugin.serviceIntegration?.isReady()
                 });
-                
+
                 // Force service initialization
                 try {
                     await this.plugin.initializeServices();
-                    
+
                     // Try again after forced initialization
                     if (this.plugin.llmService && this.plugin.traceManager) {
                         this.plugin.noteProcessor = new NoteProcessor(

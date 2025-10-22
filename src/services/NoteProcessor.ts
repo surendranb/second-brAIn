@@ -298,14 +298,47 @@ export class NoteProcessor {
 
             // Parse and merge results
             try {
+                console.log(`[NoteProcessor] AI Pass ${i + 1} raw response:`, response.text.substring(0, 200) + '...');
                 const passResult = JSON.parse(response.text);
                 fullResult = { ...fullResult, ...passResult };
+                console.log(`[NoteProcessor] AI Pass ${i + 1} parsed successfully:`, Object.keys(passResult));
             } catch (error) {
                 console.warn(`[NoteProcessor] Failed to parse AI response for pass ${i + 1}:`, error);
+                console.log(`[NoteProcessor] Raw response that failed to parse:`, response.text);
+                
+                // Try to extract basic info even if JSON parsing fails
+                if (i === 0 && response.text) { // First pass should have title
+                    const titleMatch = response.text.match(/title["\s]*:[\s"]*([^"}\n]+)/i);
+                    if (titleMatch) {
+                        fullResult.title = titleMatch[1].trim();
+                        console.log(`[NoteProcessor] Extracted title from failed JSON:`, fullResult.title);
+                    }
+                }
+                
                 // Continue with next pass
             }
         }
 
+        // Ensure we have basic structure even if parsing failed
+        if (!fullResult.title) {
+            // Try to extract title from URL or content
+            const urlTitle = input.url.split('/').pop()?.replace(/[^a-zA-Z0-9\s]/g, ' ').trim();
+            fullResult.title = urlTitle || 'Extracted Content';
+            console.log(`[NoteProcessor] Using fallback title:`, fullResult.title);
+        }
+        
+        if (!fullResult.summary) {
+            fullResult.summary = `# ${fullResult.title}\n\nContent extracted from: ${input.url}\n\n*Note: AI analysis failed to generate structured content. Raw content may need manual review.*`;
+            console.log(`[NoteProcessor] Using fallback summary`);
+        }
+        
+        console.log(`[NoteProcessor] Final analysis result:`, {
+            title: fullResult.title,
+            hasHierarchy: !!fullResult.hierarchy,
+            hasSummary: !!fullResult.summary,
+            hasMetadata: !!fullResult.metadata
+        });
+        
         return fullResult;
     }
 
