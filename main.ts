@@ -9,6 +9,7 @@ import { MOCIntelligence } from './moc-intelligence';
 import { MOCManager } from './moc-manager';
 import { HierarchyAnalyzer } from './hierarchy-analyzer';
 import { PluginIntegration, LLMService, TraceManager } from './src/services';
+import { NoteProcessor } from './src/services/NoteProcessor';
 import { 
     sanitizeFileName, 
     findUniqueFileName, 
@@ -517,6 +518,9 @@ class SummaryView extends ItemView {
 
         // Generate button
         this.generateButton = inputCard.createEl('button', { text: '✨ Generate Note', cls: 'brain-generate-button' }) as HTMLButtonElement;
+        
+        // Clean flow test button
+        const cleanButton = inputCard.createEl('button', { text: '🧪 Test Clean Flow', cls: 'brain-clean-button' }) as HTMLButtonElement;
 
         // Progress Card
         const progressCard = mainContainer.createEl('div', { cls: 'brain-card brain-progress-card' });
@@ -606,6 +610,32 @@ class SummaryView extends ItemView {
                     return;
                 }
                 this.startNoteOrganization();
+            }
+        });
+
+        // Clean flow button logic
+        cleanButton.addEventListener('click', async () => {
+            urlError.style.display = 'none';
+            this.alternativesButton.style.display = 'none';
+            this.retryButton.style.display = 'none';
+            this.statusMessage.innerText = '';
+            
+            // Validate intent selection
+            if (!this.intentDropdown.value) {
+                this.showError(urlError, 'Please select a processing intent.');
+                this.intentDropdown.focus();
+                return;
+            }
+
+            if (this.urlModeRadio.checked) {
+                if (!this.urlInput.value) {
+                    this.showError(urlError, 'Please enter a URL.');
+                    this.urlInput.focus();
+                    return;
+                }
+                this.startNoteGenerationClean();
+            } else {
+                new Notice('Clean flow currently only supports URL mode.');
             }
         });
 
@@ -794,6 +824,35 @@ class SummaryView extends ItemView {
             }
 
             .brain-generate-button:active {
+                transform: translateY(0);
+            }
+
+            .brain-clean-button {
+                width: 100%;
+                padding: 12px 20px;
+                margin-top: 8px;
+                background: var(--color-orange);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+            }
+
+            .brain-clean-button:hover {
+                background: var(--color-orange-hover, #e67e22);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+            }
+
+            .brain-clean-button:active {
+                background: var(--color-orange);
                 transform: translateY(0);
             }
 
@@ -1818,6 +1877,70 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             // Determine which step the error occurred in, if possible.
             // For now, assume it's after fetching if it reaches here.
             this.updateStatusSteps(1, 'Error occurred: ' + errorMessage, true);
+        }
+    }
+
+    // Clean NoteProcessor implementation
+    private async startNoteGenerationClean() {
+        console.log('[NoteProcessor] Starting clean note generation...');
+        
+        const url = this.urlInput.value;
+        const prompt = this.promptInput.value;
+        const selectedIntent = this.intentDropdown.value as ProcessingIntent;
+
+        if (!url) {
+            new Notice('Please enter a URL.');
+            return;
+        }
+
+        // Check if NoteProcessor is available
+        if (!this.plugin.noteProcessor) {
+            new Notice('NoteProcessor not initialized. Please check your settings.');
+            return;
+        }
+
+        // Reset status steps to match the 10-step flow
+        this.statusSteps = [
+            { label: '1. Extract Content', state: 'idle' },
+            { label: '2. Start Trace & Span', state: 'idle' },
+            { label: '3. AI Analysis (5 passes)', state: 'idle' },
+            { label: '4. Log Generations', state: 'idle' },
+            { label: '5. Create Note', state: 'idle' },
+            { label: '6. Start MOC Cascade Span', state: 'idle' },
+            { label: '7. MOC AI Updates', state: 'idle' },
+            { label: '8. End Trace', state: 'idle' }
+        ];
+
+        // Clear UI
+        if (!this.resultArea) {
+            this.resultArea = this.containerEl.createEl('div', { cls: 'ai-summarizer-result' }) as HTMLDivElement;
+        }
+        this.resultArea.innerText = '';
+
+        try {
+            // Set up status callback to update UI
+            this.plugin.noteProcessor.setStatusCallback((step: number, message: string, isError?: boolean) => {
+                this.updateStatusSteps(step, message, isError);
+            });
+
+            // Use the clean NoteProcessor abstraction
+            const result = await this.plugin.noteProcessor.processURL({
+                url,
+                prompt,
+                intent: selectedIntent
+            });
+
+            // Update final status
+            this.updateStatusSteps(7, 'Complete! Note created and organized.');
+            
+            // Open the created note
+            await this.app.workspace.getLeaf().openFile(result.note);
+            
+            new Notice(`Note created successfully! Trace ID: ${result.traceId}`);
+
+        } catch (error) {
+            console.error('[NoteProcessor] Error:', error);
+            new Notice('Failed to process URL: ' + error.message);
         }
     }
 
@@ -3808,6 +3931,7 @@ class AISummarizerPlugin extends Plugin {
     private serviceIntegration: PluginIntegration;
     private llmService?: LLMService;
     private traceManager?: TraceManager;
+    public noteProcessor?: NoteProcessor;
 
     async onload() {
         await this.loadSettings();
@@ -3957,6 +4081,12 @@ class AISummarizerPlugin extends Plugin {
         if (this.serviceIntegration && this.serviceIntegration.isReady()) {
             this.llmService = this.serviceIntegration.getLLMService();
             this.traceManager = this.serviceIntegration.getTraceManager();
+            
+            // Initialize NoteProcessor with services
+            if (this.llmService && this.traceManager) {
+                this.noteProcessor = new NoteProcessor(this.traceManager, this.llmService, this);
+                console.log('[Plugin] ✅ NoteProcessor initialized');
+            }
         }
     }
     
