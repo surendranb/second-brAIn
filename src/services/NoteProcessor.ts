@@ -288,8 +288,8 @@ export class NoteProcessor {
 
             // Add delay between AI calls to prevent rate limiting (except for first call)
             if (i > 0) {
-                console.log(`[NoteProcessor] Waiting 5 seconds before next AI call to prevent rate limiting...`);
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                console.log(`[NoteProcessor] Waiting 10 seconds before next AI call to prevent rate limiting...`);
+                await new Promise(resolve => setTimeout(resolve, 10000));
             }
 
             // Get prompt for this pass
@@ -460,8 +460,8 @@ export class NoteProcessor {
                 
                 // Add delay between MOC AI calls to prevent rate limiting (except for first call)
                 if (i > 0) {
-                    console.log(`[NoteProcessor] Waiting 5 seconds before next MOC AI call to prevent rate limiting...`);
-                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    console.log(`[NoteProcessor] Waiting 10 seconds before next MOC AI call to prevent rate limiting...`);
+                    await new Promise(resolve => setTimeout(resolve, 10000));
                 }
                 
                 // Call AI to update MOC with intelligence
