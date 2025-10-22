@@ -99,6 +99,210 @@ class SummaryView extends ItemView {
         this.promptLoader = new PromptLoader();
     }
 
+    /**
+     * Get TraceManager from plugin (with fallback)
+     */
+    private getTraceManager(): TraceManager | null {
+        return this.plugin.getTraceManager();
+    }
+
+    /**
+     * Get LLMService from plugin (with fallback)
+     */
+    private getLLMService(): LLMService | null {
+        return this.plugin.getLLMService();
+    }
+
+    /**
+     * Modern AI request with integrated tracing and usage tracking
+     * This will gradually replace the legacy makeTracedAIRequest method
+     */
+    private async makeModernAIRequest(prompt: string, metadata: any = {}): Promise<any> {
+        const traceManager = this.getTraceManager();
+        const llmService = this.getLLMService();
+        
+        // Fallback to legacy method if services not available
+        if (!traceManager || !llmService) {
+            console.warn('[AI Request] Modern services not available, using legacy method');
+            return this.makeTracedAIRequest(prompt, metadata);
+        }
+
+        const model = this.modelDropdown?.value || 'gemini-2.5-flash';
+        const request = {
+            prompt,
+            model,
+            temperature: 0.7,
+            maxTokens: 4000,
+            metadata: {
+                pass: metadata.pass || 'unknown',
+                intent: metadata.intent || 'unknown',
+                url: metadata.url || 'unknown'
+            }
+        };
+
+        try {
+            console.log(`[Modern AI] Starting request - Pass: ${metadata.pass || 'unknown'}, Model: ${model}`);
+            
+            // Use TraceManager for automatic tracing
+            const traceContext = this.currentTraceId ? { traceId: this.currentTraceId } : undefined;
+            const response = await traceManager.generateText(request, traceContext);
+
+            // Update usage statistics using modern approach
+            this.updateUsageStats(
+                response.usage?.promptTokens || estimateTokens(prompt),
+                response.usage?.completionTokens || estimateTokens(response.text),
+                model
+            );
+
+            console.log(`[Modern AI] Request completed successfully for ${metadata.pass}`);
+            return response.text;
+        } catch (error) {
+            console.error('[Modern AI] Request failed, falling back to legacy:', error);
+            // Fallback to legacy method
+            return this.makeTracedAIRequest(prompt, metadata);
+        }
+    }
+
+    /**
+     * Modern trace start - replaces startLangfuseTrace
+     */
+    private async startModernTrace(metadata: any = {}): Promise<string | null> {
+        const traceManager = this.getTraceManager();
+        
+        if (!traceManager) {
+            console.warn('[Modern Trace] TraceManager not available, using legacy method');
+            await this.startLangfuseTrace(metadata);
+            return this.currentTraceId;
+        }
+
+        try {
+            const traceId = await traceManager.startTrace({
+                name: 'brAIn-note-generation',
+                input: {
+                    url: metadata.url || 'unknown',
+                    intent: metadata.intent || 'unknown'
+                },
+                metadata: {
+                    provider: this.plugin.settings.provider,
+                    model: this.modelDropdown?.value || 'unknown',
+                    intent: metadata.intent || 'unknown',
+                    url: metadata.url || 'unknown',
+                    timestamp: new Date().toISOString()
+                }
+            });
+
+            this.currentTraceId = traceId;
+            console.log(`[Modern Trace] Started trace: ${traceId}`);
+            return traceId;
+        } catch (error) {
+            console.error('[Modern Trace] Failed to start trace, falling back to legacy:', error);
+            await this.startLangfuseTrace(metadata);
+            return this.currentTraceId;
+        }
+    }
+
+    /**
+     * Modern trace end - replaces endLangfuseTrace
+     */
+    private async endModernTrace(): Promise<void> {
+        const traceManager = this.getTraceManager();
+        
+        if (!traceManager || !this.currentTraceId) {
+            console.warn('[Modern Trace] TraceManager not available or no active trace, using legacy method');
+            await this.endLangfuseTrace();
+            return;
+        }
+
+        try {
+            await traceManager.endTrace(this.currentTraceId, {
+                output: 'Note generation completed',
+                metadata: {
+                    endTime: new Date().toISOString(),
+                    status: 'completed'
+                }
+            });
+
+            console.log(`[Modern Trace] Ended trace: ${this.currentTraceId}`);
+            this.currentTraceId = null;
+        } catch (error) {
+            console.error('[Modern Trace] Failed to end trace, falling back to legacy:', error);
+            await this.endLangfuseTrace();
+        }
+    }
+
+    /**
+     * Modern file operations - replaces scattered file creation logic
+     * This will gradually replace direct vault operations
+     */
+    private async createNoteWithModernFileOps(
+        folderPath: string, 
+        fileName: string, 
+        fileContent: string
+    ): Promise<TFile | null> {
+        try {
+            console.log('[Modern FileOps] Creating note:', { folderPath, fileName });
+
+            // Ensure folder exists
+            await this.ensureFolderExists(folderPath);
+
+            // Handle file name conflicts
+            const finalFileName = await findUniqueFileName(this.app, folderPath, fileName);
+            if (finalFileName !== fileName) {
+                console.log('[Modern FileOps] File name conflict resolved:', fileName, '→', finalFileName);
+            }
+
+            // Create the file
+            const newFile = await this.app.vault.create(`${folderPath}/${finalFileName}`, fileContent);
+            console.log('[Modern FileOps] ✅ Note created successfully:', `${folderPath}/${finalFileName}`);
+
+            return newFile;
+        } catch (error) {
+            console.error('[Modern FileOps] ❌ Failed to create note:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Modern folder creation - replaces direct vault.createFolder calls
+     */
+    private async ensureFolderExists(folderPath: string): Promise<void> {
+        try {
+            const folder = this.app.vault.getAbstractFileByPath(folderPath);
+            if (!folder) {
+                await this.app.vault.createFolder(folderPath);
+                console.log('[Modern FileOps] ✅ Folder created:', folderPath);
+            }
+        } catch (error) {
+            console.error('[Modern FileOps] ❌ Failed to create folder:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Modern debug file operations - replaces saveDebugFile
+     */
+    private async saveDebugFileModern(filename: string, content: string, subfolder?: string): Promise<void> {
+        if (!this.plugin.settings.debug.enabled) return;
+
+        try {
+            const debugFolder = this.plugin.settings.debug.debugFolder;
+            const fullPath = subfolder ? `${debugFolder}/${subfolder}` : debugFolder;
+
+            // Use modern folder creation
+            await this.ensureFolderExists(fullPath);
+
+            // Create timestamp for unique filenames
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fullFilename = `${timestamp}_${filename}`;
+            const filePath = `${fullPath}/${fullFilename}`;
+
+            await this.app.vault.create(filePath, content);
+            console.log('[Modern FileOps] ✅ Debug file saved:', filePath);
+        } catch (error) {
+            console.error('[Modern FileOps] ❌ Failed to save debug file:', error);
+        }
+    }
+
     getViewType() {
         return VIEW_TYPE_SUMMARY;
     }
