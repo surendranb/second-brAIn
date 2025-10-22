@@ -22,13 +22,15 @@ export class NoteProcessor {
     private traceManager: TraceManager;
     private llmService: LLMService;
     private plugin: any; // Plugin reference for file operations
+    private summaryView: any; // SummaryView reference for note creation
     private statusCallback?: StatusCallback;
     private promptLoader: PromptLoader;
 
-    constructor(traceManager: TraceManager, llmService: LLMService, plugin: any) {
+    constructor(traceManager: TraceManager, llmService: LLMService, plugin: any, summaryView: any) {
         this.traceManager = traceManager;
         this.llmService = llmService;
         this.plugin = plugin;
+        this.summaryView = summaryView;
         this.promptLoader = new PromptLoader();
     }
 
@@ -331,8 +333,8 @@ export class NoteProcessor {
     private async createNote(analysisResult: any, url: string): Promise<TFile> {
         console.log('[NoteProcessor] Creating note:', analysisResult.title);
         
-        // Use existing note creation logic
-        return await this.plugin.createNoteWithSummary(
+        // Use existing note creation logic from SummaryView
+        return await this.summaryView.createNoteWithSummary(
             analysisResult.summary || 'No summary generated',
             analysisResult.title || 'Untitled Note',
             url,

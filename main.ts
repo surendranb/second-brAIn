@@ -4082,11 +4082,9 @@ class AISummarizerPlugin extends Plugin {
             this.llmService = this.serviceIntegration.getLLMService();
             this.traceManager = this.serviceIntegration.getTraceManager();
             
-            // Initialize NoteProcessor with services
-            if (this.llmService && this.traceManager) {
-                this.noteProcessor = new NoteProcessor(this.traceManager, this.llmService, this);
-                console.log('[Plugin] ✅ NoteProcessor initialized');
-            }
+            
+            console.log('[Plugin] ✅ Services ready for NoteProcessor initialization');
+            // Note: NoteProcessor will be created by each SummaryView instance
         }
     }
     
