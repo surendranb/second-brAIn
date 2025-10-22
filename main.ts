@@ -3577,17 +3577,11 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 
                     updateMOCStatus('Knowledge map ready');
                 } else {
-                    console.log('[CreateNote] No AI hierarchy found, falling back to heuristic analysis...');
-                    updateMOCStatus('Analyzing content for organization...');
-                    hierarchyData = await this.plugin.hierarchyAnalyzer.analyzeContent(metadata, title, summary);
-                    updateMOCStatus('Creating knowledge map...');
-                    mocPath = await this.plugin.mocManager.ensureMOCExists(hierarchyData.hierarchy);
-
-                    // Update folder path to place note in MOC hierarchy directory
-                    folderPath = this.plugin.mocManager.getMostSpecificMOCDirectory(hierarchyData.hierarchy);
-                    console.log('[CreateNote] Note will be saved in:', folderPath);
-
-                    updateMOCStatus('Knowledge map ready');
+                    console.log('[CreateNote] No AI hierarchy found - MOC creation skipped');
+                    updateMOCStatus('AI hierarchy generation failed - note will be saved without MOC organization');
+                    // No MOC creation if AI fails to generate hierarchy
+                    hierarchyData = null;
+                    mocPath = null;
                 }
             } catch (error) {
                 console.error('[CreateNote] MOC analysis failed:', error);
@@ -3687,6 +3681,15 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
                     console.log('[CreateNote] Adding note to MOC...');
                     await this.plugin.mocManager.updateMOC(mocPath, newFile.path, title, hierarchyData?.learning_context);
                     console.log('[CreateNote] Note successfully added to MOC');
+                    
+                    // Cascade intelligence updates upward through hierarchy
+                    if (hierarchyData?.hierarchy) {
+                        updateMOCStatus('Updating knowledge hierarchy intelligence...');
+                        console.log('[CreateNote] Starting cascading intelligence update...');
+                        await this.plugin.mocManager.cascadeIntelligenceUpward(hierarchyData.hierarchy);
+                        console.log('[CreateNote] Cascading intelligence update complete');
+                    }
+                    
                     updateMOCStatus('Note organized in knowledge map!');
                 } catch (error) {
                     console.error('[CreateNote] Failed to update MOC:', error);

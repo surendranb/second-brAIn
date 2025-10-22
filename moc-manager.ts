@@ -469,4 +469,32 @@ ${navigationSection}## Learning Paths
             console.error('[MOCManager] ❌ Error updating MOC:', error);
         }
     }
+
+    // Cascade intelligence updates from most specific MOC upward through hierarchy
+    async cascadeIntelligenceUpward(hierarchy: MOCHierarchy): Promise<void> {
+        console.log('[MOCManager] 🔄 Starting cascading intelligence update...');
+        
+        try {
+            // Get all MOC levels in hierarchy
+            const mocStructure = this.createHierarchicalStructure(hierarchy);
+            
+            // Update intelligence for each level, starting from most specific and going up
+            for (let i = mocStructure.length - 1; i >= 0; i--) {
+                const levelInfo = mocStructure[i];
+                console.log(`[MOCManager] 🧠 Updating intelligence for Level ${levelInfo.level}: ${levelInfo.title}`);
+                
+                try {
+                    await this.mocIntelligence.updateMOCWithIntelligence(levelInfo.path);
+                    console.log(`[MOCManager] ✅ Intelligence updated for Level ${levelInfo.level}`);
+                } catch (error) {
+                    console.error(`[MOCManager] ❌ Failed to update intelligence for Level ${levelInfo.level}:`, error);
+                    // Continue with other levels even if one fails
+                }
+            }
+            
+            console.log('[MOCManager] ✅ Cascading intelligence update complete');
+        } catch (error) {
+            console.error('[MOCManager] ❌ Error in cascading intelligence update:', error);
+        }
+    }
 }

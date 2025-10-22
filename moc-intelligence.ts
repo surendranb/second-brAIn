@@ -40,7 +40,7 @@ export class MOCIntelligence {
 
             console.log('[MOCIntelligence] ✅ Found', notes.length, 'notes - proceeding with analysis');
             // Analyze the collected notes
-            return await this.synthesizeNotes(notes);
+            return await this.synthesizeNotes(notes, mocPath);
         } catch (error) {
             console.error('[MOCIntelligence] Error analyzing MOC content:', error);
             // NO FALLBACK - return empty analysis to avoid fake data
@@ -49,7 +49,7 @@ export class MOCIntelligence {
     }
 
     /**
-     * Extracts all notes referenced in a MOC file
+     * Extracts all notes referenced in a MOC file AND notes from child MOCs
      */
     private async extractNotesFromMOC(mocPath: string): Promise<MOCNote[]> {
         const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
@@ -64,24 +64,61 @@ export class MOCIntelligence {
         console.log('[MOCIntelligence] 🔍 Extracting notes from MOC:', mocPath);
         console.log('[MOCIntelligence] 📄 MOC content length:', mocContent.length);
 
-        // Extract note links from the MOC content - look in Notes section specifically
+        // 1. Extract direct notes from Notes section
         const notesSection = mocContent.match(/## Notes[\s\S]*?(?=\n##|\n---|\n\*|$)/);
-        if (!notesSection) {
-            console.log('[MOCIntelligence] ❌ No Notes section found in MOC');
-            return [];
+        if (notesSection) {
+            console.log('[MOCIntelligence] 📋 Found Notes section:', notesSection[0].substring(0, 200) + '...');
+            
+            const noteLinks = notesSection[0].match(/- \[\[([^\]]+)\]\]/g);
+            if (noteLinks) {
+                console.log('[MOCIntelligence] 🔗 Found direct note links:', noteLinks);
+                await this.processNoteLinks(noteLinks, notes);
+            }
         }
 
-        console.log('[MOCIntelligence] 📋 Found Notes section:', notesSection[0].substring(0, 200) + '...');
-
-        // Extract all note links from the Notes section
-        const noteLinks = notesSection[0].match(/- \[\[([^\]]+)\]\]/g);
-        if (!noteLinks) {
-            console.log('[MOCIntelligence] ❌ No note links found in Notes section');
-            return [];
+        // 2. Extract notes from child MOCs (Sub-Levels section)
+        const subLevelsSection = mocContent.match(/## 🔽 Sub-Levels[\s\S]*?(?=\n##|\n---|\n\*|$)/);
+        if (subLevelsSection) {
+            console.log('[MOCIntelligence] 📋 Found Sub-Levels section - analyzing child MOCs...');
+            
+            const childMOCLinks = subLevelsSection[0].match(/- \[\[([^\]]+)\]\]/g);
+            if (childMOCLinks) {
+                console.log('[MOCIntelligence] 🔗 Found child MOC links:', childMOCLinks);
+                
+                for (const link of childMOCLinks) {
+                    const childMOCTitle = link.match(/\[\[([^\]]+)\]\]/)?.[1];
+                    if (!childMOCTitle) continue;
+                    
+                    console.log('[MOCIntelligence] 🔍 Analyzing child MOC:', childMOCTitle);
+                    
+                    // Find the child MOC file
+                    const childMOCFile = this.findNoteByTitle(childMOCTitle);
+                    if (childMOCFile) {
+                        console.log('[MOCIntelligence] ✅ Found child MOC file:', childMOCFile.path);
+                        
+                        // Recursively extract notes from child MOC
+                        const childNotes = await this.extractNotesFromMOC(childMOCFile.path);
+                        notes.push(...childNotes);
+                        console.log('[MOCIntelligence] 📊 Added', childNotes.length, 'notes from child MOC');
+                    } else {
+                        console.log('[MOCIntelligence] ❌ Child MOC file not found:', childMOCTitle);
+                    }
+                }
+            }
         }
 
-        console.log('[MOCIntelligence] 🔗 Found note links:', noteLinks);
+        if (notes.length === 0) {
+            console.log('[MOCIntelligence] ❌ No notes found in MOC or child MOCs');
+        }
 
+        console.log('[MOCIntelligence] 📊 Total notes extracted:', notes.length);
+        return notes;
+    }
+
+    /**
+     * Process note links and add them to the notes array
+     */
+    private async processNoteLinks(noteLinks: string[], notes: MOCNote[]): Promise<void> {
         for (const link of noteLinks) {
             const noteTitle = link.match(/\[\[([^\]]+)\]\]/)?.[1];
             if (!noteTitle) continue;
@@ -106,9 +143,6 @@ export class MOCIntelligence {
                 console.log('[MOCIntelligence] ❌ Note file not found:', noteTitle);
             }
         }
-
-        console.log('[MOCIntelligence] 📊 Extracted', notes.length, 'notes from MOC');
-        return notes;
     }
 
     /**
@@ -197,9 +231,9 @@ export class MOCIntelligence {
     }
 
     /**
-     * Synthesizes multiple notes into MOC analysis - NO FALLBACK STRATEGY
+     * Synthesizes multiple notes into MOC analysis - Uses AI for intelligent updates
      */
-    private async synthesizeNotes(notes: MOCNote[]): Promise<MOCAnalysis> {
+    private async synthesizeNotes(notes: MOCNote[], mocPath: string): Promise<MOCAnalysis> {
         console.log('[MOCIntelligence] 🧠 Synthesizing', notes.length, 'notes');
         
         if (notes.length === 0) {
@@ -218,18 +252,68 @@ export class MOCIntelligence {
         console.log('[MOCIntelligence] 📊 Note summaries prepared:', noteSummaries.length);
         console.log('[MOCIntelligence] 🏷️ Topics found:', noteSummaries.flatMap(s => s.keyTopics).slice(0, 10));
 
-        // ONLY use accurate analysis based on actual notes found - NO FALLBACK
-        return this.generateAccurateAnalysisFromNotes(notes, noteSummaries);
+        // Use AI for intelligent MOC update (not rewrite)
+        try {
+            console.log('[MOCIntelligence] 🤖 Using AI to update MOC intelligence...');
+            
+            // Get existing MOC content for context
+            const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
+            const existingContent = mocFile ? await this.app.vault.read(mocFile) : '';
+            
+            return await this.generateAISynthesis(noteSummaries, existingContent);
+        } catch (error) {
+            console.error('[MOCIntelligence] ❌ AI update failed, falling back to basic analysis:', error);
+            return this.generateAccurateAnalysisFromNotes(notes, noteSummaries);
+        }
     }
 
     /**
-     * Creates a synthesis prompt for AI analysis
+     * Use AI to UPDATE existing MOC intelligence (not rewrite)
      */
-    private createSynthesisPrompt(noteSummaries: any[]): string {
-        return `
-TASK: Analyze the following collection of notes and create a comprehensive MOC synthesis.
+    private async generateAISynthesis(noteSummaries: any[], existingMOCContent?: string): Promise<MOCAnalysis> {
+        const prompt = this.createUpdatePrompt(noteSummaries, existingMOCContent);
+        
+        // Make AI request through the plugin's AI service
+        const aiResponse = await this.makeAIRequest(prompt);
+        
+        console.log('[MOCIntelligence] 🤖 AI update response received');
+        
+        // Parse AI response
+        if (typeof aiResponse === 'object' && aiResponse.overview) {
+            return {
+                overview: aiResponse.overview || '',
+                keyThemes: Array.isArray(aiResponse.keyThemes) ? aiResponse.keyThemes : [],
+                conceptualRelationships: aiResponse.conceptualRelationships || '',
+                learningProgress: aiResponse.learningProgress || '',
+                knowledgeGaps: Array.isArray(aiResponse.knowledgeGaps) ? aiResponse.knowledgeGaps : [],
+                crossDomainConnections: Array.isArray(aiResponse.crossDomainConnections) ? aiResponse.crossDomainConnections : [],
+                synthesizedInsights: Array.isArray(aiResponse.synthesizedInsights) ? aiResponse.synthesizedInsights : []
+            };
+        } else {
+            throw new Error('Invalid AI response format');
+        }
+    }
 
-NOTES TO ANALYZE:
+
+
+    /**
+     * Creates an intelligent UPDATE prompt (not rewrite) for MOC analysis
+     */
+    private createUpdatePrompt(noteSummaries: any[], existingMOCContent?: string): string {
+        const existingIntelligence = this.extractExistingIntelligence(existingMOCContent || '');
+        
+        return `
+TASK: UPDATE (don't rewrite) the existing MOC intelligence by incorporating new notes while preserving valuable existing insights.
+
+EXISTING MOC INTELLIGENCE:
+${existingIntelligence ? `
+Current Overview: ${existingIntelligence.overview}
+Current Key Themes: ${existingIntelligence.keyThemes.join(', ')}
+Current Insights: ${existingIntelligence.insights.join('; ')}
+Current Knowledge Gaps: ${existingIntelligence.gaps.join(', ')}
+` : 'No existing intelligence found - create new analysis.'}
+
+NEW NOTES TO INCORPORATE:
 ${noteSummaries.map(note => `
 Title: ${note.title}
 Summary: ${note.summary}
@@ -237,17 +321,74 @@ Key Topics: ${note.keyTopics.join(', ')}
 Complexity: ${note.complexity}
 `).join('\n')}
 
-GENERATE:
-1. OVERVIEW: 2-3 sentences explaining what this collection of knowledge covers
-2. KEY THEMES: 3-5 main themes that emerge across the notes
-3. CONCEPTUAL RELATIONSHIPS: How the concepts connect and build on each other
-4. LEARNING PROGRESS: What understanding has been built and what's still developing
-5. KNOWLEDGE GAPS: What important aspects are missing or need more exploration
-6. CROSS-DOMAIN CONNECTIONS: How this knowledge connects to other fields
-7. SYNTHESIZED INSIGHTS: 3-5 key insights that emerge from combining these sources
+INSTRUCTIONS:
+- PRESERVE valuable existing insights and themes
+- INTEGRATE new knowledge from the notes
+- UPDATE statistics (note counts, complexity distribution)
+- ENHANCE existing themes with new perspectives
+- IDENTIFY new cross-domain connections
+- REFINE knowledge gaps based on new content
+
+GENERATE UPDATED:
+1. OVERVIEW: Enhanced overview incorporating new knowledge
+2. KEY THEMES: Updated themes (preserve existing + add new)
+3. CONCEPTUAL RELATIONSHIPS: How concepts connect (existing + new)
+4. LEARNING PROGRESS: Updated progress assessment
+5. KNOWLEDGE GAPS: Refined gaps (remove filled gaps, add new ones)
+6. CROSS-DOMAIN CONNECTIONS: Enhanced connections (existing + new)
+7. SYNTHESIZED INSIGHTS: Updated insights (preserve valuable + add new)
 
 Return as JSON with these exact keys: overview, keyThemes, conceptualRelationships, learningProgress, knowledgeGaps, crossDomainConnections, synthesizedInsights
 `;
+    }
+
+    /**
+     * Extract existing intelligence from MOC content for AI context
+     */
+    private extractExistingIntelligence(mocContent: string): any {
+        const overview = mocContent.match(/## Overview\n(.*?)(?=\n##|\n---|\n\*|$)/s)?.[1]?.trim() || '';
+        
+        const themesMatch = mocContent.match(/## Key Themes\n([\s\S]*?)(?=\n##|\n---|\n\*|$)/);
+        const keyThemes = themesMatch ? 
+            themesMatch[1].match(/- \*\*(.*?)\*\*/g)?.map(t => t.replace(/- \*\*(.*?)\*\*/, '$1')) || [] : [];
+        
+        const insightsMatch = mocContent.match(/## Key Insights\n([\s\S]*?)(?=\n##|\n---|\n\*|$)/);
+        const insights = insightsMatch ?
+            insightsMatch[1].match(/- (.*?)$/gm)?.map(i => i.replace(/^- /, '')) || [] : [];
+            
+        const gapsMatch = mocContent.match(/## Knowledge Gaps\n([\s\S]*?)(?=\n##|\n---|\n\*|$)/);
+        const gaps = gapsMatch ?
+            gapsMatch[1].match(/- (.*?)$/gm)?.map(g => g.replace(/^- /, '')) || [] : [];
+        
+        return {
+            overview,
+            keyThemes,
+            insights,
+            gaps
+        };
+    }
+
+    /**
+     * Make AI request through plugin's AI service with proper tracing
+     */
+    private async makeAIRequest(prompt: string): Promise<any> {
+        // Access the AI service through the plugin's view (same as MOCManager)
+        const leaves = this.app.workspace.getLeavesOfType('ai-summarizer-summary');
+        if (leaves.length === 0) {
+            throw new Error('AI Summarizer view not available');
+        }
+
+        const view = leaves[0].view as any;
+        if (!view.makeTracedAIRequest) {
+            throw new Error('AI service not available in view');
+        }
+
+        // Use traced AI request for proper Langfuse integration
+        return await view.makeTracedAIRequest(prompt, {
+            intent: 'moc_intelligence_update',
+            pass: 'moc-cascading-intelligence',
+            operation: 'moc_synthesis'
+        });
     }
 
     /**
@@ -605,11 +746,11 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
             section += `## Key Themes\n${analysis.keyThemes.map(theme => `- **${theme}**`).join('\n')}\n\n`;
         }
 
-        if (analysis.conceptualRelationships && !analysis.conceptualRelationships.includes('Relationships will emerge')) {
+        if (analysis.conceptualRelationships && typeof analysis.conceptualRelationships === 'string' && !analysis.conceptualRelationships.includes('Relationships will emerge')) {
             section += `## Conceptual Relationships\n${analysis.conceptualRelationships}\n\n`;
         }
 
-        if (analysis.learningProgress && !analysis.learningProgress.includes('Beginning to collect')) {
+        if (analysis.learningProgress && typeof analysis.learningProgress === 'string' && !analysis.learningProgress.includes('Beginning to collect')) {
             section += `## Learning Progress\n${analysis.learningProgress}\n\n`;
         }
 
