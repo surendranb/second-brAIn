@@ -380,8 +380,9 @@ export class NoteProcessor {
         }
         
         if (!fullResult.summary) {
-            fullResult.summary = `# ${fullResult.title}\n\nContent extracted from: ${input.url}\n\n*Note: AI analysis failed to generate structured content. Raw content may need manual review.*`;
-            console.log(`[NoteProcessor] Using fallback summary`);
+            // Create summary from the analysis results
+            fullResult.summary = this.createSummaryFromAnalysis(fullResult, input.url);
+            console.log(`[NoteProcessor] Created summary from analysis results`);
         }
         
         console.log(`[NoteProcessor] Final analysis result:`, {
@@ -392,6 +393,71 @@ export class NoteProcessor {
         });
         
         return fullResult;
+    }
+
+    private createSummaryFromAnalysis(analysisResult: any, url: string): string {
+        const title = analysisResult.title || 'Extracted Content';
+        let summary = `# ${title}\n\n`;
+        
+        // Add overview if available
+        if (analysisResult.overview) {
+            summary += `## Overview\n\n${analysisResult.overview}\n\n`;
+        }
+        
+        // Add context if available
+        if (analysisResult.context) {
+            summary += `## Context\n\n${analysisResult.context}\n\n`;
+        }
+        
+        // Add key facts if available
+        if (analysisResult.key_facts && Array.isArray(analysisResult.key_facts)) {
+            summary += `## Key Facts\n\n`;
+            analysisResult.key_facts.forEach((fact: string, index: number) => {
+                summary += `${index + 1}. ${fact}\n`;
+            });
+            summary += `\n`;
+        }
+        
+        // Add main insights if available
+        if (analysisResult.main_insights && Array.isArray(analysisResult.main_insights)) {
+            summary += `## Main Insights\n\n`;
+            analysisResult.main_insights.forEach((insight: string, index: number) => {
+                summary += `${index + 1}. ${insight}\n`;
+            });
+            summary += `\n`;
+        }
+        
+        // Add perspectives if available
+        if (analysisResult.perspectives && Array.isArray(analysisResult.perspectives)) {
+            summary += `## Different Perspectives\n\n`;
+            analysisResult.perspectives.forEach((perspective: string, index: number) => {
+                summary += `${index + 1}. ${perspective}\n`;
+            });
+            summary += `\n`;
+        }
+        
+        // Add connections if available
+        if (analysisResult.connections && Array.isArray(analysisResult.connections)) {
+            summary += `## Connections & Applications\n\n`;
+            analysisResult.connections.forEach((connection: string, index: number) => {
+                summary += `${index + 1}. ${connection}\n`;
+            });
+            summary += `\n`;
+        }
+        
+        // Add learning paths if available
+        if (analysisResult.learning_paths && Array.isArray(analysisResult.learning_paths)) {
+            summary += `## Learning Paths\n\n`;
+            analysisResult.learning_paths.forEach((path: string, index: number) => {
+                summary += `${index + 1}. ${path}\n`;
+            });
+            summary += `\n`;
+        }
+        
+        // Add source reference
+        summary += `---\n\n> [!source] Source\n> ${url}\n`;
+        
+        return summary;
     }
 
     private async getPromptForPass(passIndex: number, intent: string): Promise<string> {
