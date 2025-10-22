@@ -10,19 +10,19 @@ import { MOCManager } from './moc-manager';
 import { HierarchyAnalyzer } from './hierarchy-analyzer';
 import { PluginIntegration, LLMService, TraceManager } from './src/services';
 import { NoteProcessor } from './src/services/NoteProcessor';
-import { 
-    sanitizeFileName, 
-    findUniqueFileName, 
-    generateId, 
-    extractPlatformFromUrl, 
+import {
+    sanitizeFileName,
+    findUniqueFileName,
+    generateId,
+    extractPlatformFromUrl,
     formatMOCContextForAI,
     estimateTokens,
     calculateCost,
     formatTokens
 } from './src/utils';
-import { 
-    GEMINI_MODELS, 
-    PROCESSING_INTENTS, 
+import {
+    GEMINI_MODELS,
+    PROCESSING_INTENTS,
     DEFAULT_SETTINGS,
     type GeminiModel,
     type ProcessingIntent,
@@ -98,6 +98,33 @@ class SummaryView extends ItemView {
     constructor(leaf: WorkspaceLeaf, private plugin: AISummarizerPlugin) {
         super(leaf);
         this.promptLoader = new PromptLoader();
+
+        // Initialize NoteProcessor when services are ready
+        this.initializeNoteProcessor();
+    }
+
+    private initializeNoteProcessor() {
+        console.log('[SummaryView] Checking services for NoteProcessor initialization...', {
+            llmService: !!this.plugin.llmService,
+            traceManager: !!this.plugin.traceManager,
+            serviceIntegration: !!this.plugin.serviceIntegration,
+            serviceIntegrationReady: this.plugin.serviceIntegration?.isReady()
+        });
+        
+        // Check if services are ready
+        if (this.plugin.llmService && this.plugin.traceManager) {
+            this.plugin.noteProcessor = new NoteProcessor(
+                this.plugin.traceManager,
+                this.plugin.llmService,
+                this.plugin,
+                this // Pass SummaryView instance
+            );
+            console.log('[SummaryView] ✅ NoteProcessor initialized with SummaryView reference');
+        } else {
+            console.log('[SummaryView] Services not ready yet, retrying in 1 second...');
+            // Retry after a short delay if services aren't ready yet
+            setTimeout(() => this.initializeNoteProcessor(), 1000);
+        }
     }
 
     /**
@@ -121,7 +148,7 @@ class SummaryView extends ItemView {
     private async makeModernAIRequest(prompt: string, metadata: any = {}): Promise<any> {
         const traceManager = this.getTraceManager();
         const llmService = this.getLLMService();
-        
+
         // Fallback to legacy method if services not available
         if (!traceManager || !llmService) {
             console.warn('[AI Request] Modern services not available, using legacy method');
@@ -143,7 +170,7 @@ class SummaryView extends ItemView {
 
         try {
             console.log(`[Modern AI] Starting request - Pass: ${metadata.pass || 'unknown'}, Model: ${model}`);
-            
+
             // Use TraceManager for automatic tracing
             const traceContext = this.currentTraceId ? { traceId: this.currentTraceId } : undefined;
             const response = await traceManager.generateText(request, traceContext);
@@ -169,7 +196,7 @@ class SummaryView extends ItemView {
      */
     private async startTrace(metadata: any = {}): Promise<string | null> {
         const traceManager = this.getTraceManager();
-        
+
         if (!traceManager) {
             console.warn('[Trace] TraceManager not available');
             return null;
@@ -206,7 +233,7 @@ class SummaryView extends ItemView {
      */
     private async endTrace(): Promise<void> {
         const traceManager = this.getTraceManager();
-        
+
         if (!traceManager || !this.currentTraceId) {
             console.warn('[Trace] TraceManager not available or no active trace');
             return;
@@ -233,7 +260,7 @@ class SummaryView extends ItemView {
      */
     private async makeTracedAIRequest(prompt: string, metadata: any = {}): Promise<any> {
         const traceManager = this.getTraceManager();
-        
+
         if (!traceManager || !this.currentTraceId) {
             console.warn('[AI] No TraceManager or active trace, using basic AI request');
             return this.makeAIRequestDirect(prompt);
@@ -259,14 +286,14 @@ class SummaryView extends ItemView {
 
         try {
             const response = await traceManager.generateTextWithinTrace(request, traceContext);
-            
+
             // Try to parse JSON response
             try {
                 return JSON.parse(response.text);
             } catch (parseError) {
                 console.log('[AI] JSON parse failed, trying cleanup...');
                 console.log('[AI] Raw response preview:', response.text.substring(0, 200));
-                
+
                 try {
                     const cleanedResponse = this.cleanJsonResponse(response.text);
                     console.log('[AI] Cleaned response preview:', cleanedResponse.substring(0, 200));
@@ -274,7 +301,7 @@ class SummaryView extends ItemView {
                 } catch (cleanupError) {
                     console.error('[AI] Cleanup also failed:', cleanupError.message);
                     console.log('[AI] Failed response:', response.text.substring(0, 500));
-                    
+
                     // Return a basic fallback structure to prevent complete failure
                     return {
                         title: 'AI Response Error',
@@ -309,11 +336,11 @@ class SummaryView extends ItemView {
         };
 
         const response = await llmService.generateText(request);
-        
+
         // Try to parse JSON response
         const jsonMatch = response.text.match(/```(?:json)?\s*([\s\S]*?)```/);
         const jsonText = jsonMatch ? jsonMatch[1].trim() : response.text.trim();
-        
+
         try {
             return JSON.parse(jsonText);
         } catch (parseError) {
@@ -327,8 +354,8 @@ class SummaryView extends ItemView {
      * This will gradually replace direct vault operations
      */
     private async createNoteWithModernFileOps(
-        folderPath: string, 
-        fileName: string, 
+        folderPath: string,
+        fileName: string,
         fileContent: string
     ): Promise<TFile | null> {
         try {
@@ -518,7 +545,7 @@ class SummaryView extends ItemView {
 
         // Generate button
         this.generateButton = inputCard.createEl('button', { text: '✨ Generate Note', cls: 'brain-generate-button' }) as HTMLButtonElement;
-        
+
         // Clean flow test button
         const cleanButton = inputCard.createEl('button', { text: '🧪 Test Clean Flow', cls: 'brain-clean-button' }) as HTMLButtonElement;
 
@@ -619,7 +646,7 @@ class SummaryView extends ItemView {
             this.alternativesButton.style.display = 'none';
             this.retryButton.style.display = 'none';
             this.statusMessage.innerText = '';
-            
+
             // Validate intent selection
             if (!this.intentDropdown.value) {
                 this.showError(urlError, 'Please select a processing intent.');
@@ -1883,20 +1910,65 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
     // Clean NoteProcessor implementation
     private async startNoteGenerationClean() {
         console.log('[NoteProcessor] Starting clean note generation...');
-        
+        console.log('[NoteProcessor] URL:', this.urlInput.value);
+        console.log('[NoteProcessor] Plugin services ready:', !!this.plugin.llmService, !!this.plugin.traceManager);
+        console.log('[NoteProcessor] NoteProcessor exists:', !!this.plugin.noteProcessor);
+
         const url = this.urlInput.value;
         const prompt = this.promptInput.value;
         const selectedIntent = this.intentDropdown.value as ProcessingIntent;
 
         if (!url) {
+            console.log('[NoteProcessor] No URL provided');
             new Notice('Please enter a URL.');
             return;
         }
 
         // Check if NoteProcessor is available
         if (!this.plugin.noteProcessor) {
-            new Notice('NoteProcessor not initialized. Please check your settings.');
-            return;
+            console.log('[NoteProcessor] NoteProcessor not available, trying to initialize...');
+
+            // Try to initialize it now
+            if (this.plugin.llmService && this.plugin.traceManager) {
+                this.plugin.noteProcessor = new NoteProcessor(
+                    this.plugin.traceManager,
+                    this.plugin.llmService,
+                    this.plugin,
+                    this
+                );
+                console.log('[NoteProcessor] ✅ NoteProcessor initialized on-demand');
+            } else {
+                console.log('[NoteProcessor] ❌ Services not ready, forcing initialization...', {
+                    llmService: !!this.plugin.llmService,
+                    traceManager: !!this.plugin.traceManager,
+                    serviceIntegration: !!this.plugin.serviceIntegration,
+                    serviceIntegrationReady: this.plugin.serviceIntegration?.isReady()
+                });
+                
+                // Force service initialization
+                try {
+                    await this.plugin.initializeServices();
+                    
+                    // Try again after forced initialization
+                    if (this.plugin.llmService && this.plugin.traceManager) {
+                        this.plugin.noteProcessor = new NoteProcessor(
+                            this.plugin.traceManager,
+                            this.plugin.llmService,
+                            this.plugin,
+                            this
+                        );
+                        console.log('[NoteProcessor] ✅ NoteProcessor initialized after forced service init');
+                    } else {
+                        console.log('[NoteProcessor] ❌ Services still not ready after forced initialization');
+                        new Notice('Failed to initialize AI services. Please check your API key settings.');
+                        return;
+                    }
+                } catch (error) {
+                    console.error('[NoteProcessor] Failed to initialize services:', error);
+                    new Notice('Failed to initialize AI services. Please check your settings.');
+                    return;
+                }
+            }
         }
 
         // Reset status steps to match the 10-step flow
@@ -1918,24 +1990,27 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
         this.resultArea.innerText = '';
 
         try {
+            console.log('[NoteProcessor] Setting up status callback...');
             // Set up status callback to update UI
             this.plugin.noteProcessor.setStatusCallback((step: number, message: string, isError?: boolean) => {
                 this.updateStatusSteps(step, message, isError);
             });
 
+            console.log('[NoteProcessor] Starting processURL with:', { url, prompt: prompt.substring(0, 50) + '...', intent: selectedIntent });
             // Use the clean NoteProcessor abstraction
             const result = await this.plugin.noteProcessor.processURL({
                 url,
                 prompt,
                 intent: selectedIntent
             });
+            console.log('[NoteProcessor] processURL completed successfully');
 
             // Update final status
             this.updateStatusSteps(7, 'Complete! Note created and organized.');
-            
+
             // Open the created note
             await this.app.workspace.getLeaf().openFile(result.note);
-            
+
             new Notice(`Note created successfully! Trace ID: ${result.traceId}`);
 
         } catch (error) {
@@ -2045,7 +2120,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 temperature: 0.3,
                 maxTokens: 1000
             });
-            
+
             // Parse the response
             return await this.parseHierarchyResponse(response.text);
         }
@@ -2661,7 +2736,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const firstBrace = cleaned.indexOf('{');
         if (firstBrace !== -1) {
             cleaned = cleaned.substring(firstBrace);
-            
+
             // Find the matching closing brace
             let braceCount = 0;
             let endIndex = -1;
@@ -2673,7 +2748,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                     break;
                 }
             }
-            
+
             if (endIndex !== -1) {
                 cleaned = cleaned.substring(0, endIndex + 1);
             }
@@ -3100,7 +3175,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         if (traceManager) {
             const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
             console.log('[SummarizeContent] Using model:', selectedModel);
-            
+
             try {
                 console.log('[SummarizeContent] 🚀 Sending request to AI service');
                 const response = await traceManager.generateText({
@@ -3804,7 +3879,7 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
                     console.log('[CreateNote] Adding note to MOC...');
                     await this.plugin.mocManager.updateMOC(mocPath, newFile.path, title, hierarchyData?.learning_context);
                     console.log('[CreateNote] Note successfully added to MOC');
-                    
+
                     // Cascade intelligence updates upward through hierarchy
                     if (hierarchyData?.hierarchy) {
                         updateMOCStatus('Updating knowledge hierarchy intelligence...');
@@ -3812,7 +3887,7 @@ ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}
                         await this.plugin.mocManager.cascadeIntelligenceUpward(hierarchyData.hierarchy);
                         console.log('[CreateNote] Cascading intelligence update complete');
                     }
-                    
+
                     updateMOCStatus('Note organized in knowledge map!');
                 } catch (error) {
                     console.error('[CreateNote] Failed to update MOC:', error);
@@ -3926,11 +4001,11 @@ class AISummarizerPlugin extends Plugin {
     mocManager: MOCManager;
     hierarchyAnalyzer: HierarchyAnalyzer;
     hierarchyManager: HierarchyManager;
-    
+
     // New modular services
-    private serviceIntegration: PluginIntegration;
-    private llmService?: LLMService;
-    private traceManager?: TraceManager;
+    public serviceIntegration: PluginIntegration;
+    public llmService?: LLMService;
+    public traceManager?: TraceManager;
     public noteProcessor?: NoteProcessor;
 
     async onload() {
@@ -3947,7 +4022,7 @@ class AISummarizerPlugin extends Plugin {
 
             // Connect managers with proper dependency injection
             this.mocManager.setHierarchyManager(this.hierarchyManager);
-            
+
             console.log('[Plugin] MOC components initialized successfully');
         } catch (error) {
             console.error('[Plugin] Failed to initialize MOC components:', error);
@@ -3994,7 +4069,7 @@ class AISummarizerPlugin extends Plugin {
 
     async saveSettings() {
         await this.saveData(this.settings);
-        
+
         // Reinitialize services when settings change
         if (this.serviceIntegration) {
             try {
@@ -4053,19 +4128,19 @@ class AISummarizerPlugin extends Plugin {
             modal.open();
         });
     }
-    
+
     /**
      * Initialize modular services
      */
-    private async initializeServices(): Promise<void> {
+    public async initializeServices(): Promise<void> {
         try {
             console.log('[Plugin] Initializing modular services...');
-            
+
             this.serviceIntegration = new PluginIntegration();
             await this.serviceIntegration.initialize(this.settings);
-            
+
             this.updateServiceReferences();
-            
+
             console.log('[Plugin] ✅ Modular services initialized successfully');
         } catch (error) {
             console.error('[Plugin] ❌ Failed to initialize modular services:', error);
@@ -4073,7 +4148,7 @@ class AISummarizerPlugin extends Plugin {
             new Notice('Failed to initialize AI services. Using legacy mode.');
         }
     }
-    
+
     /**
      * Update service references after initialization or settings change
      */
@@ -4081,33 +4156,33 @@ class AISummarizerPlugin extends Plugin {
         if (this.serviceIntegration && this.serviceIntegration.isReady()) {
             this.llmService = this.serviceIntegration.getLLMService();
             this.traceManager = this.serviceIntegration.getTraceManager();
-            
-            
+
+            // Initialize NoteProcessor with services (will be set per SummaryView instance)
             console.log('[Plugin] ✅ Services ready for NoteProcessor initialization');
             // Note: NoteProcessor will be created by each SummaryView instance
         }
     }
-    
+
     /**
      * Get LLM service (with fallback to legacy mode)
      */
     getLLMService(): LLMService | null {
         return this.llmService || null;
     }
-    
+
     /**
      * Get trace manager (with fallback to legacy mode)
      */
     getTraceManager(): TraceManager | null {
         return this.traceManager || null;
     }
-    
+
     /**
      * Plugin cleanup
      */
     async onunload() {
         console.log('[Plugin] Unloading plugin...');
-        
+
         // Clean up modular services
         if (this.serviceIntegration) {
             try {
@@ -4117,7 +4192,7 @@ class AISummarizerPlugin extends Plugin {
                 console.error('[Plugin] ❌ Error cleaning up services:', error);
             }
         }
-        
+
         console.log('[Plugin] Plugin unloaded');
     }
 }
