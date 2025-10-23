@@ -1,0 +1,285 @@
+/**
+ * BACKUP OF OLD METHODS FROM main.ts
+ * Created: 2025-10-23T04:00:46.845Z
+ * 
+ * These methods were removed from main.ts as part of the modularization effort.
+ * They have been replaced by the modern NoteProcessor service.
+ * 
+ * This backup contains 4 methods totaling 255 lines.
+ */
+
+// ========================================
+// fixJsonStringEscaping( (lines 2407-2427)
+// ========================================
+
+    private fixJsonStringEscaping(jsonString: string): string {
+        try {
+            let fixed = jsonString;
+
+            fixed = fixed.replace(/"([^"]*?)([^\\])"([^"]*?)"/g, (match, before, quote, after) => {
+                if (after && after.length > 0 && !after.startsWith(',') && !after.startsWith('}') && !after.startsWith(']')) {
+                    return `"${before}${quote}\\"${after}"`;
+                }
+                return match;
+            });
+
+            fixed = fixed.replace(/(".*?)\n(.*?")/g, '$1\\n$2');
+
+            fixed = fixed.replace(/(".*?[^\\])\\([^"\\nrt])/g, '$1\\\\$2');
+
+            fixed = fixed.replace(/,\s*([}\]])/g, '$1');
+
+            return fixed;
+        } catch (error) {
+            return jsonString;
+        }
+
+// ========================================
+// aggressiveJsonRepair( (lines 2464-2511)
+// ========================================
+
+    private aggressiveJsonRepair(jsonString: string): string {
+        try {
+            let repaired = jsonString;
+
+            repaired = repaired.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+            const firstBrace = repaired.indexOf('{');
+            if (firstBrace === -1) {
+                throw new Error('No JSON object found');
+            }
+
+            let braceCount = 0;
+            let endPos = firstBrace;
+
+            for (let i = firstBrace; i < repaired.length; i++) {
+                if (repaired[i] === '{') braceCount++;
+                else if (repaired[i] === '}') braceCount--;
+
+                if (braceCount === 0) {
+                    endPos = i;
+                    break;
+                }
+            }
+
+            repaired = repaired.substring(firstBrace, endPos + 1);
+
+            repaired = repaired.replace(/"[^"]*"/g, (match) => {
+                let content = match.slice(1, -1); // Remove surrounding quotes
+                content = content.replace(/"/g, '\\"'); // Escape internal quotes
+                content = content.replace(/\n/g, '\\n'); // Escape newlines
+                content = content.replace(/\r/g, '\\r'); // Escape carriage returns
+                content = content.replace(/\t/g, '\\t'); // Escape tabs
+                content = content.replace(/\\/g, '\\\\'); // Escape backslashes
+                return `"${content}"`;
+            });
+
+            repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+            if (repaired.length > 20000) {
+                repaired = repaired.substring(0, 15000) + '}';
+            }
+
+            return repaired;
+
+        } catch (error) {
+            return '{"error": "Response parsing failed", "fallback": true}';
+        }
+    }
+
+// ========================================
+// aggressiveJSONCleanup( (lines 3069-3090)
+// ========================================
+
+    private aggressiveJSONCleanup(jsonText: string): string {
+        let cleaned = jsonText
+            .replace(/^\uFEFF/, '') // Remove BOM
+            .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
+            .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+            .replace(/[\u2000-\u206F]/g, '') // Remove additional Unicode spaces
+            .replace(/[\u2E00-\u2E7F]/g, ''); // Remove punctuation symbols
+
+        cleaned = cleaned
+            .replace(/,\s*([}\]])/g, '$1')
+            .replace(/([^\\])"([^"]*)"([^,:}\]]*)/g, '$1\\"$2\\"$3')
+            .replace(/\\(?!["\\/bfnrt])/g, '')
+            .replace(/([^"])"\s*,?\s*$/gm, '$1",')
+            .replace(/}\s*[^}]*$/, '}')
+            .replace(/^[^{]*/, '')
+            .trim();
+
+        if (!cleaned.startsWith('{')) {
+            const match = cleaned.match(/\{[\s\S]*\}/);
+            if (match) {
+                cleaned = match[0];
+            }
+
+// ========================================
+// createNoteWithSummary( (lines 3173-3336)
+// ========================================
+
+    private async createNoteWithSummary(summary: string, title: string, url: string, metadata?: any, fullResult?: any, intent?: ProcessingIntent): Promise<TFile | null> {
+        const fileName = sanitizeFileName(title + '.md');
+        let folderPath = this.plugin.settings.mocFolder; // fallback to root MOC folder
+
+        if (intent === 'how_to' && this.plugin.settings.topicFolders.enabled) {
+            const selectedTopic = await this.getSelectedTopic();
+            if (selectedTopic) {
+                try {
+                    if (selectedTopic !== '__new__' && !this.plugin.settings.topicFolders.topics.includes(selectedTopic)) {
+                        await this.addTopicToSettings(selectedTopic);
+                    }
+
+                    folderPath = await this.ensureTopicFolder(selectedTopic);
+                } catch (error) {
+                    new Notice(`Failed to create topic folder. Note will be saved in MOC folder.`);
+                }
+            }
+        }
+
+        let mocPath: string | null = null;
+        let hierarchyData: NoteHierarchyAnalysis | null = null;
+
+        const updateMOCStatus = (message: string) => {
+            this.statusMessage.innerText = message;
+        };
+
+        const useTopicFolders = intent === 'how_to' && this.plugin.settings.topicFolders.enabled && this.topicDropdown.value;
+
+        if (this.plugin.settings.enableMOC && metadata && !useTopicFolders) {
+            try {
+                const aiHierarchy = fullResult?.hierarchy;
+                const aiLearningContext = fullResult?.learning_context;
+
+                if (aiHierarchy && aiHierarchy.level1 && aiHierarchy.level2) {
+                    updateMOCStatus(`Organizing in ${aiHierarchy.level1} > ${aiHierarchy.level2}...`);
+
+                    hierarchyData = {
+                        hierarchy: aiHierarchy,
+                        learning_context: aiLearningContext || {
+                            prerequisites: [],
+                            related_concepts: [],
+                            learning_path: [aiHierarchy.level2],
+                            complexity_level: 'intermediate',
+                            estimated_reading_time: '5-10 minutes'
+                        },
+                        moc_placement: {
+                            primary_moc: `${aiHierarchy.level1}/${aiHierarchy.level2}`
+                        }
+                    };
+
+
+                    updateMOCStatus('Creating knowledge map structure...');
+                    mocPath = await this.plugin.mocManager.ensureMOCExists(hierarchyData.hierarchy);
+
+                    folderPath = this.plugin.mocManager.getMostSpecificMOCDirectory(hierarchyData.hierarchy);
+
+                    updateMOCStatus('Knowledge map ready');
+                } else {
+                    updateMOCStatus('AI hierarchy generation failed - note will be saved without MOC organization');
+                    hierarchyData = null;
+                    mocPath = null;
+                }
+            } catch (error) {
+                updateMOCStatus('Knowledge organization failed, but note will be saved');
+                new Notice('Note will be saved, but automatic organization failed. You can organize it manually later.');
+            }
+        }
+
+        const frontmatter = {
+            title: title,
+            date: new Date().toISOString().split('T')[0],
+            type: 'summary',
+            intent: intent || 'knowledge_building',
+            source: {
+                type: url.includes('youtube.com') ? 'youtube' : 'web',
+                url: url,
+                source_type: fullResult?.source_type || 'traditional',
+                detected_platform: extractPlatformFromUrl(url)
+            },
+            status: 'draft',
+            created: new Date().toISOString(),
+            modified: new Date().toISOString(),
+            ...(fullResult?.action_items && fullResult.action_items.length > 0 && {
+                action_items: fullResult.action_items
+            }),
+            ...(hierarchyData && {
+                hierarchy: hierarchyData.hierarchy,
+                moc: mocPath,
+                learning_context: hierarchyData.learning_context
+            })
+        };
+
+        const fileContent = `---
+${Object.entries(frontmatter)
+                .map(([key, value]) => {
+                    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                        return `${key}:\n${Object.entries(value)
+                            .map(([k, v]) => {
+                                if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+                                    return `  ${k}:\n${Object.entries(v)
+                                        .map(([dk, dv]) => `    ${dk}: ${JSON.stringify(dv)}`)
+                                        .join('\n')}`;
+                                } else {
+                                    return `  ${k}: ${JSON.stringify(v)}`;
+                                }
+                            })
+                            .join('\n')}`;
+                    } else {
+                        return `${key}: ${JSON.stringify(value)}`;
+                    }
+                })
+                .join('\n')}
+---
+
+${summary}
+
+> [!source] Source
+> ${url}
+
+${this.currentMetadata?.speakers?.length ? `## Speakers\n${this.currentMetadata.speakers.map((speaker: string) => `- [[${speaker}]]`).join('\n')}\n\n` : ''}
+
+${this.currentMetadata?.topics?.length ? `## Topics\n${this.currentMetadata.topics.map((topic: string) => `- [[${topic}]]`).join('\n')}\n\n` : ''}
+
+${this.currentMetadata?.related?.length ? `## Related Concepts\n${this.currentMetadata.related.map((concept: string) => `- [[${concept}]]`).join('\n')}\n\n` : ''}
+
+${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}` : ''}`;
+
+        try {
+            const folder = this.app.vault.getAbstractFileByPath(folderPath) as TFolder;
+            if (!folder) {
+                await this.app.vault.createFolder(folderPath);
+            }
+
+            const finalFileName = await findUniqueFileName(this.app, folderPath, fileName);
+            if (finalFileName !== fileName) {
+            }
+
+            const newFile = await this.app.vault.create(`${folderPath}/${finalFileName}`, fileContent);
+
+            if (mocPath && this.plugin.settings.enableMOC) {
+                try {
+                    updateMOCStatus('Adding note to knowledge map...');
+                    await this.plugin.mocManager.updateMOC(mocPath, newFile.path, title, hierarchyData?.learning_context);
+
+                    if (hierarchyData?.hierarchy) {
+                        updateMOCStatus('Updating knowledge hierarchy intelligence...');
+                        await this.plugin.mocManager.cascadeIntelligenceUpward(hierarchyData.hierarchy);
+                    }
+
+                    updateMOCStatus('Note organized in knowledge map!');
+                } catch (error) {
+                    updateMOCStatus('Note saved (MOC update failed)');
+                }
+            }
+
+            return newFile;
+        } catch (error) {
+            new Notice('Error creating note.');
+            return null;
+        }
+    }
+
+
+}
+
