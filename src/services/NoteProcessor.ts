@@ -78,7 +78,7 @@ export class NoteProcessor {
 
             // 6. Create note
             this.updateStatus(4, 'Creating note...');
-            const note = await this.createNote(analysisResult, input.url);
+            const note = await this.createNote(analysisResult, input.url, input.intent);
             this.updateStatus(4, 'Note created successfully');
 
             // 7. MOC cascade within span
@@ -557,45 +557,104 @@ export class NoteProcessor {
         }
     }
 
-    private async createNote(analysisResult: any, url: string): Promise<TFile> {
-        console.log('[NoteProcessor] Creating note:', analysisResult.title);
+    private async createNote(analysisResult: any, url: string, intent: string = 'knowledge_building'): Promise<TFile> {
+        console.log('[NoteProcessor] Creating enhanced note with full functionality:', analysisResult.title);
         
-        // Create note directly using modern file operations
         const title = analysisResult.title || 'Untitled Note';
         const summary = analysisResult.summary || 'No summary generated';
         const metadata = analysisResult.metadata || {};
+        const hierarchy = analysisResult.hierarchy;
+        const learningContext = analysisResult.learning_context;
+        const actionItems = analysisResult.action_items;
         
         // Sanitize filename
         const fileName = title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + '.md';
         
-        // Use MOC folder as default location
-        const folderPath = this.plugin.settings.mocFolder || 'MOCs';
+        let folderPath = this.plugin.settings.mocFolder || 'MOCs';
+        let mocPath: string | null = null;
         
-        // Ensure folder exists
+        // Enhanced MOC Integration - Use hierarchy for proper placement
+        if (this.plugin.settings.enableMOC && hierarchy && hierarchy.level1 && hierarchy.level2) {
+            console.log('[NoteProcessor] Processing hierarchy:', hierarchy);
+            
+            try {
+                // Ensure MOC structure exists using existing MOC manager
+                await this.plugin.mocManager.ensureMOCExists(hierarchy);
+                
+                // Get the most specific MOC directory for file placement
+                folderPath = this.plugin.mocManager.getMostSpecificMOCDirectory(hierarchy);
+                mocPath = this.plugin.mocManager.getMostSpecificMOCPath(hierarchy);
+                
+                console.log('[NoteProcessor] ✅ MOC structure created, placing note in:', folderPath);
+            } catch (error) {
+                console.error('[NoteProcessor] ❌ MOC creation failed, using default folder:', error);
+                folderPath = this.plugin.settings.mocFolder || 'MOCs';
+            }
+        }
+        
+        // Ensure target folder exists
         const folder = this.plugin.app.vault.getAbstractFileByPath(folderPath);
         if (!folder) {
             await this.plugin.app.vault.createFolder(folderPath);
         }
         
-        // Create frontmatter
-        const frontmatter = {
-            title: title,
-            created: new Date().toISOString().split('T')[0],
-            type: 'summary',
+        // Create comprehensive frontmatter with all features
+        const now = new Date();
+        const frontmatter: any = {
+            title: `"${title}"`,
+            date: `"${now.toISOString().split('T')[0]}"`,
+            type: `"summary"`,
+            intent: `"${intent}"`,
             source: {
-                type: url.includes('youtube.com') ? 'youtube' : 'web',
-                url: url
+                type: `"${url.includes('youtube.com') ? 'youtube' : 'web'}"`,
+                url: `"${url}"`,
+                source_type: `"${url.includes('youtube.com') ? 'video' : 'article'}"`,
+                detected_platform: `"${url.includes('youtube.com') ? 'youtube' : 'web'}"`
             },
-            tags: metadata.tags || ['#ai-generated'],
-            ...(metadata.speakers && { speakers: metadata.speakers }),
-            ...(metadata.topics && { topics: metadata.topics })
+            status: `"draft"`,
+            created: `"${now.toISOString()}"`,
+            modified: `"${now.toISOString()}"`
         };
         
-        // Create note content
+        // Add action items if available
+        if (actionItems && Array.isArray(actionItems) && actionItems.length > 0) {
+            frontmatter.action_items = actionItems;
+        }
+        
+        // Add hierarchy if available
+        if (hierarchy && hierarchy.level1 && hierarchy.level2) {
+            frontmatter.hierarchy = hierarchy;
+        }
+        
+        // Add MOC path if created
+        if (mocPath) {
+            frontmatter.moc = `"${mocPath}"`;
+        }
+        
+        // Add learning context if available
+        if (learningContext) {
+            frontmatter.learning_context = learningContext;
+        }
+        
+        // Add metadata fields
+        if (metadata.tags && Array.isArray(metadata.tags)) {
+            frontmatter.tags = metadata.tags;
+        }
+        if (metadata.speakers && Array.isArray(metadata.speakers)) {
+            frontmatter.speakers = metadata.speakers;
+        }
+        if (metadata.topics && Array.isArray(metadata.topics)) {
+            frontmatter.topics = metadata.topics;
+        }
+        
+        // Create YAML frontmatter
         let noteContent = '---\n';
         for (const [key, value] of Object.entries(frontmatter)) {
             if (Array.isArray(value)) {
-                noteContent += `${key}:\n${value.map(v => `  - ${v}`).join('\n')}\n`;
+                noteContent += `${key}:\n`;
+                value.forEach(item => {
+                    noteContent += `  - "${item}"\n`;
+                });
             } else if (typeof value === 'object' && value !== null) {
                 noteContent += `${key}:\n`;
                 for (const [subKey, subValue] of Object.entries(value)) {
@@ -606,12 +665,30 @@ export class NoteProcessor {
             }
         }
         noteContent += '---\n\n';
+        
+        // Add title and content
+        noteContent += `# ${title}\n\n`;
+        noteContent += `Content extracted from: ${url}\n\n`;
         noteContent += summary;
-        noteContent += `\n\n> **Source**: [${url}](${url})`;
+        
+        // Add source callout
+        noteContent += `\n\n> [!source] Source\n> ${url}\n\n`;
         
         // Create the file
         const filePath = `${folderPath}/${fileName}`;
-        return await this.plugin.app.vault.create(filePath, noteContent);
+        const createdFile = await this.plugin.app.vault.create(filePath, noteContent);
+        
+        // Update MOC with new note if MOC was created
+        if (mocPath && this.plugin.mocManager) {
+            try {
+                await this.plugin.mocManager.updateMOC(mocPath, createdFile.path, title, learningContext);
+                console.log('[NoteProcessor] ✅ Note added to MOC:', mocPath);
+            } catch (error) {
+                console.error('[NoteProcessor] ❌ Failed to update MOC:', error);
+            }
+        }
+        
+        return createdFile;
     }
 
     private async performMOCCascade(analysisResult: any, traceId: string): Promise<void> {
