@@ -42,23 +42,6 @@ import { HierarchyChoiceModal, SettingModal } from './src/components';
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class SummaryView extends ItemView {
     private urlInput: HTMLInputElement;
     private noteDropdown: HTMLSelectElement;
@@ -74,7 +57,6 @@ class SummaryView extends ItemView {
     private topicDropdown: HTMLSelectElement;
     private topicSection: HTMLDivElement;
     private promptLoader: PromptLoader;
-    // Using TraceManager for tracing
     private currentTraceId: string | null = null;
     private progressContainer: HTMLDivElement;
     private statusMessage: HTMLDivElement;
@@ -99,7 +81,6 @@ class SummaryView extends ItemView {
         super(leaf);
         this.promptLoader = new PromptLoader();
 
-        // Initialize NoteProcessor when services are ready
         this.initializeNoteProcessor();
     }
 
@@ -111,7 +92,6 @@ class SummaryView extends ItemView {
             serviceIntegrationReady: this.plugin.serviceIntegration?.isReady()
         });
 
-        // Check if services are ready
         if (this.plugin.llmService && this.plugin.traceManager) {
             this.plugin.noteProcessor = new NoteProcessor(
                 this.plugin.traceManager,
@@ -119,10 +99,7 @@ class SummaryView extends ItemView {
                 this.plugin,
                 this // Pass SummaryView instance
             );
-            console.log('[SummaryView] ✅ NoteProcessor initialized with SummaryView reference');
         } else {
-            console.log('[SummaryView] Services not ready yet, retrying in 1 second...');
-            // Retry after a short delay if services aren't ready yet
             setTimeout(() => this.initializeNoteProcessor(), 1000);
         }
     }
@@ -149,9 +126,7 @@ class SummaryView extends ItemView {
         const traceManager = this.getTraceManager();
         const llmService = this.getLLMService();
 
-        // Fallback to legacy method if services not available
         if (!traceManager || !llmService) {
-            console.warn('[AI Request] Modern services not available, using legacy method');
             return this.makeTracedAIRequest(prompt, metadata);
         }
 
@@ -169,24 +144,18 @@ class SummaryView extends ItemView {
         };
 
         try {
-            console.log(`[Modern AI] Starting request - Pass: ${metadata.pass || 'unknown'}, Model: ${model}`);
 
-            // Use TraceManager for automatic tracing
             const traceContext = this.currentTraceId ? { traceId: this.currentTraceId } : undefined;
             const response = await traceManager.generateText(request, traceContext);
 
-            // Update usage statistics using modern approach
             this.updateUsageStats(
                 response.usage?.promptTokens || estimateTokens(prompt),
                 response.usage?.completionTokens || estimateTokens(response.text),
                 model
             );
 
-            console.log(`[Modern AI] Request completed successfully for ${metadata.pass}`);
             return response.text;
         } catch (error) {
-            console.error('[Modern AI] Request failed, falling back to legacy:', error);
-            // Fallback to legacy method
             return this.makeTracedAIRequest(prompt, metadata);
         }
     }
@@ -198,7 +167,6 @@ class SummaryView extends ItemView {
         const traceManager = this.getTraceManager();
 
         if (!traceManager) {
-            console.warn('[Trace] TraceManager not available');
             return null;
         }
 
@@ -220,10 +188,8 @@ class SummaryView extends ItemView {
             });
 
             this.currentTraceId = traceId;
-            console.log(`[Trace] Started trace: ${traceId}`);
             return traceId;
         } catch (error) {
-            console.error('[Trace] Failed to start trace:', error);
             return null;
         }
     }
@@ -235,7 +201,6 @@ class SummaryView extends ItemView {
         const traceManager = this.getTraceManager();
 
         if (!traceManager || !this.currentTraceId) {
-            console.warn('[Trace] TraceManager not available or no active trace');
             return;
         }
 
@@ -248,10 +213,8 @@ class SummaryView extends ItemView {
                 }
             });
 
-            console.log(`[Trace] Ended trace: ${this.currentTraceId}`);
             this.currentTraceId = null;
         } catch (error) {
-            console.error('[Trace] Failed to end trace:', error);
         }
     }
 
@@ -262,9 +225,7 @@ class SummaryView extends ItemView {
         const traceManager = this.getTraceManager();
 
         if (!traceManager || !this.currentTraceId) {
-            // Only warn if we're not using the new NoteProcessor flow
             if (!this.plugin.noteProcessor) {
-                console.warn('[AI] No TraceManager or active trace, using basic AI request');
             }
             return this.makeAIRequestDirect(prompt);
         }
@@ -290,22 +251,15 @@ class SummaryView extends ItemView {
         try {
             const response = await traceManager.generateTextWithinTrace(request, traceContext);
 
-            // Try to parse JSON response
             try {
                 return JSON.parse(response.text);
             } catch (parseError) {
-                console.log('[AI] JSON parse failed, trying cleanup...');
-                console.log('[AI] Raw response preview:', response.text.substring(0, 200));
 
                 try {
                     const cleanedResponse = this.cleanJsonResponse(response.text);
-                    console.log('[AI] Cleaned response preview:', cleanedResponse.substring(0, 200));
                     return JSON.parse(cleanedResponse);
                 } catch (cleanupError) {
-                    console.error('[AI] Cleanup also failed:', cleanupError.message);
-                    console.log('[AI] Failed response:', response.text.substring(0, 500));
 
-                    // Return a basic fallback structure to prevent complete failure
                     return {
                         title: 'AI Response Error',
                         metadata: { tags: ['#ai-error'] },
@@ -317,7 +271,6 @@ class SummaryView extends ItemView {
                 }
             }
         } catch (error) {
-            console.error('[AI] Failed to get AI response:', error);
             throw error;
         }
     }
@@ -340,7 +293,6 @@ class SummaryView extends ItemView {
 
         const response = await llmService.generateText(request);
 
-        // Try to parse JSON response
         const jsonMatch = response.text.match(/```(?:json)?\s*([\s\S]*?)```/);
         const jsonText = jsonMatch ? jsonMatch[1].trim() : response.text.trim();
 
@@ -362,24 +314,17 @@ class SummaryView extends ItemView {
         fileContent: string
     ): Promise<TFile | null> {
         try {
-            console.log('[Modern FileOps] Creating note:', { folderPath, fileName });
 
-            // Ensure folder exists
             await this.ensureFolderExists(folderPath);
 
-            // Handle file name conflicts
             const finalFileName = await findUniqueFileName(this.app, folderPath, fileName);
             if (finalFileName !== fileName) {
-                console.log('[Modern FileOps] File name conflict resolved:', fileName, '→', finalFileName);
             }
 
-            // Create the file
             const newFile = await this.app.vault.create(`${folderPath}/${finalFileName}`, fileContent);
-            console.log('[Modern FileOps] ✅ Note created successfully:', `${folderPath}/${finalFileName}`);
 
             return newFile;
         } catch (error) {
-            console.error('[Modern FileOps] ❌ Failed to create note:', error);
             return null;
         }
     }
@@ -392,10 +337,8 @@ class SummaryView extends ItemView {
             const folder = this.app.vault.getAbstractFileByPath(folderPath);
             if (!folder) {
                 await this.app.vault.createFolder(folderPath);
-                console.log('[Modern FileOps] ✅ Folder created:', folderPath);
             }
         } catch (error) {
-            console.error('[Modern FileOps] ❌ Failed to create folder:', error);
             throw error;
         }
     }
@@ -410,18 +353,14 @@ class SummaryView extends ItemView {
             const debugFolder = this.plugin.settings.debug.debugFolder;
             const fullPath = subfolder ? `${debugFolder}/${subfolder}` : debugFolder;
 
-            // Use modern folder creation
             await this.ensureFolderExists(fullPath);
 
-            // Create timestamp for unique filenames
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const fullFilename = `${timestamp}_${filename}`;
             const filePath = `${fullPath}/${fullFilename}`;
 
             await this.app.vault.create(filePath, content);
-            console.log('[Modern FileOps] ✅ Debug file saved:', filePath);
         } catch (error) {
-            console.error('[Modern FileOps] ❌ Failed to save debug file:', error);
         }
     }
 
@@ -437,18 +376,14 @@ class SummaryView extends ItemView {
         const { contentEl } = this;
         contentEl.empty();
 
-        // Add custom CSS for modern UI
         this.addCustomStyles();
 
-        // Main container with modern styling
         const mainContainer = contentEl.createEl('div', { cls: 'brain-main-container' });
 
-        // Input Card
         const inputCard = mainContainer.createEl('div', { cls: 'brain-card' });
         const inputHeader = inputCard.createEl('div', { cls: 'brain-card-header' });
         inputHeader.createEl('h3', { text: '📝 Input', cls: 'brain-card-title' });
 
-        // Input mode selector with modern toggle
         const modeSelector = inputCard.createEl('div', { cls: 'brain-mode-selector' });
 
         const urlModeOption = modeSelector.createEl('div', { cls: 'brain-mode-option active' });
@@ -466,13 +401,10 @@ class SummaryView extends ItemView {
         this.noteModeRadio.style.display = 'none';
         noteModeOption.createEl('span', { text: '📄 Organize existing note' });
 
-        // Configuration section
         const configSection = inputCard.createEl('div', { cls: 'brain-config-section' });
 
-        // Model and Intent selection side-by-side
         const dropdownRow = configSection.createEl('div', { cls: 'brain-dropdown-row' });
 
-        // Model selection
         const modelGroup = dropdownRow.createEl('div', { cls: 'brain-form-group brain-form-group-half' });
         const modelLabel = modelGroup.createEl('label', { text: '🤖 AI Model', cls: 'brain-form-label' });
         this.modelDropdown = modelGroup.createEl('select', { cls: 'brain-select' }) as HTMLSelectElement;
@@ -482,7 +414,6 @@ class SummaryView extends ItemView {
             await this.plugin.saveSettings();
         });
 
-        // Intent selection
         const intentGroup = dropdownRow.createEl('div', { cls: 'brain-form-group brain-form-group-half' });
         const intentLabel = intentGroup.createEl('label', { text: '🎯 Processing Intent', cls: 'brain-form-label' });
         this.intentDropdown = intentGroup.createEl('select', { cls: 'brain-select' }) as HTMLSelectElement;
@@ -493,7 +424,6 @@ class SummaryView extends ItemView {
             this.toggleTopicSelection();
         });
 
-        // Topic selection (only shown for "how_to" intent)
         this.topicSection = configSection.createEl('div', { cls: 'brain-form-group brain-topic-section' });
         this.topicSection.style.display = 'none';
         const topicLabel = this.topicSection.createEl('label', { text: '📁 Research Topic', cls: 'brain-form-label' });
@@ -502,8 +432,6 @@ class SummaryView extends ItemView {
         this.populateTopicDropdown();
 
 
-
-        // URL input section
         const urlSection = configSection.createEl('div', { cls: 'brain-input-section url-input-section' });
         urlSection.createEl('label', { text: '🌐 Content URL', cls: 'brain-form-label' });
         urlSection.createEl('div', { text: 'YouTube videos, articles, blogs, or podcast transcripts', cls: 'brain-form-hint' });
@@ -513,7 +441,6 @@ class SummaryView extends ItemView {
             cls: 'brain-input'
         }) as HTMLInputElement;
 
-        // Note selection section
         const noteSection = configSection.createEl('div', { cls: 'brain-input-section note-input-section' });
         noteSection.style.display = 'none';
         noteSection.createEl('label', { text: '📄 Select Note', cls: 'brain-form-label' });
@@ -521,7 +448,6 @@ class SummaryView extends ItemView {
         this.noteDropdown = noteSection.createEl('select', { cls: 'brain-select' }) as HTMLSelectElement;
         this.populateNoteDropdown(this.noteDropdown);
 
-        // Additional instructions - collapsible
         const instructionsGroup = configSection.createEl('div', { cls: 'brain-form-group' });
         const instructionsToggle = instructionsGroup.createEl('div', { cls: 'brain-collapsible-header' });
         instructionsToggle.createEl('span', { text: '💡 Additional Instructions (Optional)', cls: 'brain-form-label' });
@@ -535,34 +461,27 @@ class SummaryView extends ItemView {
             cls: 'brain-textarea'
         }) as HTMLTextAreaElement;
 
-        // Toggle functionality
         instructionsToggle.addEventListener('click', () => {
             const isHidden = instructionsContent.style.display === 'none';
             instructionsContent.style.display = isHidden ? 'block' : 'none';
             toggleIcon.textContent = isHidden ? '▼' : '▶';
         });
 
-        // Error message
         const urlError = inputCard.createEl('div', { cls: 'brain-error-message' });
         urlError.style.display = 'none';
 
-        // Generate button (hidden - using clean flow now)
         this.generateButton = inputCard.createEl('button', { text: '✨ Generate Note', cls: 'brain-generate-button' }) as HTMLButtonElement;
         this.generateButton.style.display = 'none';
 
-        // Clean flow test button
         const cleanButton = inputCard.createEl('button', { text: '🧪 Summarize', cls: 'brain-clean-button' }) as HTMLButtonElement;
 
-        // Progress Card
         const progressCard = mainContainer.createEl('div', { cls: 'brain-card brain-progress-card' });
         const progressHeader = progressCard.createEl('div', { cls: 'brain-card-header' });
         progressHeader.createEl('h3', { text: '⚡ Progress', cls: 'brain-card-title' });
 
-        // Modern progress indicator
         this.progressContainer = progressCard.createEl('div', { cls: 'brain-progress-container' });
         this.statusMessage = progressCard.createEl('div', { cls: 'brain-status-message' });
 
-        // Action buttons container
         const actionButtons = progressCard.createEl('div', { cls: 'brain-action-buttons' });
         this.retryButton = actionButtons.createEl('button', { text: '🔄 Retry', cls: 'brain-retry-button' }) as HTMLButtonElement;
         this.retryButton.style.display = 'none';
@@ -570,7 +489,6 @@ class SummaryView extends ItemView {
         this.alternativesButton = actionButtons.createEl('button', { text: '🔀 Request Alternatives', cls: 'brain-alternatives-button' }) as HTMLButtonElement;
         this.alternativesButton.style.display = 'none';
 
-        // Mode switching logic
         const toggleInputMode = () => {
             if (this.urlModeRadio.checked) {
                 urlSection.style.display = 'block';
@@ -585,7 +503,6 @@ class SummaryView extends ItemView {
             }
         };
 
-        // Event listeners
         urlModeOption.addEventListener('click', () => {
             this.urlModeRadio.checked = true;
             toggleInputMode();
@@ -608,19 +525,16 @@ class SummaryView extends ItemView {
 
         this.updateStatusSteps(0, 'Ready to generate your note');
 
-        // Generate button logic
         this.generateButton.addEventListener('click', async () => {
             urlError.style.display = 'none';
             this.alternativesButton.style.display = 'none';
 
-            // Validate intent selection
             if (!this.intentDropdown.value) {
                 this.showError(urlError, 'Please select a processing intent.');
                 this.intentDropdown.focus();
                 return;
             }
 
-            // Validate topic selection for "how_to" intent
             if (this.intentDropdown.value === 'how_to' && !this.topicDropdown.value) {
                 this.showError(urlError, 'Please select a research topic for How To / Tutorial content.');
                 this.topicDropdown.focus();
@@ -644,14 +558,12 @@ class SummaryView extends ItemView {
             }
         });
 
-        // Clean flow button logic
         cleanButton.addEventListener('click', async () => {
             urlError.style.display = 'none';
             this.alternativesButton.style.display = 'none';
             this.retryButton.style.display = 'none';
             this.statusMessage.innerText = '';
 
-            // Validate intent selection
             if (!this.intentDropdown.value) {
                 this.showError(urlError, 'Please select a processing intent.');
                 this.intentDropdown.focus();
@@ -670,7 +582,6 @@ class SummaryView extends ItemView {
             }
         });
 
-        // Accessibility: Enter key support
         this.urlInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 this.generateButton.click();
@@ -678,8 +589,6 @@ class SummaryView extends ItemView {
         });
 
 
-
-        // Accessibility: focus management
         this.urlInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 this.generateButton.focus();
@@ -689,7 +598,6 @@ class SummaryView extends ItemView {
         this.resultArea = contentEl.createEl('div', { cls: 'ai-summarizer-result' }) as HTMLDivElement;
         this.resultArea.style.display = 'none';
 
-        // Add stats footer
         this.createStatsFooter();
     }
 
@@ -1086,14 +994,11 @@ class SummaryView extends ItemView {
             return;
         }
 
-        console.log('[requestManualAlternatives] 🎯 User manually requested hierarchy alternatives');
 
         try {
-            // Re-analyze the current content to get alternatives
             const noteContent = this.resultArea.textContent || '';
             const hierarchyResponse = await this.analyzeNoteForHierarchy(noteContent, this.currentTitle);
 
-            // Force show the choice dialog even if not cross-domain
             const fakeResponse = {
                 is_cross_domain: true, // Force as cross-domain to trigger dialog
                 confidence_score: 0.5,
@@ -1119,10 +1024,8 @@ class SummaryView extends ItemView {
                 learning_context: hierarchyResponse.learning_context
             };
 
-            // Show hierarchy choice modal
             return new Promise((resolve) => {
                 const modal = new HierarchyChoiceModal(this.app, fakeResponse, (result) => {
-                    console.log('[requestManualAlternatives] ✅ User selected alternative hierarchy:', result.hierarchy);
                     new Notice(`Selected hierarchy: ${result.hierarchy.level1} > ${result.hierarchy.level2}`);
                     resolve(result);
                 });
@@ -1130,7 +1033,6 @@ class SummaryView extends ItemView {
             });
 
         } catch (error) {
-            console.error('[requestManualAlternatives] Error:', error);
             new Notice('Failed to generate hierarchy alternatives. Check console for details.');
         }
     }
@@ -1143,10 +1045,7 @@ class SummaryView extends ItemView {
             option.text = `${model.name} - ${model.description}`;
             this.modelDropdown.appendChild(option);
         });
-        // Use safe default
         this.modelDropdown.value = this.plugin.settings?.gemini?.model || 'gemini-2.5-flash';
-        console.log(`[DEBUG] Model dropdown populated with ${this.modelDropdown.options.length} options, selected: ${this.modelDropdown.value}`);
-        console.log(`[DEBUG] Model dropdown selectedIndex: ${this.modelDropdown.selectedIndex}, selectedOptions: ${this.modelDropdown.selectedOptions.length}`);
     }
 
     private populateIntentDropdown() {
@@ -1157,22 +1056,17 @@ class SummaryView extends ItemView {
             option.text = `${intent.name} - ${intent.description}`;
             this.intentDropdown.appendChild(option);
         });
-        // Use safe default
         this.intentDropdown.value = this.plugin.settings?.defaultIntent || 'knowledge_building';
-        console.log(`[DEBUG] Intent dropdown populated with ${this.intentDropdown.options.length} options, selected: ${this.intentDropdown.value}`);
-        console.log(`[DEBUG] Intent dropdown selectedIndex: ${this.intentDropdown.selectedIndex}, selectedOptions: ${this.intentDropdown.selectedOptions.length}`);
     }
 
     private populateTopicDropdown() {
         this.topicDropdown.innerHTML = '';
 
-        // Add default option
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.text = 'Select a topic...';
         this.topicDropdown.appendChild(defaultOption);
 
-        // Add predefined topics
         this.plugin.settings.topicFolders.topics.forEach((topic: string) => {
             const option = document.createElement('option');
             option.value = topic;
@@ -1180,34 +1074,28 @@ class SummaryView extends ItemView {
             this.topicDropdown.appendChild(option);
         });
 
-        // Add separator
         const separatorOption = document.createElement('option');
         separatorOption.disabled = true;
         separatorOption.text = '─────────────────';
         this.topicDropdown.appendChild(separatorOption);
 
-        // Add existing folders from the topic root folder
         this.addExistingFoldersToDropdown();
 
-        // Add separator
         const separatorOption2 = document.createElement('option');
         separatorOption2.disabled = true;
         separatorOption2.text = '─────────────────';
         this.topicDropdown.appendChild(separatorOption2);
 
-        // Add option to browse for folder
         const browseOption = document.createElement('option');
         browseOption.value = '__browse__';
         browseOption.text = '📁 Browse for existing folder...';
         this.topicDropdown.appendChild(browseOption);
 
-        // Add option to create new topic
         const newTopicOption = document.createElement('option');
         newTopicOption.value = '__new__';
         newTopicOption.text = '+ Create new topic...';
         this.topicDropdown.appendChild(newTopicOption);
 
-        // Topic dropdown populated
     }
 
     private addExistingFoldersToDropdown() {
@@ -1222,7 +1110,6 @@ class SummaryView extends ItemView {
                     .sort();
 
                 subfolders.forEach(folderName => {
-                    // Skip if it's already in predefined topics
                     if (!this.plugin.settings.topicFolders.topics.includes(folderName)) {
                         const option = document.createElement('option');
                         option.value = `__existing__:${folderName}`;
@@ -1232,14 +1119,12 @@ class SummaryView extends ItemView {
                 });
             }
         } catch (error) {
-            // Could not load existing folders
         }
     }
 
     private toggleTopicSelection() {
         const isHowToIntent = this.intentDropdown.value === 'how_to';
         this.topicSection.style.display = isHowToIntent ? 'block' : 'none';
-        // Topic selection toggled based on intent
     }
 
     private async showFolderBrowser(): Promise<string | null> {
@@ -1259,7 +1144,6 @@ class SummaryView extends ItemView {
         }
 
         if (selectedValue === '__new__') {
-            // Prompt for new topic name
             const newTopic = prompt('Enter a name for the new research topic:');
             if (newTopic && newTopic.trim()) {
                 return newTopic.trim();
@@ -1268,12 +1152,10 @@ class SummaryView extends ItemView {
         }
 
         if (selectedValue === '__browse__') {
-            // Show folder browser
             return await this.showFolderBrowser();
         }
 
         if (selectedValue.startsWith('__existing__:')) {
-            // Extract folder name from existing folder option
             return selectedValue.replace('__existing__:', '');
         }
 
@@ -1287,21 +1169,17 @@ class SummaryView extends ItemView {
             const debugFolder = this.plugin.settings.debug.debugFolder;
             const fullPath = subfolder ? `${debugFolder}/${subfolder}` : debugFolder;
 
-            // Ensure debug folder exists
             const folderExists = this.app.vault.getAbstractFileByPath(fullPath);
             if (!folderExists) {
                 await this.app.vault.createFolder(fullPath);
             }
 
-            // Create timestamp for unique filenames
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const fullFilename = `${timestamp}_${filename}`;
             const filePath = `${fullPath}/${fullFilename}`;
 
             await this.app.vault.create(filePath, content);
-            // Debug file saved
         } catch (error) {
-            // Debug file save failed
         }
     }
 
@@ -1379,23 +1257,18 @@ ${JSON.stringify(response, null, 2)}
         const topicFolderPath = `${rootFolder}/${topicName}`;
 
         try {
-            // Ensure root folder exists
             const rootFolderExists = this.app.vault.getAbstractFileByPath(rootFolder);
             if (!rootFolderExists) {
                 await this.app.vault.createFolder(rootFolder);
-                // Root folder created
             }
 
-            // Ensure topic folder exists
             const topicFolderExists = this.app.vault.getAbstractFileByPath(topicFolderPath);
             if (!topicFolderExists) {
                 await this.app.vault.createFolder(topicFolderPath);
-                // Topic folder created
             }
 
             return topicFolderPath;
         } catch (error) {
-            console.error(`[TopicFolders] Error creating topic folder: ${error}`);
             throw error;
         }
     }
@@ -1404,50 +1277,31 @@ ${JSON.stringify(response, null, 2)}
         if (!this.plugin.settings.topicFolders.topics.includes(topicName)) {
             this.plugin.settings.topicFolders.topics.push(topicName);
             await this.plugin.saveSettings();
-            // Topic added to settings
         }
     }
 
 
-
-
-
-    // Tracing initialization handled by TraceManager
-
     private async makeTracedAIRequestLegacy(prompt: string, metadata: any = {}): Promise<any> {
-        // Legacy method - should be removed
 
-        // Use existing trace or create new one if none exists
         if (!this.currentTraceId) {
-            console.warn('[Langfuse] No active trace found, creating new one');
-            // Legacy method removed - using TraceManager instead
-            console.warn('[Legacy] startLangfuseTrace call removed - using TraceManager');
         }
 
-        // Log the request for basic observability
-        console.log(`[Langfuse] AI Request - Pass: ${metadata.pass || 'unknown'}, Model: ${this.modelDropdown?.value || 'unknown'}`);
 
         const startTime = Date.now();
         const result = await this.makeAIRequest(prompt);
         const duration = Date.now() - startTime;
 
-        // Calculate accurate token usage and cost
         const inputTokens = estimateTokens(prompt);
         const outputTokens = estimateTokens(JSON.stringify(result));
         const totalTokens = inputTokens + outputTokens;
         const model = this.modelDropdown?.value || 'gemini-2.5-flash';
         const cost = calculateCost(inputTokens, outputTokens, model);
 
-        console.log(`[Langfuse] AI Response - Duration: ${duration}ms, Tokens: ${totalTokens} (${inputTokens} in, ${outputTokens} out), Cost: $${cost.toFixed(4)}`);
 
-        // Update usage statistics
         this.updateUsageStats(inputTokens, outputTokens, model);
 
-        // Create complete generation with all data at once
         try {
             const generationId = generateId();
-            // Legacy method removed - using TraceManager instead
-            console.warn('[Legacy] sendToLangfuse call removed - using TraceManager');
             /*
             await this.sendToLangfuse('generations', {
                 id: generationId,
@@ -1471,18 +1325,11 @@ ${JSON.stringify(response, null, 2)}
                 }
             });
             */
-            console.log(`[Legacy] Generation creation removed - using TraceManager`);
         } catch (error) {
-            console.warn('[Langfuse] Failed to create generation:', error);
         }
 
         return result;
     }
-
-
-
-    // Legacy Langfuse methods removed - now using TraceManager service
-
 
 
     private updateUsageStats(inputTokens: number, outputTokens: number, model: string): void {
@@ -1491,39 +1338,30 @@ ${JSON.stringify(response, null, 2)}
         const totalTokens = inputTokens + outputTokens;
         const cost = calculateCost(inputTokens, outputTokens, model);
 
-        // Update current note stats
         this.plugin.settings.usageStats.current.tokens += totalTokens;
         this.plugin.settings.usageStats.current.cost += cost;
 
-        // Update session stats
         this.plugin.settings.usageStats.session.tokens += totalTokens;
         this.plugin.settings.usageStats.session.cost += cost;
 
-        // Update lifetime stats
         this.plugin.settings.usageStats.lifetime.tokens += totalTokens;
         this.plugin.settings.usageStats.lifetime.cost += cost;
 
-        // Save settings
         this.plugin.saveSettings();
 
-        // Update footer display
         this.updateStatsFooter();
     }
 
     private commitNoteToStats(): void {
         if (!this.plugin.settings.trackUsage) return;
 
-        // Increment note counts
         this.plugin.settings.usageStats.session.notes += 1;
         this.plugin.settings.usageStats.lifetime.notes += 1;
 
-        // Reset current note stats
         this.plugin.settings.usageStats.current = { tokens: 0, cost: 0 };
 
-        // Save settings
         this.plugin.saveSettings();
 
-        // Update footer display
         this.updateStatsFooter();
     }
 
@@ -1556,10 +1394,8 @@ ${JSON.stringify(response, null, 2)}
         let text = `📊 ${lifetime.notes} notes • ${formatTokens(lifetime.tokens)} tokens • $${lifetime.cost.toFixed(2)}`;
 
         if (current.tokens > 0) {
-            // During generation - show current note progress
             text += ` • This note: ${formatTokens(current.tokens)} tokens, ~$${current.cost.toFixed(3)}`;
         } else if (session.notes > 0) {
-            // Session summary
             text += ` • Today: ${session.notes} notes, $${session.cost.toFixed(2)}`;
         }
 
@@ -1568,9 +1404,7 @@ ${JSON.stringify(response, null, 2)}
 
     private async updateActionTracker(): Promise<void> {
         try {
-            console.log('[ActionTracker] Updating action tracker...');
 
-            // Get all markdown files
             const allFiles = this.app.vault.getMarkdownFiles();
             const actionItems: Array<{
                 items: string[];
@@ -1579,7 +1413,6 @@ ${JSON.stringify(response, null, 2)}
                 intent: string;
             }> = [];
 
-            // Scan files for action items
             for (const file of allFiles) {
                 try {
                     const content = await this.app.vault.read(file);
@@ -1588,7 +1421,6 @@ ${JSON.stringify(response, null, 2)}
                     if (frontmatterMatch) {
                         const frontmatter = frontmatterMatch[1];
 
-                        // Look for action_items in the frontmatter
                         const actionItemsMatch = frontmatter.match(/action_items:\s*\[([\s\S]*?)\]/);
                         if (actionItemsMatch) {
                             try {
@@ -1596,7 +1428,6 @@ ${JSON.stringify(response, null, 2)}
                                 const items = JSON.parse(actionItemsStr);
 
                                 if (items && items.length > 0) {
-                                    // Extract other metadata
                                     const createdMatch = frontmatter.match(/created:\s*"([^"]+)"/);
                                     const intentMatch = frontmatter.match(/intent:\s*"([^"]+)"/);
 
@@ -1608,19 +1439,15 @@ ${JSON.stringify(response, null, 2)}
                                     });
                                 }
                             } catch (parseError) {
-                                console.log('[ActionTracker] Failed to parse action items for:', file.basename);
                             }
                         }
                     }
                 } catch (fileError) {
-                    console.log('[ActionTracker] Failed to read file:', file.basename);
                 }
             }
 
-            // Sort chronologically (oldest first)
             actionItems.sort((a, b) => new Date(a.created).getTime() - new Date(b.created).getTime());
 
-            // Generate tracker content
             const trackerContent = `# Actions Tracker
 
 *Auto-generated from notes with action items. Updated: ${new Date().toLocaleString()}*
@@ -1636,7 +1463,6 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
 *This file is auto-generated. Check off completed actions - they'll stay checked!*
 *Use Dataview or other Obsidian plugins to create more advanced action databases.*`;
 
-            // Create or update the tracker file
             const trackerPath = 'Actions-Tracker.md';
             const existingFile = this.app.vault.getAbstractFileByPath(trackerPath);
 
@@ -1646,25 +1472,20 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
                 await this.app.vault.create(trackerPath, trackerContent);
             }
 
-            console.log('[ActionTracker] Action tracker updated successfully');
 
         } catch (error) {
-            console.error('[ActionTracker] Failed to update action tracker:', error);
         }
     }
-
 
 
     private populateNoteDropdown(dropdown: HTMLSelectElement) {
         dropdown.innerHTML = '';
 
-        // Add default option
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.text = 'Select a note to organize...';
         dropdown.appendChild(defaultOption);
 
-        // Get all markdown files
         const markdownFiles = this.app.vault.getMarkdownFiles();
 
         markdownFiles.forEach((file) => {
@@ -1676,13 +1497,11 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
     }
 
     private updateStatusSteps(currentStep: number, status: string, error: boolean = false, attemptInfo?: { current: number, total: number }) {
-        // Set all states to idle and clear attempt info
         for (let i = 0; i < this.statusSteps.length; i++) {
             this.statusSteps[i].state = 'idle';
             this.statusSteps[i].currentAttempt = undefined;
             this.statusSteps[i].totalAttempts = undefined;
         }
-        // Set states up to currentStep
         for (let i = 0; i < currentStep; i++) {
             this.statusSteps[i].state = 'success';
         }
@@ -1699,7 +1518,6 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             }
         }
 
-        // Modern progress rendering
         this.progressContainer.innerHTML = '';
 
         for (let i = 0; i < this.statusSteps.length; i++) {
@@ -1707,7 +1525,6 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             const stepEl = document.createElement('div');
             stepEl.className = `brain-progress-step ${step.state}`;
 
-            // Progress icon
             const icon = document.createElement('div');
             icon.className = `brain-progress-icon ${step.state}`;
 
@@ -1728,7 +1545,6 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
 
             stepEl.appendChild(icon);
 
-            // Progress label - shortened for compact view
             const label = document.createElement('div');
             label.className = 'brain-progress-label';
             const shortLabels = [
@@ -1744,7 +1560,6 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             label.textContent = shortLabels[i] || step.label;
             stepEl.appendChild(label);
 
-            // Attempt info if available
             if (step.state === 'in-progress' && step.currentAttempt && step.totalAttempts) {
                 const attemptEl = document.createElement('div');
                 attemptEl.className = 'brain-progress-attempt';
@@ -1755,7 +1570,6 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             this.progressContainer.appendChild(stepEl);
         }
 
-        // Update status message with better formatting
         this.statusMessage.innerHTML = `
             <div style="display: flex; align-items: center; gap: 8px;">
                 ${error ? '❌' : currentStep >= this.statusSteps.length ? '✅' : '⚡'}
@@ -1763,14 +1577,12 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             </div>
         `;
 
-        // Show/hide action buttons
         if (error) {
             this.retryButton.style.display = 'block';
         } else {
             this.retryButton.style.display = 'none';
         }
 
-        // Show alternatives button only after successful note generation
         if (!error && currentStep === this.statusSteps.length - 1 && status.includes('✅')) {
             this.alternativesButton.style.display = 'inline-block';
         } else {
@@ -1779,7 +1591,6 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
     }
 
     private async startNoteGeneration() {
-        // Starting note generation flow
         const url = this.urlInput.value;
         const prompt = this.promptInput.value;
         const selectedIntent = this.intentDropdown.value as ProcessingIntent;
@@ -1789,7 +1600,6 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             return;
         }
 
-        // Reset status steps to their initial state before starting
         this.statusSteps = [
             { label: 'Fetch Content/Transcript', state: 'idle' },
             { label: 'AI Analysis: Structure & Metadata', state: 'idle' },
@@ -1803,39 +1613,28 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
         this.updateStatusSteps(0, 'Initiating process...'); // Initial status before fetching
 
         try {
-            // Clearing UI elements
             if (!this.resultArea) {
                 this.resultArea = this.containerEl.createEl('div', { cls: 'ai-summarizer-result' }) as HTMLDivElement;
             }
             this.resultArea.innerText = '';
 
             let content = '';
-            // Step 1: Fetch
-            // Initial status update for fetching
             this.updateStatusSteps(0, 'Connecting to source and extracting content...');
-            // Starting content fetch
 
             if (url.includes('youtube.com')) {
-                // Fetching YouTube transcript
-                // The fetchTranscriptFromPython function now handles its own status updates for retries
                 try {
                     content = await this.fetchTranscriptFromPython(url);
-                    // If successful, fetchTranscriptFromPython would have called updateStatusSteps for the final success of attempt X/Y
-                    // So, we might not need an explicit success message here, or we can set a general "Transcript fetched"
                     this.updateStatusSteps(0, 'Transcript fetched successfully.', false); // Mark step 0 as success
                 } catch (error) {
-                    // error is expected to be a string message from the Python script or an Error object
                     const errorMessage = typeof error === 'string' ? error : (error as Error).message;
                     new Notice('Failed to fetch transcript. ' + errorMessage);
                     this.updateStatusSteps(0, 'Failed to fetch transcript: ' + errorMessage, true);
                     return;
                 }
             } else {
-                // Fetching web content
                 this.updateStatusSteps(0, 'Fetching web content...'); // Status for web content
                 content = await this.fetchContentFromWebLink(url);
                 if (!content || content.startsWith('Error:') || content.includes('[ERROR]')) {
-                    // Content fetch failed
                     new Notice('Failed to fetch content. Please check the URL.');
                     this.updateStatusSteps(0, 'Failed to fetch content. Please check the URL.', true);
                     return;
@@ -1843,34 +1642,23 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
                 this.updateStatusSteps(0, 'Web content fetched successfully.', false); // Mark step 0 as success
             }
 
-            // Additional validation to ensure we have meaningful content
             if (!content || content.trim().length < 10) { // Adjusted length check, as even short transcripts can be valid
-                // Content too short or empty
                 const noticeMsg = 'Failed to fetch meaningful content. The content may be too short or the URL is incorrect.';
                 new Notice(noticeMsg);
                 this.updateStatusSteps(0, noticeMsg, true);
                 return;
             }
 
-            console.log('[startNoteGeneration] Content fetched successfully, length:', content.length);
 
-            // Debug: Save raw content for analysis
             await this.debugLogRawContent(url, content, selectedIntent);
 
-            // Start AI Analysis - the individual passes will update their own steps
-            console.log('[startNoteGeneration] Starting content processing...');
             const result = await this.summarizeContent(content, prompt, url);
             if (!result.summary) {
-                console.error('[startNoteGeneration] Note generation failed - no summary returned');
                 new Notice('AI failed to generate structured content. This might be due to API issues or content complexity.');
-                // Determine which AI step failed and update accordingly
                 this.updateStatusSteps(1, 'AI analysis failed. Check your API settings and try again.', true);
                 return;
             }
-            console.log('[startNoteGeneration] Note generated successfully, length:', result.summary.length);
-            console.log('[startNoteGeneration] Metadata:', result.metadata);
 
-            // Check if we used fallback parsing and inform the user
             if (result.summary.includes('Raw AI Response')) {
                 this.statusMessage.innerText = 'AI response required fallback parsing - content preserved but may need manual review';
                 new Notice('Note created with fallback parsing. Please review the content for completeness.');
@@ -1879,11 +1667,9 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             this.updateStatusSteps(6, 'Creating knowledge hierarchy and MOC structure...');
             await new Promise(res => setTimeout(res, 100));
 
-            // Store metadata for later use
             this.currentMetadata = result.metadata;
             this.currentTitle = result.title;
 
-            // Create and open the note  
             this.updateStatusSteps(7, 'Creating note file and updating trackers...');
 
             const newNote = await this.createNoteWithSummary(result.summary, result.title, url, result.metadata, result, selectedIntent);
@@ -1894,45 +1680,31 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
                 this.updateStatusSteps(7, 'Opening note...', false);
                 const leaf = this.app.workspace.getLeaf('tab');
                 await leaf.openFile(newNote);
-                // Mark all steps as complete by using step 8 (beyond the last step)
                 this.updateStatusSteps(8, 'Complete! Note organized and ready.', false);
                 new Notice('Note created and organized successfully!');
             } else {
-                console.error('[CreateNote] Note creation failed');
                 this.updateStatusSteps(7, 'Failed to create note file', true);
             }
         } catch (error) { // This is a general catch for startNoteGeneration, not specific to transcript fetching
-            console.error('[startNoteGeneration] Error:', error);
             const errorMessage = typeof error === 'string' ? error : (error as Error).message;
             new Notice('An error occurred: ' + errorMessage);
-            // Determine which step the error occurred in, if possible.
-            // For now, assume it's after fetching if it reaches here.
             this.updateStatusSteps(1, 'Error occurred: ' + errorMessage, true);
         }
     }
 
-    // Clean NoteProcessor implementation
     private async startNoteGenerationClean() {
-        console.log('[NoteProcessor] Starting clean note generation...');
-        console.log('[NoteProcessor] URL:', this.urlInput.value);
-        console.log('[NoteProcessor] Plugin services ready:', !!this.plugin.llmService, !!this.plugin.traceManager);
-        console.log('[NoteProcessor] NoteProcessor exists:', !!this.plugin.noteProcessor);
 
         const url = this.urlInput.value;
         const prompt = this.promptInput.value;
         const selectedIntent = this.intentDropdown.value as ProcessingIntent;
 
         if (!url) {
-            console.log('[NoteProcessor] No URL provided');
             new Notice('Please enter a URL.');
             return;
         }
 
-        // Check if NoteProcessor is available
         if (!this.plugin.noteProcessor) {
-            console.log('[NoteProcessor] NoteProcessor not available, trying to initialize...');
 
-            // Try to initialize it now
             if (this.plugin.llmService && this.plugin.traceManager) {
                 this.plugin.noteProcessor = new NoteProcessor(
                     this.plugin.traceManager,
@@ -1940,7 +1712,6 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
                     this.plugin,
                     this
                 );
-                console.log('[NoteProcessor] ✅ NoteProcessor initialized on-demand');
             } else {
                 console.log('[NoteProcessor] ❌ Services not ready, forcing initialization...', {
                     llmService: !!this.plugin.llmService,
@@ -1949,11 +1720,9 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
                     serviceIntegrationReady: this.plugin.serviceIntegration?.isReady()
                 });
 
-                // Force service initialization
                 try {
                     await this.plugin.initializeServices();
 
-                    // Try again after forced initialization
                     if (this.plugin.llmService && this.plugin.traceManager) {
                         this.plugin.noteProcessor = new NoteProcessor(
                             this.plugin.traceManager,
@@ -1961,21 +1730,17 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
                             this.plugin,
                             this
                         );
-                        console.log('[NoteProcessor] ✅ NoteProcessor initialized after forced service init');
                     } else {
-                        console.log('[NoteProcessor] ❌ Services still not ready after forced initialization');
                         new Notice('Failed to initialize AI services. Please check your API key settings.');
                         return;
                     }
                 } catch (error) {
-                    console.error('[NoteProcessor] Failed to initialize services:', error);
                     new Notice('Failed to initialize AI services. Please check your settings.');
                     return;
                 }
             }
         }
 
-        // Reset status steps to match the 10-step flow
         this.statusSteps = [
             { label: '1. Extract Content', state: 'idle' },
             { label: '2. Start Trace & Span', state: 'idle' },
@@ -1987,59 +1752,46 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             { label: '8. End Trace', state: 'idle' }
         ];
 
-        // Clear UI
         if (!this.resultArea) {
             this.resultArea = this.containerEl.createEl('div', { cls: 'ai-summarizer-result' }) as HTMLDivElement;
         }
         this.resultArea.innerText = '';
 
         try {
-            console.log('[NoteProcessor] Setting up status callback...');
-            // Set up status callback to update UI
             this.plugin.noteProcessor.setStatusCallback((step: number, message: string, isError?: boolean) => {
                 this.updateStatusSteps(step, message, isError);
             });
 
-            console.log('[NoteProcessor] Starting processURL with:', { url, prompt: prompt.substring(0, 50) + '...', intent: selectedIntent });
-            // Use the clean NoteProcessor abstraction
             const result = await this.plugin.noteProcessor.processURL({
                 url,
                 prompt,
                 intent: selectedIntent
             });
-            console.log('[NoteProcessor] processURL completed successfully');
 
-            // Update final status
             this.updateStatusSteps(7, 'Complete! Note created and organized.');
 
-            // Open the created note
             await this.app.workspace.getLeaf().openFile(result.note);
 
             new Notice(`Note created successfully! Trace ID: ${result.traceId}`);
 
         } catch (error) {
-            console.error('[NoteProcessor] Error:', error);
             new Notice('Failed to process URL: ' + error.message);
         }
     }
 
     private async startNoteOrganization() {
-        console.log('[startNoteOrganization] Starting note organization...');
         const notePath = this.noteDropdown.value;
         const selectedIntent = this.intentDropdown.value as ProcessingIntent;
 
         try {
-            // Clear UI elements
             if (!this.resultArea) {
                 this.resultArea = this.containerEl.createEl('div', { cls: 'ai-summarizer-result' }) as HTMLDivElement;
             }
             this.resultArea.innerText = '';
 
-            // Update status for note organization flow
             this.updateStatusSteps(0, 'Reading note content...');
             this.statusMessage.innerText = 'Loading existing note content...';
 
-            // Read the existing note
             const noteFile = this.app.vault.getAbstractFileByPath(notePath) as TFile;
             if (!noteFile) {
                 new Notice('Note file not found.');
@@ -2048,12 +1800,10 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             }
 
             const noteContent = await this.app.vault.read(noteFile);
-            console.log('[startNoteOrganization] Note content loaded, length:', noteContent.length);
 
             this.updateStatusSteps(1, 'Analyzing note for organization...');
             this.statusMessage.innerText = 'AI is analyzing content to determine best knowledge hierarchy...';
 
-            // Use AI to analyze the note for hierarchy placement
             const analysis = await this.analyzeNoteForHierarchy(noteContent, noteFile.basename);
             if (!analysis.hierarchy) {
                 new Notice('Failed to analyze note for organization.');
@@ -2061,42 +1811,33 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
                 return;
             }
 
-            console.log('[startNoteOrganization] Analysis completed:', analysis);
 
             this.updateStatusSteps(2, 'Creating knowledge hierarchy...');
             this.statusMessage.innerText = `Organizing in ${analysis.hierarchy.level1} > ${analysis.hierarchy.level2}...`;
 
-            // Create/update MOC structure
             const mocPath = await this.plugin.mocManager.ensureMOCExists(analysis.hierarchy);
-            console.log('[startNoteOrganization] MOC path:', mocPath);
 
             this.updateStatusSteps(3, 'Adding to knowledge map...');
             this.statusMessage.innerText = 'Adding note to knowledge map...';
 
-            // Add the note to the MOC
             await this.plugin.mocManager.updateMOC(mocPath, notePath, noteFile.basename, analysis.learning_context);
 
             this.updateStatusSteps(3, 'Organization complete!', false);
             new Notice(`Note organized in ${analysis.hierarchy.level1} > ${analysis.hierarchy.level2}`);
 
-            // Open the note
             const leaf = this.app.workspace.getLeaf('tab');
             await leaf.openFile(noteFile);
 
         } catch (error) {
-            console.error('[startNoteOrganization] Error:', error);
             new Notice('An error occurred while organizing the note.');
             this.updateStatusSteps(3, 'Organization failed.', true);
         }
     }
 
     private async analyzeNoteForHierarchy(noteContent: string, noteTitle: string): Promise<{ hierarchy: MOCHierarchy, learning_context: LearningContext }> {
-        console.log('[analyzeNoteForHierarchy] Analyzing note for hierarchy placement');
 
-        // Get existing MOC structure for context-aware analysis
         const mocContext = await this.plugin.hierarchyManager.getHierarchyContextForAI();
 
-        // Use the improved hierarchy analysis prompt with existing MOC context
         const hierarchyPrompt = `${HIERARCHY_ANALYSIS_PROMPT}
 
 EXISTING MOC STRUCTURE:
@@ -2114,7 +1855,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 
         let selectedModel = '';
 
-        // Use new modular services
         const traceManager = this.plugin.getTraceManager();
         if (traceManager) {
             const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
@@ -2125,7 +1865,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 maxTokens: 1000
             });
 
-            // Parse the response
             return await this.parseHierarchyResponse(response.text);
         }
 
@@ -2133,9 +1872,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private async parseHierarchyResponse(responseText: string): Promise<{ hierarchy: MOCHierarchy, learning_context: LearningContext }> {
-        console.log('[parseHierarchyResponse] Parsing enhanced hierarchy response');
 
-        // Try to extract JSON
         let jsonText = responseText;
         const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
         if (jsonMatch) {
@@ -2143,7 +1880,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         }
 
         try {
-            // Clean up and parse JSON
             jsonText = this.cleanupJSON(jsonText);
             const response = JSON.parse(jsonText);
             console.log('[parseHierarchyResponse] 🔍 Analysis result:', {
@@ -2152,49 +1888,36 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 alternatives_count: response.alternative_hierarchies?.length || 0
             });
 
-            // Check if this content has multiple valid hierarchies (show choice dialog)
-            // Show dialog if: cross-domain OR has alternatives OR confidence is low
             const hasAlternatives = response.alternative_hierarchies && response.alternative_hierarchies.length > 0;
             const lowConfidence = response.confidence_score && response.confidence_score < 0.8;
             const shouldShowChoice = response.is_cross_domain || hasAlternatives || lowConfidence;
 
             if (shouldShowChoice && hasAlternatives) {
-                console.log('[parseHierarchyResponse] 🎯 Multiple hierarchy options detected - showing choice dialog');
-                console.log('[parseHierarchyResponse] 📊 Triggers: cross_domain=' + response.is_cross_domain + ', alternatives=' + hasAlternatives + ', low_confidence=' + lowConfidence);
 
-                // Show hierarchy choice modal and wait for user decision
                 return new Promise((resolve) => {
                     const modal = new HierarchyChoiceModal(this.app, response, (result) => {
-                        console.log('[parseHierarchyResponse] ✅ User selected hierarchy:', result.hierarchy);
                         resolve(result);
                     });
                     modal.open();
                 });
             }
 
-            // Single domain content - use primary hierarchy
             if (response.primary_hierarchy && response.learning_context) {
-                console.log('[parseHierarchyResponse] ✅ Single domain content - using primary hierarchy');
                 return {
                     hierarchy: response.primary_hierarchy,
                     learning_context: response.learning_context
                 };
             }
 
-            // Legacy format compatibility
             if (response.hierarchy && response.learning_context) {
-                console.log('[parseHierarchyResponse] ✅ Legacy format detected');
                 return {
                     hierarchy: response.hierarchy,
                     learning_context: response.learning_context
                 };
             }
         } catch (error) {
-            console.error('[parseHierarchyResponse] JSON parsing failed:', error);
         }
 
-        // Fallback to heuristic analysis
-        console.log('[parseHierarchyResponse] 🔧 Using fallback heuristic analysis');
         return {
             hierarchy: {
                 level1: 'General Knowledge',
@@ -2216,7 +1939,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const scriptPath = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'fetch_content.py');
         const venvPython = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'venv', 'bin', 'python3');
 
-        console.log('[FetchContent] Preparing to run command:', venvPython, scriptPath, url);
 
         const { spawn } = require('child_process');
         const pythonProcess = spawn(venvPython, [scriptPath, url]);
@@ -2228,31 +1950,26 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             pythonProcess.stdout.on('data', (data: Buffer) => {
                 const output = data.toString();
                 fullOutput += output;
-                console.log('[FetchContent] STDOUT:', output);
             });
 
             pythonProcess.stderr.on('data', (data: Buffer) => {
                 const errorOutput = data.toString();
                 fullOutput += errorOutput;
-                console.error('[FetchContent] STDERR:', errorOutput);
                 if (errorOutput.includes("[ERROR]")) {
                     lastErrorLine = errorOutput.trim();
                 }
             });
 
             pythonProcess.on('close', (code: number) => {
-                console.log(`[FetchContent] Child process exited with code ${code}`);
                 if (code === 0) {
                     resolve(fullOutput.trim());
                 } else {
                     const finalError = lastErrorLine || `Python script for web content exited with code ${code}. Full output: ${fullOutput}`;
-                    console.error('[FetchContent] Command failed:', finalError);
                     reject(new Error(finalError));
                 }
             });
 
             pythonProcess.on('error', (err: Error) => {
-                console.error('[FetchContent] Failed to start subprocess.', err);
                 reject(new Error(`Failed to start web content extraction process: ${err.message}`));
             });
         });
@@ -2264,9 +1981,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const scriptPath = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'fetch_transcript.py');
         const venvPython = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'venv', 'bin', 'python3');
 
-        console.log('[FetchTranscript] Preparing to run command:', venvPython, scriptPath, url);
 
-        // No direct execPromise here, instead, we'll use spawn to get live output
         const { spawn } = require('child_process');
         const pythonProcess = spawn(venvPython, [scriptPath, url]);
 
@@ -2277,9 +1992,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             pythonProcess.stdout.on('data', (data: Buffer) => {
                 const output = data.toString();
                 fullOutput += output;
-                console.log('[FetchTranscript] STDOUT:', output);
 
-                // Try to parse attempt info
                 const attemptMatch = output.match(/\[INFO\] Attempt (\d+)\/(\d+): Fetching transcript/);
                 if (attemptMatch) {
                     const currentAttempt = parseInt(attemptMatch[1]);
@@ -2291,15 +2004,12 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             pythonProcess.stderr.on('data', (data: Buffer) => {
                 const errorOutput = data.toString();
                 fullOutput += errorOutput; // Also add stderr to fullOutput for context
-                console.error('[FetchTranscript] STDERR:', errorOutput);
-                // Store the last error line in case it's the final error message
                 if (errorOutput.includes("[ERROR]")) { // Catch specific errors from script
                     lastErrorLine = errorOutput.trim();
                 }
             });
 
             pythonProcess.on('close', (code: number) => {
-                console.log(`[FetchTranscript] Child process exited with code ${code}`);
 
                 const resultMarker = "[INFO] Script finished. Outputting result.";
                 const markerIndex = fullOutput.lastIndexOf(resultMarker);
@@ -2308,41 +2018,29 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 if (markerIndex !== -1) {
                     processedResult = fullOutput.substring(markerIndex + resultMarker.length).trim();
                 } else {
-                    // Fallback if marker is not found
-                    // This might happen if the script errors out before printing the marker
                     processedResult = fullOutput.trim();
                 }
 
-                // Prioritize error messages from the script's known error format
                 if (processedResult.startsWith('Error: Failed to fetch transcript after')) {
-                    console.error('[FetchTranscript] Command failed with final error message:', processedResult);
                     this.updateStatusSteps(0, processedResult, true); // Update UI with final error
                     reject(processedResult);
                 } else if (lastErrorLine && lastErrorLine.startsWith('[ERROR]')) {
-                    // Use other errors captured from stderr if they look like script errors
-                    console.error('[FetchTranscript] Command failed with error from STDERR:', lastErrorLine);
                     this.updateStatusSteps(0, lastErrorLine, true);
                     reject(lastErrorLine);
                 } else if (code !== 0) {
-                    // Generic error if non-zero exit code and no specific script error
                     const finalError = `Python script exited with code ${code}. Output: ${processedResult || 'No specific output.'}`;
-                    console.error('[FetchTranscript] Command failed with exit code:', finalError);
                     this.updateStatusSteps(0, finalError, true);
                     reject(new Error(finalError));
                 } else if (!processedResult) {
                     const noTranscriptError = "Error: No transcript data was returned by the script, though it exited cleanly.";
-                    console.warn('[FetchTranscript] No transcript data returned:', noTranscriptError);
                     this.updateStatusSteps(0, noTranscriptError, true);
                     reject(noTranscriptError);
                 } else {
-                    console.log('[FetchTranscript] Successfully fetched:', processedResult.substring(0, 100) + "...");
-                    // Implicit success from updateStatusSteps in startNoteGeneration if this resolves
                     resolve(processedResult);
                 }
             });
 
             pythonProcess.on('error', (err: Error) => {
-                console.error('[FetchTranscript] Failed to start subprocess.', err);
                 this.updateStatusSteps(0, `Failed to start transcript process: ${err.message}`, true);
                 reject(new Error(`Failed to start transcript extraction process: ${err.message}`));
             });
@@ -2351,15 +2049,10 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 
     private async summarizeContent(text: string, prompt: string, url: string): Promise<{ summary: string, title: string, metadata: any, hierarchy?: any, learning_context?: any }> {
         let selectedModel = '';
-        console.log('[SummarizeContent] Provider:', this.plugin.settings.provider);
-        console.log('[SummarizeContent] 🚀 Starting comprehensive multi-pass analysis...');
 
-        // Get existing hierarchy context for AI awareness
         const hierarchyContext = await this.plugin.hierarchyManager.getHierarchyContextForAI();
-        console.log('[SummarizeContent] Hierarchy context length:', hierarchyContext.length);
 
         try {
-            // Multi-pass comprehensive analysis
             const selectedIntent = this.intentDropdown.value as ProcessingIntent;
             const comprehensiveResult = await this.generateComprehensiveNote(text, prompt, url, hierarchyContext, selectedIntent);
 
@@ -2371,16 +2064,12 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 learning_context: comprehensiveResult.learning_context
             };
         } catch (error) {
-            console.error('[SummarizeContent] Multi-pass analysis failed:', error);
-            // Fallback to single-pass for error recovery
             return await this.fallbackSinglePassAnalysis(text, prompt, url, hierarchyContext);
         }
     }
 
     private async generateComprehensiveNote(text: string, prompt: string, url: string, hierarchyContext: string, intent: ProcessingIntent): Promise<any> {
-        console.log('[GenerateComprehensiveNote] 🎯 Starting multi-pass comprehensive analysis');
 
-        // Start trace for this note generation
         await this.startTrace({
             intent: intent,
             url: url,
@@ -2388,71 +2077,47 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         });
 
         try {
-            // Get additional instructions from the UI
             const additionalInstructions = this.promptInput.value;
-            console.log('[GenerateComprehensiveNote] 📝 Additional instructions from UI:', additionalInstructions || '(empty)');
-            console.log('[GenerateComprehensiveNote] 🎯 Using intent-specific prompts for:', intent);
 
-            // TraceManager handles initialization automatically
 
-            // Load intent-specific prompts
             const intentPrompts = await this.promptLoader.loadPromptsForIntent(intent);
 
-            // Pass 1: Structure & Metadata (Essential Foundation)
-            console.log('[GenerateComprehensiveNote] 📋 Pass 1: Analyzing structure and metadata...');
             this.updateStatusSteps(1, 'Analyzing structure, title, and metadata...');
             const structure = await this.analyzeStructureAndMetadata(text, hierarchyContext, additionalInstructions, intentPrompts.structure).catch(error => {
-                console.error('[GenerateComprehensiveNote] Pass 1 failed:', error);
                 this.updateStatusSteps(1, 'Failed to analyze structure: ' + (error.message || error), true);
                 throw error;
             });
 
-            // Pass 2: Deep Content Analysis (Core Knowledge)
-            console.log('[GenerateComprehensiveNote] 🧠 Pass 2: Deep content analysis...');
             this.updateStatusSteps(2, 'Extracting key concepts and insights...');
             const coreAnalysis = await this.analyzeContentDepth(text, structure, additionalInstructions, intentPrompts.content).catch(error => {
-                console.error('[GenerateComprehensiveNote] Pass 2 failed:', error);
                 this.updateStatusSteps(2, 'Failed to analyze content: ' + (error.message || error), true);
                 throw error;
             });
 
-            // Pass 3: Perspectives & Examples (Multiple Viewpoints)
-            console.log('[GenerateComprehensiveNote] �️P Pass 3: Multiple perspectives and examples...');
             this.updateStatusSteps(3, 'Analyzing different perspectives and examples...');
             const perspectives = await this.analyzePerspectivesAndExamples(text, structure, additionalInstructions, intentPrompts.perspectives).catch(error => {
-                console.error('[GenerateComprehensiveNote] Pass 3 failed:', error);
                 this.updateStatusSteps(3, 'Failed to analyze perspectives: ' + (error.message || error), true);
                 throw error;
             });
 
-            // Pass 4: Connections & Applications (Knowledge Integration)
-            console.log('[GenerateComprehensiveNote] 🔗 Pass 4: Connections and applications...');
             this.updateStatusSteps(4, 'Finding connections and practical applications...');
             const connections = await this.analyzeConnectionsAndApplications(text, structure, additionalInstructions, intentPrompts.connections).catch(error => {
-                console.error('[GenerateComprehensiveNote] Pass 4 failed:', error);
                 this.updateStatusSteps(4, 'Failed to analyze connections: ' + (error.message || error), true);
                 throw error;
             });
 
-            // Pass 5: Learning & Next Steps (Actionable Knowledge)
-            console.log('[GenerateComprehensiveNote] 🎯 Pass 5: Learning paths and next steps...');
             this.updateStatusSteps(5, 'Creating learning paths and action items...');
             const learning = await this.analyzeLearningAndNextSteps(text, structure, additionalInstructions, intentPrompts.learning).catch(error => {
-                console.error('[GenerateComprehensiveNote] Pass 5 failed:', error);
                 this.updateStatusSteps(5, 'Failed to create learning paths: ' + (error.message || error), true);
                 throw error;
             });
 
-            // Merge all passes into comprehensive result
             const comprehensiveResult = this.mergeMultiPassResults(structure, coreAnalysis, perspectives, connections, learning);
-            console.log('[GenerateComprehensiveNote] ✅ Multi-pass analysis complete - comprehensive note generated');
 
-            // Commit the completed note to stats
             this.commitNoteToStats();
 
             return comprehensiveResult;
         } finally {
-            // Always end trace, even if there's an error
             await this.endTrace();
         }
     }
@@ -2460,11 +2125,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     private injectAdditionalInstructions(basePrompt: string, additionalInstructions: string, context: any = {}): string {
         let processedPrompt = basePrompt;
 
-        // Debug logging
-        console.log('[PromptInjection] 🔧 Processing additional instructions...');
-        console.log('[PromptInjection] Instructions provided:', additionalInstructions || '(none)');
 
-        // Replace placeholders with context values
         processedPrompt = processedPrompt.replace('{HIERARCHY_CONTEXT}', context.hierarchyContext || '');
         processedPrompt = processedPrompt.replace('{CONTENT}', context.content || '{CONTENT}');
         processedPrompt = processedPrompt.replace('{TITLE}', context.title || 'Unknown');
@@ -2475,7 +2136,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         processedPrompt = processedPrompt.replace('{COMPLEXITY}', context.complexity || 'intermediate');
         processedPrompt = processedPrompt.replace('{PREREQUISITES}', context.prerequisites || 'None specified');
 
-        // Add intent-specific instructions
         let intentSpecificInstructions = '';
         const currentIntent = this.intentDropdown?.value as ProcessingIntent;
 
@@ -2573,16 +2233,13 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 break;
         }
 
-        // Inject additional instructions
         const combinedInstructions = [intentSpecificInstructions, additionalInstructions].filter(Boolean).join('\n');
 
         if (combinedInstructions.trim()) {
             const additionalSection = `\nADDITIONAL FOCUS:\n${combinedInstructions.trim()}\n\nIMPORTANT: Your response must still be valid JSON. Do not break JSON syntax with unescaped quotes, newlines, or other formatting.\n`;
             processedPrompt = processedPrompt.replace('{ADDITIONAL_INSTRUCTIONS}', additionalSection);
-            console.log('[PromptInjection] ✅ Instructions injected (intent + additional):', combinedInstructions.trim());
         } else {
             processedPrompt = processedPrompt.replace('{ADDITIONAL_INSTRUCTIONS}', '');
-            console.log('[PromptInjection] ℹ️ No additional instructions provided');
         }
 
         return processedPrompt;
@@ -2600,7 +2257,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const structurePrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
         const intent = this.intentDropdown?.value || 'unknown';
 
-        // Debug: Save prompt
         await this.debugLogPrompt('Structure & Metadata', structurePrompt, intent);
 
         const response = await this.makeTracedAIRequest(structurePrompt, {
@@ -2608,7 +2264,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             pass: 'structure-metadata'
         });
 
-        // Debug: Save response
         await this.debugLogResponse('Structure & Metadata', response, intent);
 
         return response;
@@ -2628,7 +2283,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const depthPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
         const intent = this.intentDropdown?.value || 'unknown';
 
-        // Debug: Save prompt
         await this.debugLogPrompt('Content Depth', depthPrompt, intent);
 
         const response = await this.makeTracedAIRequest(depthPrompt, {
@@ -2636,7 +2290,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             pass: 'content-depth'
         });
 
-        // Debug: Save response
         await this.debugLogResponse('Content Depth', response, intent);
 
         return response;
@@ -2655,7 +2308,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const perspectivesPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
         const intent = this.intentDropdown?.value || 'unknown';
 
-        // Debug: Save prompt
         await this.debugLogPrompt('Perspectives & Examples', perspectivesPrompt, intent);
 
         const response = await this.makeTracedAIRequest(perspectivesPrompt, {
@@ -2663,7 +2315,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             pass: 'perspectives-examples'
         });
 
-        // Debug: Save response
         await this.debugLogResponse('Perspectives & Examples', response, intent);
 
         return response;
@@ -2683,7 +2334,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const connectionsPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
         const intent = this.intentDropdown?.value || 'unknown';
 
-        // Debug: Save prompt
         await this.debugLogPrompt('Connections & Applications', connectionsPrompt, intent);
 
         const response = await this.makeTracedAIRequest(connectionsPrompt, {
@@ -2691,7 +2341,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             pass: 'connections-applications'
         });
 
-        // Debug: Save response
         await this.debugLogResponse('Connections & Applications', response, intent);
 
         return response;
@@ -2711,7 +2360,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const learningPrompt = this.injectAdditionalInstructions(basePrompt, additionalInstructions, context);
         const intent = this.intentDropdown?.value || 'unknown';
 
-        // Debug: Save prompt
         await this.debugLogPrompt('Learning & Next Steps', learningPrompt, intent);
 
         const response = await this.makeTracedAIRequest(learningPrompt, {
@@ -2719,29 +2367,24 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             pass: 'learning-next-steps'
         });
 
-        // Debug: Save response
         await this.debugLogResponse('Learning & Next Steps', response, intent);
 
         return response;
     }
 
     private cleanJsonResponse(jsonString: string): string {
-        console.log('[JSON Cleaning] 🔧 Simple JSON extraction...');
         let cleaned = jsonString.trim();
 
-        // Remove markdown code blocks if present
         if (cleaned.startsWith('```json')) {
             cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
         } else if (cleaned.startsWith('```')) {
             cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
         }
 
-        // Find the JSON object boundaries
         const firstBrace = cleaned.indexOf('{');
         if (firstBrace !== -1) {
             cleaned = cleaned.substring(firstBrace);
 
-            // Find the matching closing brace
             let braceCount = 0;
             let endIndex = -1;
             for (let i = 0; i < cleaned.length; i++) {
@@ -2758,51 +2401,39 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             }
         }
 
-        console.log('[JSON Cleaning] ✅ Simple extraction complete, length:', cleaned.length);
         return cleaned.trim();
     }
 
     private fixJsonStringEscaping(jsonString: string): string {
         try {
-            // Fix common JSON string escaping issues
             let fixed = jsonString;
 
-            // Fix unescaped quotes inside JSON string values
-            // Match strings and escape quotes within them
             fixed = fixed.replace(/"([^"]*?)([^\\])"([^"]*?)"/g, (match, before, quote, after) => {
-                // Only fix if this looks like a broken string (has content after the quote)
                 if (after && after.length > 0 && !after.startsWith(',') && !after.startsWith('}') && !after.startsWith(']')) {
                     return `"${before}${quote}\\"${after}"`;
                 }
                 return match;
             });
 
-            // Fix unescaped newlines in strings
             fixed = fixed.replace(/(".*?)\n(.*?")/g, '$1\\n$2');
 
-            // Fix unescaped backslashes
             fixed = fixed.replace(/(".*?[^\\])\\([^"\\nrt])/g, '$1\\\\$2');
 
-            // Remove trailing commas before closing brackets/braces
             fixed = fixed.replace(/,\s*([}\]])/g, '$1');
 
             return fixed;
         } catch (error) {
-            console.log('[JSON Cleaning] ⚠️ String fixing failed, returning original');
             return jsonString;
         }
     }
 
     private truncateJsonResponse(jsonString: string): string {
         try {
-            // Try to parse partial JSON and truncate at a safe point
             const maxLength = 30000;
             if (jsonString.length <= maxLength) return jsonString;
 
-            // Find a safe truncation point (after a complete object/array)
             const truncated = jsonString.substring(0, maxLength);
 
-            // Find the last complete field/value pair
             const lastComma = truncated.lastIndexOf(',');
             const lastCloseBrace = truncated.lastIndexOf('}');
             const lastCloseBracket = truncated.lastIndexOf(']');
@@ -2810,47 +2441,37 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             const safeTruncatePoint = Math.max(lastComma, lastCloseBrace, lastCloseBracket);
 
             if (safeTruncatePoint > maxLength * 0.8) {
-                // Good truncation point found
                 let result = truncated.substring(0, safeTruncatePoint);
 
-                // Ensure we end with proper JSON structure
                 const openBraces = (result.match(/{/g) || []).length;
                 const closeBraces = (result.match(/}/g) || []).length;
                 const openBrackets = (result.match(/\[/g) || []).length;
                 const closeBrackets = (result.match(/\]/g) || []).length;
 
-                // Add missing closing braces/brackets
                 result += '}'.repeat(openBraces - closeBraces);
                 result += ']'.repeat(openBrackets - closeBrackets);
 
-                console.log('[JSON Cleaning] 📏 Truncated safely at position:', safeTruncatePoint);
                 return result;
             }
 
-            // Fallback: just truncate and try to close JSON
             return truncated + '}';
 
         } catch (error) {
-            console.log('[JSON Cleaning] ⚠️ Truncation failed, using simple truncation');
             return jsonString.substring(0, 30000) + '}';
         }
     }
 
     private aggressiveJsonRepair(jsonString: string): string {
-        console.log('[JSON Repair] 🚨 Attempting aggressive JSON repair...');
         try {
             let repaired = jsonString;
 
-            // Remove everything that's clearly not JSON
             repaired = repaired.replace(/```json\s*/g, '').replace(/```\s*/g, '');
 
-            // Find JSON boundaries more aggressively
             const firstBrace = repaired.indexOf('{');
             if (firstBrace === -1) {
                 throw new Error('No JSON object found');
             }
 
-            // Simple bracket matching to find the end
             let braceCount = 0;
             let endPos = firstBrace;
 
@@ -2866,9 +2487,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
 
             repaired = repaired.substring(firstBrace, endPos + 1);
 
-            // Aggressive string content cleaning
             repaired = repaired.replace(/"[^"]*"/g, (match) => {
-                // Clean the content inside quotes
                 let content = match.slice(1, -1); // Remove surrounding quotes
                 content = content.replace(/"/g, '\\"'); // Escape internal quotes
                 content = content.replace(/\n/g, '\\n'); // Escape newlines
@@ -2878,19 +2497,15 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 return `"${content}"`;
             });
 
-            // Remove trailing commas
             repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
 
-            // If still too long, truncate
             if (repaired.length > 20000) {
                 repaired = repaired.substring(0, 15000) + '}';
             }
 
-            console.log('[JSON Repair] ✅ Aggressive repair complete');
             return repaired;
 
         } catch (error) {
-            console.log('[JSON Repair] ❌ Aggressive repair failed, returning minimal JSON');
             return '{"error": "Response parsing failed", "fallback": true}';
         }
     }
@@ -2899,7 +2514,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         let responseText = '';
 
         try {
-            // Use new modular services
             const traceManager = this.plugin.getTraceManager();
             if (traceManager) {
                 const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
@@ -2910,26 +2524,19 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 });
                 responseText = response.text;
 
-                // Extract JSON from markdown blocks
                 const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
                 const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText.trim();
 
-                // Try parsing the response as-is first
                 try {
                     return JSON.parse(jsonText);
                 } catch (parseError) {
-                    console.log('[AI Request] Initial JSON parse failed, trying cleanup...');
 
-                    // Try cleaning the response and parsing again
                     try {
                         const cleanedResponse = this.cleanJsonResponse(jsonText);
-                        console.log('[AI Request] Cleaned response preview:', cleanedResponse.substring(0, 200) + '...');
 
                         return JSON.parse(cleanedResponse);
                     } catch (secondParseError) {
-                        console.log('[AI Request] 🔧 Enhanced cleaning failed, trying aggressive cleanup...');
 
-                        // Last resort: aggressive JSON repair
                         const aggressiveCleaned = this.aggressiveJsonRepair(jsonText);
                         return JSON.parse(aggressiveCleaned);
                     }
@@ -2939,8 +2546,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             throw new Error('No valid AI provider configured');
 
         } catch (error) {
-            console.error('[AI Request] Error:', error);
-            console.error('[AI Request] Response that failed:', responseText?.substring(0, 500) + '...');
             throw error;
         }
     }
@@ -2953,24 +2558,20 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             learning_context: structure.learning_context,
             overview: structure.overview,
 
-            // Core content
             context: coreAnalysis.context,
             detailed_summary: coreAnalysis.detailed_summary,
             key_facts: coreAnalysis.key_facts,
             deep_insights: coreAnalysis.deep_insights,
             core_concepts: coreAnalysis.core_concepts,
 
-            // Perspectives and examples
             multiple_perspectives: perspectives.multiple_perspectives,
             analogies_examples: perspectives.analogies_examples,
             case_studies: perspectives.case_studies,
 
-            // Connections and applications
             knowledge_connections: connections.knowledge_connections,
             practical_applications: connections.practical_applications,
             implications_consequences: connections.implications_consequences,
 
-            // Learning and action
             knowledge_gaps: learning.knowledge_gaps,
             learning_pathways: learning.learning_pathways,
             actionable_next_steps: learning.actionable_next_steps,
@@ -2981,22 +2582,18 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     private formatComprehensiveNote(result: any): string {
         let content = `# ${result.title}\n\n`;
 
-        // Overview
         if (result.overview) {
             content += `## Overview\n${result.overview}\n\n`;
         }
 
-        // Context
         if (result.context) {
             content += `## Context & Background\n${result.context}\n\n`;
         }
 
-        // Detailed Summary
         if (result.detailed_summary) {
             content += `## Comprehensive Summary\n${result.detailed_summary}\n\n`;
         }
 
-        // Key Facts
         if (result.key_facts?.length) {
             content += `## Key Facts\n`;
             result.key_facts.forEach((fact: string) => {
@@ -3005,43 +2602,34 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             content += '\n';
         }
 
-        // Deep Insights
         if (result.deep_insights?.length) {
             content += `## Deep Insights\n`;
             result.deep_insights.forEach((insight: string, index: number) => {
-                // Check if insight has a title format (starts with "Title:")
                 const colonIndex = insight.indexOf(':');
                 if (colonIndex > 0 && colonIndex < 100) {
-                    // Has a title format
                     const title = insight.substring(0, colonIndex).trim();
                     const body = insight.substring(colonIndex + 1).trim();
                     content += `### ${index + 1}. ${title}\n${body}\n\n`;
                 } else {
-                    // No title format, use the full insight
                     content += `### Insight ${index + 1}\n${insight}\n\n`;
                 }
             });
         }
 
-        // Core Concepts
         if (result.core_concepts?.length) {
             content += `## Core Concepts\n`;
             result.core_concepts.forEach((concept: string) => {
-                // Check if concept has a title format (starts with "Title:")
                 const colonIndex = concept.indexOf(':');
                 if (colonIndex > 0 && colonIndex < 100) {
-                    // Has a title format
                     const title = concept.substring(0, colonIndex).trim();
                     const body = concept.substring(colonIndex + 1).trim();
                     content += `### ${title}\n${body}\n\n`;
                 } else {
-                    // No title format, use the full concept
                     content += `### ${concept}\n\n`;
                 }
             });
         }
 
-        // Multiple Perspectives
         if (result.multiple_perspectives?.length) {
             content += `## Multiple Perspectives\n`;
             result.multiple_perspectives.forEach((perspective: any) => {
@@ -3049,7 +2637,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             });
         }
 
-        // Analogies and Examples
         if (result.analogies_examples?.length) {
             content += `## Analogies & Examples\n`;
             result.analogies_examples.forEach((example: any) => {
@@ -3057,14 +2644,12 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             });
         }
 
-        // Case Studies
         if (result.case_studies?.length) {
             content += `## Case Studies\n`;
             result.case_studies.forEach((study: any, index: number) => {
                 if (typeof study === 'string') {
                     content += `### Case Study ${index + 1}\n${study}\n\n`;
                 } else if (study && typeof study === 'object') {
-                    // Handle structured case study objects
                     const title = study.case_study_name || `Case Study ${index + 1}`;
                     content += `### ${title}\n`;
                     if (study.description) {
@@ -3083,7 +2668,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             });
         }
 
-        // Knowledge Connections
         if (result.knowledge_connections?.length) {
             content += `## Knowledge Connections\n`;
             result.knowledge_connections.forEach((connection: any) => {
@@ -3091,7 +2675,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             });
         }
 
-        // Practical Applications
         if (result.practical_applications?.length) {
             content += `## Practical Applications\n`;
             result.practical_applications.forEach((application: any) => {
@@ -3099,7 +2682,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             });
         }
 
-        // Implications and Consequences
         if (result.implications_consequences?.length) {
             content += `## Implications & Consequences\n`;
             result.implications_consequences.forEach((implication: string) => {
@@ -3108,7 +2690,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             content += '\n';
         }
 
-        // Learning Pathways
         if (result.learning_pathways?.length) {
             content += `## Learning Pathways\n`;
             result.learning_pathways.forEach((pathway: any) => {
@@ -3120,7 +2701,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             });
         }
 
-        // Actionable Next Steps  
         if (result.actionable_next_steps?.length) {
             content += `## Actionable Next Steps\n`;
             result.actionable_next_steps.forEach((category: any) => {
@@ -3132,14 +2712,12 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             });
         }
 
-        // Knowledge Gaps
         if (result.knowledge_gaps?.length) {
             content += `> [!gap] Knowledge Gaps to Explore\n`;
             result.knowledge_gaps.forEach((gap: any) => {
                 if (typeof gap === 'string') {
                     content += `> - [ ] ${gap}\n`;
                 } else if (gap && typeof gap === 'object') {
-                    // Handle structured gap objects
                     const gapText = gap.gap || gap.title || String(gap);
                     const explanation = gap.explanation || gap.description;
                     if (explanation) {
@@ -3154,7 +2732,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             content += '\n';
         }
 
-        // Reflection Questions
         if (result.reflection_questions?.length) {
             content += `## Reflection Questions\n`;
             result.reflection_questions.forEach((question: string, index: number) => {
@@ -3167,21 +2744,15 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private async fallbackSinglePassAnalysis(text: string, prompt: string, url: string, hierarchyContext: string): Promise<any> {
-        console.log('[SummarizeContent] 🔄 Using fallback single-pass analysis...');
 
-        // Use the enhanced summarization prompt that includes learning-focused hierarchy analysis
-        // If user has customized the prompt, use it; otherwise use the default
         const basePrompt = prompt === this.plugin.settings.defaultPrompt ? DEFAULT_SUMMARIZATION_PROMPT : prompt;
         const enhancedPrompt = `${basePrompt}\n\n${ENHANCED_SUMMARIZATION_PROMPT.split('\n\n').slice(1).join('\n\n')}\n\nEXISTING KNOWLEDGE HIERARCHY:\n${hierarchyContext}`;
 
-        // Use new modular services
         const traceManager = this.plugin.getTraceManager();
         if (traceManager) {
             const selectedModel = this.modelDropdown?.value || this.plugin.settings.gemini.model;
-            console.log('[SummarizeContent] Using model:', selectedModel);
 
             try {
-                console.log('[SummarizeContent] 🚀 Sending request to AI service');
                 const response = await traceManager.generateText({
                     prompt: enhancedPrompt + "\n\n" + text,
                     model: selectedModel,
@@ -3189,43 +2760,26 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                     maxTokens: 4000
                 });
                 const responseText = response.text;
-                console.log('[SummarizeContent] ✅ Gemini JSON response length:', responseText.length);
 
-                // Gemini still returns JSON in markdown blocks, so we need to extract it
-                console.log('[SummarizeContent] First 100 chars of response:', responseText.substring(0, 100));
                 const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
                 const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText.trim();
-                console.log('[SummarizeContent] Extracted JSON length:', jsonText.length);
 
-                // Parse and validate JSON response structure
                 let sections;
                 try {
                     sections = this.validateJSONResponse(JSON.parse(jsonText));
-                    console.log('[SummarizeContent] ✅ Successfully parsed and validated native JSON response');
                 } catch (jsonError) {
-                    console.error('[SummarizeContent] ❌ JSON parsing failed:', jsonError.message);
-                    console.error('[SummarizeContent] 🔍 Problematic JSON around position', jsonError.message.match(/position (\d+)/)?.[1] || 'unknown');
 
-                    // Show context around the error position
                     if (jsonError.message.includes('position')) {
                         const position = parseInt(jsonError.message.match(/position (\d+)/)?.[1] || '0');
                         const start = Math.max(0, position - 100);
                         const end = Math.min(jsonText.length, position + 100);
-                        console.error('[SummarizeContent] 📄 JSON context around error:');
-                        console.error('[SummarizeContent] 📄 "...' + jsonText.substring(start, end) + '..."');
                     }
 
-                    // Try to fix common JSON issues
-                    console.log('[SummarizeContent] 🔧 Attempting JSON cleanup...');
                     try {
                         const cleanedJson = this.cleanupJSON(jsonText);
                         sections = this.validateJSONResponse(JSON.parse(cleanedJson));
-                        console.log('[SummarizeContent] ✅ JSON cleanup successful!');
                     } catch (cleanupError) {
-                        console.error('[SummarizeContent] ❌ JSON cleanup also failed:', cleanupError.message);
-                        console.log('[SummarizeContent] 🔄 Falling back to raw content preservation...');
 
-                        // Create a fallback structured response to preserve the content
                         sections = {
                             title: 'AI Generated Summary',
                             metadata: {
@@ -3251,11 +2805,8 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                                 raw_ai_response: jsonText
                             }
                         };
-                        console.log('[SummarizeContent] ✅ Fallback response created - content preserved');
                     }
                 }
-                console.log('[SummarizeContent] Hierarchy:', sections.hierarchy);
-                console.log('[SummarizeContent] Learning context:', sections.learning_context);
 
                 return {
                     summary: this.formatEnhancedSummary(sections),
@@ -3266,7 +2817,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 };
             } catch (error) {
                 new Notice(`Gemini API Error: ${error.message}`);
-                console.error('[SummarizeContent] Gemini API error:', error);
                 return { summary: '', title: 'Untitled', metadata: {}, hierarchy: undefined, learning_context: undefined };
             }
         }
@@ -3275,26 +2825,15 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private parseSections(responseText: string): any {
-        // Add debug logging to see what AI actually returns
-        console.log('[parseSections] Raw AI response length:', responseText.length);
-        console.log('[parseSections] First 500 chars:', responseText.substring(0, 500));
-        console.log('[parseSections] Last 200 chars:', responseText.substring(responseText.length - 200));
 
-        // Extract and prepare JSON text
         const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
         let jsonText = jsonMatch ? jsonMatch[1].trim() : responseText.trim();
 
-        console.log('[parseSections] Extracted JSON text length:', jsonText.length);
-        console.log('[parseSections] JSON text preview:', jsonText.substring(0, 200));
 
         try {
-            // Clean up common JSON issues from AI responses
             jsonText = this.cleanupJSON(jsonText);
-            console.log('[parseSections] After cleanup:', jsonText.substring(0, 200));
 
-            // Try to parse the JSON
             const response = JSON.parse(jsonText);
-            console.log('[parseSections] ✅ Successfully parsed AI response');
 
             return {
                 title: response.title || 'Untitled',
@@ -3318,15 +2857,10 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 ...response.sections
             };
         } catch (error) {
-            console.error('[parseSections] ❌ JSON parsing failed:', error.message);
-            console.error('[parseSections] Failed JSON text:', jsonText.substring(0, 500));
 
-            // Try one more time with aggressive cleanup
             try {
                 const aggressivelyCleanedJSON = this.aggressiveJSONCleanup(jsonText);
-                console.log('[parseSections] Aggressive cleanup result:', aggressivelyCleanedJSON.substring(0, 200));
                 const response = JSON.parse(aggressivelyCleanedJSON);
-                console.log('[parseSections] ✅ Successfully parsed with aggressive cleanup');
 
                 return {
                     title: response.title || 'Untitled',
@@ -3350,9 +2884,7 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                     ...response.sections
                 };
             } catch (secondError) {
-                console.error('[parseSections] ❌ Aggressive cleanup also failed:', secondError.message);
 
-                // REMOVED FALLBACK PARSING - Now we throw an error instead
                 throw new Error(`AI returned malformed JSON response. Please regenerate with a clearer prompt. Original error: ${error.message}, Cleanup error: ${secondError.message}`);
             }
         }
@@ -3361,18 +2893,15 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     private formatEnhancedSummary(sections: any): string {
         let formattedContent = '';
 
-        // If we have raw content from fallback parsing, add it first
         if (sections.raw_content) {
             formattedContent += `> [!warning] Parsing Notice\n> The AI response could not be fully parsed as structured data. The raw content is preserved below, and basic organization has been applied. You may want to manually review and enhance this content.\n\n`;
             formattedContent += `## Raw AI Response\n\n${sections.raw_content}\n\n---\n\n`;
         }
 
-        // Add context section with callout
         if (sections.context) {
             formattedContent += `> [!context] Context\n> ${sections.context.replace(/\n/g, '\n> ')}\n\n`;
         }
 
-        // Add facts section with callout
         if (sections.facts && Array.isArray(sections.facts)) {
             formattedContent += `> [!fact] Facts\n`;
             sections.facts.forEach((fact: string) => {
@@ -3381,7 +2910,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             formattedContent += '\n';
         }
 
-        // Add perspectives section with callout
         if (sections.perspectives && Array.isArray(sections.perspectives)) {
             formattedContent += `> [!perspective] Perspectives\n`;
             sections.perspectives.forEach((perspective: string) => {
@@ -3390,7 +2918,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             formattedContent += '\n';
         }
 
-        // Add insights section with callout
         if (sections.insights && Array.isArray(sections.insights)) {
             formattedContent += `> [!insight] Insights\n`;
             sections.insights.forEach((insight: string) => {
@@ -3399,12 +2926,10 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             formattedContent += '\n';
         }
 
-        // Add personal reflection section with callout
         if (sections.personal_reflection) {
             formattedContent += `> [!reflection] Personal Reflection\n> ${sections.personal_reflection.replace(/\n/g, '\n> ')}\n\n`;
         }
 
-        // Add analogies section with callout
         if (sections.analogies && Array.isArray(sections.analogies)) {
             formattedContent += `> [!analogy] Analogies and Metaphors\n`;
             sections.analogies.forEach((analogy: string) => {
@@ -3413,7 +2938,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             formattedContent += '\n';
         }
 
-        // Add questions section with callout and checkboxes
         if (sections.questions && Array.isArray(sections.questions)) {
             formattedContent += `> [!question] Questions and Curiosities\n`;
             sections.questions.forEach((question: string) => {
@@ -3422,7 +2946,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             formattedContent += '\n';
         }
 
-        // Add applications section with callout
         if (sections.applications && Array.isArray(sections.applications)) {
             formattedContent += `> [!example] Applications and Examples\n`;
             sections.applications.forEach((application: string) => {
@@ -3431,7 +2954,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             formattedContent += '\n';
         }
 
-        // Add contrasts section with callout
         if (sections.contrasts && Array.isArray(sections.contrasts)) {
             formattedContent += `> [!contrast] Contrasts and Comparisons\n`;
             sections.contrasts.forEach((contrast: string) => {
@@ -3440,7 +2962,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             formattedContent += '\n';
         }
 
-        // Add implications section with callout
         if (sections.implications && Array.isArray(sections.implications)) {
             formattedContent += `> [!implication] Implications\n`;
             sections.implications.forEach((implication: string) => {
@@ -3449,14 +2970,12 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             formattedContent += '\n';
         }
 
-        // Add knowledge gaps section with callout and checkboxes
         if (sections.knowledge_gaps && Array.isArray(sections.knowledge_gaps)) {
             formattedContent += `> [!gap] Knowledge Gaps\n`;
             sections.knowledge_gaps.forEach((gap: any) => {
                 if (typeof gap === 'string') {
                     formattedContent += `> - [ ] ${gap}\n`;
                 } else if (gap && typeof gap === 'object') {
-                    // Handle structured gap objects
                     const gapText = gap.gap || gap.title || String(gap);
                     const explanation = gap.explanation || gap.description;
                     if (explanation) {
@@ -3471,7 +2990,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             formattedContent += '\n';
         }
 
-        // Add next steps section with callout and checkboxes
         if (sections.next_steps && Array.isArray(sections.next_steps)) {
             formattedContent += `> [!todo] Next Steps\n`;
             sections.next_steps.forEach((step: string) => {
@@ -3480,7 +2998,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             formattedContent += '\n';
         }
 
-        // Add related goals section with callout and checkboxes
         if (sections.related_goals && Array.isArray(sections.related_goals)) {
             formattedContent += `> [!goal] Related Goals\n`;
             sections.related_goals.forEach((goal: string) => {
@@ -3493,34 +3010,23 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private cleanupJSON(jsonText: string): string {
-        // Remove common issues that cause JSON parsing to fail
         let cleaned = jsonText
-            // Remove BOM and other invisible Unicode characters
             .replace(/^\uFEFF/, '') // Remove BOM
             .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and similar
             .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
-            // Remove any markdown formatting if it leaked through
             .replace(/```json\s*|\s*```/g, '')
-            // Fix array element issues (common JSON error)
             .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas before closing brackets/braces
             .replace(/](\s*[^,}\]\s])/g, '],$1') // Add missing comma after array close
             .replace(/}(\s*[^,}\]\s])/g, '},$1') // Add missing comma after object close
             .replace(/(\w|"|})(\s*\[)/g, '$1,$2') // Add missing comma before array start
             .replace(/(\w|"|})(\s*{)/g, '$1,$2') // Add missing comma before object start
-            // Fix escaped quotes in content
             .replace(/\\"/g, '"')
-            // Remove any stray backslashes before quotes
             .replace(/\\(?!")/g, '')
-            // Fix double-escaped characters
             .replace(/\\\\"/g, '\\"')
-            // Fix unescaped quotes inside strings (basic attempt)
             .replace(/:\s*"([^"]*)"([^",}\]]*)"([^",}\]]*)/g, ': "$1\\"$2\\"$3')
-            // Fix missing quotes around keys
             .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
-            // Clean up any extra spaces around JSON elements
             .trim();
 
-        // Ensure it starts and ends with braces
         if (!cleaned.startsWith('{')) {
             const braceIndex = cleaned.indexOf('{');
             if (braceIndex > -1) {
@@ -3528,32 +3034,19 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             }
         }
 
-        // Try to find and fix the most common array issues
         try {
-            // Test if we can parse it, if not, try more aggressive fixes
             JSON.parse(cleaned);
         } catch (e) {
-            console.log('[cleanupJSON] Initial cleanup failed, trying quote-specific fixes...');
-            // Fix the specific issue seen in the error: unescaped quotes in strings
-            // Based on the error: "slow training times.",""Machine Learning is the Second Best Solution\" Quote:"
 
-            // Step 1: Fix double quotes that start array elements
             cleaned = cleaned.replace(/,\s*""/g, ',"');
 
-            // Step 2: Find and fix unescaped quotes in string content
-            // This is tricky, so let's use a more conservative approach
             const lines = cleaned.split('\n');
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i];
 
-                // Look for problematic patterns like: "text"unescaped content"more text"
-                // and replace with: "text\"unescaped content\"more text"
                 if (line.includes('"') && !line.match(/^[\s]*["}]/)) {
-                    // Count quotes to find unbalanced strings
                     const quoteCount = (line.match(/"/g) || []).length;
                     if (quoteCount > 2 && quoteCount % 2 === 0) {
-                        // Even number of quotes > 2 suggests embedded quotes
-                        // Simple heuristic: escape quotes that aren't at start/end of values
                         line = line.replace(/([^:,\[\{]\s*)"([^"]*)"([^,\]\}])/g, '$1\\"$2\\"$3');
                     }
                 }
@@ -3561,7 +3054,6 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             }
             cleaned = lines.join('\n');
 
-            // Step 3: Basic structural fixes
             cleaned = cleaned
                 .replace(/]\s*"/g, '],"') // Fix missing comma after array
                 .replace(/}\s*"/g, '},"') // Fix missing comma after object
@@ -3575,33 +3067,22 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private aggressiveJSONCleanup(jsonText: string): string {
-        // More aggressive cleanup for severely malformed JSON
         let cleaned = jsonText
-            // Remove ALL invisible characters more aggressively
             .replace(/^\uFEFF/, '') // Remove BOM
             .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
             .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
             .replace(/[\u2000-\u206F]/g, '') // Remove additional Unicode spaces
             .replace(/[\u2E00-\u2E7F]/g, ''); // Remove punctuation symbols
 
-        // Try to fix common patterns that break JSON
         cleaned = cleaned
-            // Remove trailing commas more aggressively
             .replace(/,\s*([}\]])/g, '$1')
-            // Fix unescaped quotes in strings (simple heuristic)
             .replace(/([^\\])"([^"]*)"([^,:}\]]*)/g, '$1\\"$2\\"$3')
-            // Remove any stray backslashes
             .replace(/\\(?!["\\/bfnrt])/g, '')
-            // Fix malformed string endings
             .replace(/([^"])"\s*,?\s*$/gm, '$1",')
-            // Remove any trailing content after final }
             .replace(/}\s*[^}]*$/, '}')
-            // Remove any content before first {
             .replace(/^[^{]*/, '')
-            // Ensure proper JSON structure
             .trim();
 
-        // If it doesn't start/end with braces, try to extract the main object
         if (!cleaned.startsWith('{')) {
             const match = cleaned.match(/\{[\s\S]*\}/);
             if (match) {
@@ -3613,12 +3094,8 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
     }
 
     private validateJSONResponse(response: any): any {
-        console.log('[validateJSONResponse] Validating response structure');
-        console.log('[validateJSONResponse] Response keys:', Object.keys(response));
 
-        // Handle both old and new response structures
         const sections = response.sections || response;
-        console.log('[validateJSONResponse] Sections keys:', Object.keys(sections));
 
         return {
             title: response.title || 'Untitled',
@@ -3639,15 +3116,12 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                 complexity_level: 'intermediate',
                 estimated_reading_time: '5-10 minutes'
             },
-            // Pass through the sections directly for formatting
             ...sections,
-            // Ensure we preserve metadata at root level
             sections: sections
         };
     }
 
     private parseMetadata(metadataText: string): any {
-        console.log('[parseMetadata] Starting to parse metadata text:', metadataText);
         const metadata: any = {
             tags: [],
             topics: [],
@@ -3656,55 +3130,43 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         };
 
         const lines = metadataText.split('\n');
-        console.log('[parseMetadata] Split into lines:', lines);
 
         for (const line of lines) {
             const [key, value] = line.split(':').map(s => s.trim());
-            console.log('[parseMetadata] Processing line - key:', key, 'value:', value);
             if (key && value) {
                 switch (key.toLowerCase()) {
                     case 'speakers':
-                        // Split by comma and clean up each speaker
                         metadata.speakers = value.split(',')
                             .map(s => s.trim())
                             .filter(s => s.length > 0 && s !== 'N/A')
                             .map(s => s.replace(/^\[|\]$/g, '').trim());
-                        console.log('[parseMetadata] Processed speakers:', metadata.speakers);
                         break;
                     case 'key topics':
-                        // Split by comma and clean up each topic
                         metadata.topics = value.split(',')
                             .map(t => t.trim())
                             .filter(t => t.length > 0)
                             .map(t => t.replace(/^\[|\]$/g, '').trim());
-                        console.log('[parseMetadata] Processed topics:', metadata.topics);
                         break;
                     case 'tags':
-                        // Split by comma and clean up each tag
                         metadata.tags = value.split(',')
                             .map(t => t.trim())
                             .filter(t => t.length > 0)
                             .map(t => t.replace(/^\[|\]$/g, '').trim());
-                        console.log('[parseMetadata] Processed tags:', metadata.tags);
                         break;
                     case 'related concepts':
-                        // Split by comma and clean up each concept
                         metadata.related = value.split(',')
                             .map(t => t.trim())
                             .filter(t => t.length > 0)
                             .map(t => t.replace(/^\[|\]$/g, '').trim());
-                        console.log('[parseMetadata] Processed related concepts:', metadata.related);
                         break;
                 }
             }
         }
 
-        // Only add default tags if no tags were found
         if (metadata.tags.length === 0) {
             metadata.tags = ['#summary'];
         }
 
-        console.log('[parseMetadata] Final metadata object:', metadata);
         return metadata;
     }
 
@@ -3712,41 +3174,32 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
         const fileName = sanitizeFileName(title + '.md');
         let folderPath = this.plugin.settings.mocFolder; // fallback to root MOC folder
 
-        // Handle topic folders for "how_to" intent
         if (intent === 'how_to' && this.plugin.settings.topicFolders.enabled) {
             const selectedTopic = await this.getSelectedTopic();
             if (selectedTopic) {
                 try {
-                    // If it's a new topic, add it to settings
                     if (selectedTopic !== '__new__' && !this.plugin.settings.topicFolders.topics.includes(selectedTopic)) {
                         await this.addTopicToSettings(selectedTopic);
                     }
 
-                    // Create topic folder and use it as the folder path
                     folderPath = await this.ensureTopicFolder(selectedTopic);
-                    console.log(`[TopicFolders] Using topic folder: ${folderPath}`);
                 } catch (error) {
-                    console.error(`[TopicFolders] Failed to create topic folder, falling back to MOC folder:`, error);
                     new Notice(`Failed to create topic folder. Note will be saved in MOC folder.`);
                 }
             }
         }
 
-        // MOC Analysis and Integration
         let mocPath: string | null = null;
         let hierarchyData: NoteHierarchyAnalysis | null = null;
 
-        // Helper function to update MOC status
         const updateMOCStatus = (message: string) => {
             this.statusMessage.innerText = message;
         };
 
-        // Skip MOC creation for topic folders (they have their own organization)
         const useTopicFolders = intent === 'how_to' && this.plugin.settings.topicFolders.enabled && this.topicDropdown.value;
 
         if (this.plugin.settings.enableMOC && metadata && !useTopicFolders) {
             try {
-                // Use AI-generated hierarchy from the analysis result
                 const aiHierarchy = fullResult?.hierarchy;
                 const aiLearningContext = fullResult?.learning_context;
 
@@ -3767,33 +3220,24 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
                         }
                     };
 
-                    console.log('[CreateNote] Hierarchy detected:', `${hierarchyData.hierarchy.level1} > ${hierarchyData.hierarchy.level2}`);
 
                     updateMOCStatus('Creating knowledge map structure...');
                     mocPath = await this.plugin.mocManager.ensureMOCExists(hierarchyData.hierarchy);
-                    console.log('[CreateNote] MOC path:', mocPath);
 
-                    // Update folder path to place note in MOC hierarchy directory
                     folderPath = this.plugin.mocManager.getMostSpecificMOCDirectory(hierarchyData.hierarchy);
-                    console.log('[CreateNote] Note will be saved in:', folderPath);
 
                     updateMOCStatus('Knowledge map ready');
                 } else {
-                    console.log('[CreateNote] No AI hierarchy found - MOC creation skipped');
                     updateMOCStatus('AI hierarchy generation failed - note will be saved without MOC organization');
-                    // No MOC creation if AI fails to generate hierarchy
                     hierarchyData = null;
                     mocPath = null;
                 }
             } catch (error) {
-                console.error('[CreateNote] MOC analysis failed:', error);
                 updateMOCStatus('Knowledge organization failed, but note will be saved');
                 new Notice('Note will be saved, but automatic organization failed. You can organize it manually later.');
-                // Continue with note creation even if MOC fails
             }
         }
 
-        // Create YAML frontmatter
         const frontmatter = {
             title: title,
             date: new Date().toISOString().split('T')[0],
@@ -3808,11 +3252,9 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             status: 'draft',
             created: new Date().toISOString(),
             modified: new Date().toISOString(),
-            // Add action items if available
             ...(fullResult?.action_items && fullResult.action_items.length > 0 && {
                 action_items: fullResult.action_items
             }),
-            // Add MOC-related metadata if available
             ...(hierarchyData && {
                 hierarchy: hierarchyData.hierarchy,
                 moc: mocPath,
@@ -3820,16 +3262,13 @@ IMPORTANT: Consider the existing MOC structure above. If this content fits natur
             })
         };
 
-        // Format the content with YAML frontmatter and Obsidian-native features
         const fileContent = `---
 ${Object.entries(frontmatter)
                 .map(([key, value]) => {
                     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                        // Handle nested objects (like source, hierarchy, learning_context)
                         return `${key}:\n${Object.entries(value)
                             .map(([k, v]) => {
                                 if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
-                                    // Handle deeply nested objects
                                     return `  ${k}:\n${Object.entries(v)
                                         .map(([dk, dv]) => `    ${dk}: ${JSON.stringify(dv)}`)
                                         .join('\n')}`;
@@ -3839,7 +3278,6 @@ ${Object.entries(frontmatter)
                             })
                             .join('\n')}`;
                     } else {
-                        // Handle simple values and arrays
                         return `${key}: ${JSON.stringify(value)}`;
                     }
                 })
@@ -3859,56 +3297,40 @@ ${this.currentMetadata?.related?.length ? `## Related Concepts\n${this.currentMe
 
 ${this.currentMetadata?.tags?.length ? `\n${this.currentMetadata.tags.join(' ')}` : ''}`;
 
-        console.log('[CreateNote] Creating note. Folder:', folderPath, 'File:', fileName);
         try {
             const folder = this.app.vault.getAbstractFileByPath(folderPath) as TFolder;
             if (!folder) {
                 await this.app.vault.createFolder(folderPath);
-                console.log('[CreateNote] Folder created:', folderPath);
             }
 
-            // Handle file name conflicts by finding a unique name
             const finalFileName = await findUniqueFileName(this.app, folderPath, fileName);
             if (finalFileName !== fileName) {
-                console.log('[CreateNote] File name conflict resolved:', fileName, '→', finalFileName);
             }
 
             const newFile = await this.app.vault.create(`${folderPath}/${finalFileName}`, fileContent);
-            console.log('[CreateNote] Note created:', `${folderPath}/${finalFileName}`);
 
-            // Update MOC with the new note
             if (mocPath && this.plugin.settings.enableMOC) {
                 try {
                     updateMOCStatus('Adding note to knowledge map...');
-                    console.log('[CreateNote] Adding note to MOC...');
                     await this.plugin.mocManager.updateMOC(mocPath, newFile.path, title, hierarchyData?.learning_context);
-                    console.log('[CreateNote] Note successfully added to MOC');
 
-                    // Cascade intelligence updates upward through hierarchy
                     if (hierarchyData?.hierarchy) {
                         updateMOCStatus('Updating knowledge hierarchy intelligence...');
-                        console.log('[CreateNote] Starting cascading intelligence update...');
                         await this.plugin.mocManager.cascadeIntelligenceUpward(hierarchyData.hierarchy);
-                        console.log('[CreateNote] Cascading intelligence update complete');
                     }
 
                     updateMOCStatus('Note organized in knowledge map!');
                 } catch (error) {
-                    console.error('[CreateNote] Failed to update MOC:', error);
                     updateMOCStatus('Note saved (MOC update failed)');
-                    // Don't fail note creation if MOC update fails
                 }
             }
 
             return newFile;
         } catch (error) {
             new Notice('Error creating note.');
-            console.error('[CreateNote] Error creating note:', error);
             return null;
         }
     }
-
-
 
 
 }
@@ -3932,7 +3354,6 @@ class FolderSelectionModal extends Modal {
         });
         description.style.marginBottom = '20px';
 
-        // Get all folders in the vault
         const allFolders = this.app.vault.getAllLoadedFiles()
             .filter(file => file instanceof TFolder)
             .map(folder => folder as TFolder)
@@ -3943,7 +3364,6 @@ class FolderSelectionModal extends Modal {
             return;
         }
 
-        // Create scrollable container
         const folderContainer = contentEl.createEl('div');
         folderContainer.style.maxHeight = '400px';
         folderContainer.style.overflowY = 'auto';
@@ -3951,7 +3371,6 @@ class FolderSelectionModal extends Modal {
         folderContainer.style.borderRadius = '6px';
         folderContainer.style.marginBottom = '20px';
 
-        // Add folders as clickable items
         allFolders.forEach(folder => {
             const folderItem = folderContainer.createEl('div');
             folderItem.style.padding = '10px 15px';
@@ -3973,14 +3392,12 @@ class FolderSelectionModal extends Modal {
             });
 
             folderItem.addEventListener('click', () => {
-                // Extract just the folder name for topic organization
                 const folderName = folder.name;
                 this.onChoose(folderName);
                 this.close();
             });
         });
 
-        // Cancel button
         const buttonContainer = contentEl.createEl('div');
         buttonContainer.style.display = 'flex';
         buttonContainer.style.justifyContent = 'flex-end';
@@ -4006,7 +3423,6 @@ class AISummarizerPlugin extends Plugin {
     hierarchyAnalyzer: HierarchyAnalyzer;
     hierarchyManager: HierarchyManager;
 
-    // New modular services
     public serviceIntegration: PluginIntegration;
     public llmService?: LLMService;
     public traceManager?: TraceManager;
@@ -4015,28 +3431,21 @@ class AISummarizerPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
 
-        // Initialize modular services
         await this.initializeServices();
 
-        // Initialize MOC components with error handling
         try {
             this.mocManager = new MOCManager(this.app, this.settings, this);
             this.hierarchyAnalyzer = new HierarchyAnalyzer();
             this.hierarchyManager = new HierarchyManager(this.app, this.settings);
 
-            // Connect managers with proper dependency injection
             this.mocManager.setHierarchyManager(this.hierarchyManager);
 
-            console.log('[Plugin] MOC components initialized successfully');
         } catch (error) {
-            console.error('[Plugin] Failed to initialize MOC components:', error);
             new Notice('Failed to initialize MOC components. Some features may not work.');
         }
 
-        // Check for migration from old structure
         await this.checkForMigrationNeeds();
 
-        // Check if any API key is set
         if (!this.settings.gemini.apiKey) {
             this.promptForSettings();
         }
@@ -4059,13 +3468,10 @@ class AISummarizerPlugin extends Plugin {
             this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
         }
 
-        // Ensure we always have the latest models
         this.settings.gemini.models = GEMINI_MODELS;
 
-        // Validate that the current model selection is still valid
         const validModelIds = GEMINI_MODELS.map(m => m.id);
         if (!validModelIds.includes(this.settings.gemini.model)) {
-            console.log(`[Settings] Invalid model '${this.settings.gemini.model}', resetting to default`);
             this.settings.gemini.model = 'gemini-2.5-flash';
             await this.saveSettings();
         }
@@ -4074,20 +3480,17 @@ class AISummarizerPlugin extends Plugin {
     async saveSettings() {
         await this.saveData(this.settings);
 
-        // Reinitialize services when settings change
         if (this.serviceIntegration) {
             try {
                 await this.serviceIntegration.reinitialize(this.settings);
                 this.updateServiceReferences();
             } catch (error) {
-                console.error('[Plugin] Failed to reinitialize services after settings change:', error);
             }
         }
     }
 
     private async checkForMigrationNeeds(): Promise<void> {
         try {
-            // Check if there's a legacy "Summaries" folder with notes
             const summariesFolder = this.app.vault.getAbstractFileByPath('Summaries');
             if (summariesFolder) {
                 const summaryFiles = this.app.vault.getMarkdownFiles().filter(file =>
@@ -4095,9 +3498,7 @@ class AISummarizerPlugin extends Plugin {
                 );
 
                 if (summaryFiles.length > 0) {
-                    console.log(`[Migration] Found ${summaryFiles.length} notes in legacy Summaries folder`);
 
-                    // Show migration notice
                     new Notice(
                         `Found ${summaryFiles.length} notes in the old "Summaries" folder. ` +
                         'New notes will now be organized within the knowledge hierarchy. ' +
@@ -4107,7 +3508,6 @@ class AISummarizerPlugin extends Plugin {
                 }
             }
         } catch (error) {
-            console.warn('[Migration] Migration check failed:', error);
         }
     }
 
@@ -4138,17 +3538,13 @@ class AISummarizerPlugin extends Plugin {
      */
     public async initializeServices(): Promise<void> {
         try {
-            console.log('[Plugin] Initializing modular services...');
 
             this.serviceIntegration = new PluginIntegration();
             await this.serviceIntegration.initialize(this.settings);
 
             this.updateServiceReferences();
 
-            console.log('[Plugin] ✅ Modular services initialized successfully');
         } catch (error) {
-            console.error('[Plugin] ❌ Failed to initialize modular services:', error);
-            // Don't throw - allow plugin to continue with legacy functionality
             new Notice('Failed to initialize AI services. Using legacy mode.');
         }
     }
@@ -4161,9 +3557,6 @@ class AISummarizerPlugin extends Plugin {
             this.llmService = this.serviceIntegration.getLLMService();
             this.traceManager = this.serviceIntegration.getTraceManager();
 
-            // Initialize NoteProcessor with services (will be set per SummaryView instance)
-            console.log('[Plugin] ✅ Services ready for NoteProcessor initialization');
-            // Note: NoteProcessor will be created by each SummaryView instance
         }
     }
 
@@ -4185,22 +3578,16 @@ class AISummarizerPlugin extends Plugin {
      * Plugin cleanup
      */
     async onunload() {
-        console.log('[Plugin] Unloading plugin...');
 
-        // Clean up modular services
         if (this.serviceIntegration) {
             try {
                 await this.serviceIntegration.cleanup();
-                console.log('[Plugin] ✅ Services cleaned up successfully');
             } catch (error) {
-                console.error('[Plugin] ❌ Error cleaning up services:', error);
             }
         }
 
-        console.log('[Plugin] Plugin unloaded');
     }
 }
-
 
 
 export default AISummarizerPlugin;
