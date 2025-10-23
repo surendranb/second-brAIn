@@ -1,21 +1,16 @@
-import { Plugin, WorkspaceLeaf, ItemView, Notice, TFolder, Setting, PluginSettingTab, App, TFile, Modal, requestUrl } from 'obsidian';
-import { promisify } from 'util';
-import * as path from 'path';
+import { Plugin, WorkspaceLeaf, ItemView, Notice, TFolder, App, TFile, Modal } from 'obsidian';
+
 import { AISummarizerSettingsTab } from './settings';
-import { DEFAULT_SUMMARIZATION_PROMPT, HIERARCHY_ANALYSIS_PROMPT, ENHANCED_SUMMARIZATION_PROMPT } from './prompts';
+
 import { HierarchyManager } from './hierarchy-manager';
 import { PromptLoader } from './prompt-loader';
-import { MOCIntelligence } from './moc-intelligence';
 import { MOCManager } from './moc-manager';
 import { HierarchyAnalyzer } from './hierarchy-analyzer';
 import { PluginIntegration, LLMService, TraceManager } from './src/services';
 import { NoteProcessor } from './src/services/NoteProcessor';
 import {
-    sanitizeFileName,
     findUniqueFileName,
     generateId,
-    extractPlatformFromUrl,
-    formatMOCContextForAI,
     estimateTokens,
     calculateCost,
     formatTokens
@@ -30,14 +25,8 @@ import {
     type PluginSettings,
     type Provider
 } from './src/config';
-import {
-    type MOCHierarchy,
-    type LearningContext,
-    type MOCMetadata,
-    type MOC,
-    type NoteHierarchyAnalysis
-} from './src/types';
-import { HierarchyChoiceModal, SettingModal } from './src/components';
+
+import { SettingModal } from './src/components';
 
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
 

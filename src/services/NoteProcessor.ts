@@ -583,7 +583,7 @@ export class NoteProcessor {
                 
                 // Get the most specific MOC directory for file placement
                 folderPath = this.plugin.mocManager.getMostSpecificMOCDirectory(hierarchy);
-                mocPath = this.plugin.mocManager.getMostSpecificMOCPath(hierarchy);
+                mocPath = await this.plugin.mocManager.getMostSpecificMOCPath(hierarchy);
                 
                 console.log('[NoteProcessor] ✅ MOC structure created, placing note in:', folderPath);
             } catch (error) {
@@ -666,13 +666,8 @@ export class NoteProcessor {
         }
         noteContent += '---\n\n';
         
-        // Add title and content
-        noteContent += `# ${title}\n\n`;
-        noteContent += `Content extracted from: ${url}\n\n`;
+        // Add AI-generated content (already includes title, content, and source)
         noteContent += summary;
-        
-        // Add source callout
-        noteContent += `\n\n> [!source] Source\n> ${url}\n\n`;
         
         // Create the file
         const filePath = `${folderPath}/${fileName}`;
