@@ -560,15 +560,58 @@ export class NoteProcessor {
     private async createNote(analysisResult: any, url: string): Promise<TFile> {
         console.log('[NoteProcessor] Creating note:', analysisResult.title);
         
-        // Use existing note creation logic from SummaryView
-        return await this.summaryView.createNoteWithSummary(
-            analysisResult.summary || 'No summary generated',
-            analysisResult.title || 'Untitled Note',
-            url,
-            analysisResult.metadata || {},
-            analysisResult,
-            'knowledge_building' // Default intent
-        );
+        // Create note directly using modern file operations
+        const title = analysisResult.title || 'Untitled Note';
+        const summary = analysisResult.summary || 'No summary generated';
+        const metadata = analysisResult.metadata || {};
+        
+        // Sanitize filename
+        const fileName = title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + '.md';
+        
+        // Use MOC folder as default location
+        const folderPath = this.plugin.settings.mocFolder || 'MOCs';
+        
+        // Ensure folder exists
+        const folder = this.plugin.app.vault.getAbstractFileByPath(folderPath);
+        if (!folder) {
+            await this.plugin.app.vault.createFolder(folderPath);
+        }
+        
+        // Create frontmatter
+        const frontmatter = {
+            title: title,
+            created: new Date().toISOString().split('T')[0],
+            type: 'summary',
+            source: {
+                type: url.includes('youtube.com') ? 'youtube' : 'web',
+                url: url
+            },
+            tags: metadata.tags || ['#ai-generated'],
+            ...(metadata.speakers && { speakers: metadata.speakers }),
+            ...(metadata.topics && { topics: metadata.topics })
+        };
+        
+        // Create note content
+        let noteContent = '---\n';
+        for (const [key, value] of Object.entries(frontmatter)) {
+            if (Array.isArray(value)) {
+                noteContent += `${key}:\n${value.map(v => `  - ${v}`).join('\n')}\n`;
+            } else if (typeof value === 'object' && value !== null) {
+                noteContent += `${key}:\n`;
+                for (const [subKey, subValue] of Object.entries(value)) {
+                    noteContent += `  ${subKey}: ${subValue}\n`;
+                }
+            } else {
+                noteContent += `${key}: ${value}\n`;
+            }
+        }
+        noteContent += '---\n\n';
+        noteContent += summary;
+        noteContent += `\n\n> **Source**: [${url}](${url})`;
+        
+        // Create the file
+        const filePath = `${folderPath}/${fileName}`;
+        return await this.plugin.app.vault.create(filePath, noteContent);
     }
 
     private async performMOCCascade(analysisResult: any, traceId: string): Promise<void> {
