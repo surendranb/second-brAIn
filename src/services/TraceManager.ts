@@ -427,6 +427,23 @@ export class TraceManager {
   }
 
   /**
+   * Reset session/today counters to start fresh
+   */
+  resetSessionCounters(usageStats: any): void {
+    // Reset session stats but keep lifetime
+    usageStats.session = {
+      notes: 0,
+      tokens: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cost: 0,
+      startTime: new Date().toISOString()
+    };
+    
+    console.log('[TraceManager] Session counters reset - starting fresh from now');
+  }
+
+  /**
    * Format token count for display
    */
   formatTokens(tokens: number): string {

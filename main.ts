@@ -1345,11 +1345,28 @@ ${JSON.stringify(response, null, 2)}
     // ===== TRACEMANAGER-BASED USAGE TRACKING =====
 
     /**
+     * Reset session counters to start fresh from now
+     */
+    private resetSessionCounters(): void {
+        const traceManager = this.getTraceManager();
+        if (traceManager && this.plugin.settings.trackUsage) {
+            // Reset session counters using TraceManager
+            traceManager.resetSessionCounters(this.plugin.settings.usageStats);
+            this.plugin.saveSettings();
+            this.updateStatsFooter();
+            console.log('[SummaryView] Session counters reset - starting fresh tracking');
+        }
+    }
+
+    /**
      * Setup TraceManager usage tracking callbacks
      */
     private setupUsageTracking(): void {
         const traceManager = this.getTraceManager();
         if (!traceManager) return;
+
+        // Reset session counters to start fresh from now
+        this.resetSessionCounters();
 
         // Listen for usage events from TraceManager
         traceManager.onUsage((event) => {
@@ -1425,23 +1442,23 @@ ${JSON.stringify(response, null, 2)}
         if (traceManager && this.plugin.settings.trackUsage) {
             // Complete note tracking and save to history
             const noteRecord = traceManager.completeNoteTracking(this.plugin.settings.usageStats);
-            
+
             if (noteRecord) {
                 // Update note counts
                 this.plugin.settings.usageStats.session.notes += 1;
                 this.plugin.settings.usageStats.lifetime.notes += 1;
-                
+
                 // Reset current note stats
-                this.plugin.settings.usageStats.current = { 
-                    tokens: 0, 
+                this.plugin.settings.usageStats.current = {
+                    tokens: 0,
                     inputTokens: 0,
                     outputTokens: 0,
-                    cost: 0 
+                    cost: 0
                 };
-                
+
                 this.plugin.saveSettings();
                 this.updateStatsFooter();
-                
+
                 console.log('[SummaryView] Note committed to stats:', noteRecord);
             }
         }
@@ -1474,7 +1491,7 @@ ${JSON.stringify(response, null, 2)}
         const { lifetime, session, current } = stats;
 
         const traceManager = this.getTraceManager();
-        
+
         // Calculate metrics from note history if available
         let metrics;
         if (traceManager && (stats as any).noteHistory && (stats as any).noteHistory.length > 0) {
@@ -1505,7 +1522,7 @@ ${JSON.stringify(response, null, 2)}
 
     private createEnhancedStatsDisplay(metrics: any, current: any): string {
         const { lifetime, today } = metrics;
-        
+
         return `
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
                 <div style="flex: 1;">
