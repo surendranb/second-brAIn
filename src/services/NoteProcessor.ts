@@ -1,6 +1,7 @@
 import { TraceManager } from './TraceManager';
 import { LLMService } from './LLMService';
 import { ContentExtractor, ContentExtractionError, type ExtractedContent } from './ContentExtractor';
+import { HierarchyService, type HierarchyAnalysisResult } from './HierarchyService';
 import { Notice, TFile } from 'obsidian';
 import { PromptLoader } from '../../prompt-loader';
 
@@ -23,6 +24,7 @@ export class NoteProcessor {
     private traceManager: TraceManager;
     private llmService: LLMService;
     private contentExtractor: ContentExtractor;
+    private hierarchyService: HierarchyService;
     private plugin: any; // Plugin reference for file operations
     private summaryView: any; // SummaryView reference for note creation
     private statusCallback?: StatusCallback;
@@ -34,6 +36,7 @@ export class NoteProcessor {
         this.plugin = plugin;
         this.summaryView = summaryView;
         this.contentExtractor = new ContentExtractor(plugin);
+        this.hierarchyService = new HierarchyService(llmService, traceManager);
         this.promptLoader = new PromptLoader();
     }
 
@@ -65,8 +68,17 @@ export class NoteProcessor {
         });
 
         try {
-            // 3. AI Analysis within span
-            this.updateStatus(2, 'Running 5-pass AI analysis...');
+            // 3. AI-Driven Hierarchy Analysis (NEW - replaces hierarchy in 5-pass)
+            this.updateStatus(2, 'Analyzing knowledge hierarchy...');
+            const hierarchyResult = await this.hierarchyService.analyzeHierarchy(
+                extractedContent.metadata.title || 'Untitled',
+                extractedContent.content,
+                extractedContent.metadata,
+                traceId
+            );
+            
+            // 4. 5-Pass AI Content Analysis (EXISTING - keep as-is)
+            this.updateStatus(3, 'Running 5-pass AI analysis...');
             const analysisResult = await this.traceManager.withSpan(
                 'content-analysis',
                 async (spanId) => {
@@ -79,17 +91,19 @@ export class NoteProcessor {
                     contentLength: extractedContent.metadata.length
                 } }
             );
+            
+            // Override hierarchy from 5-pass with our AI-driven hierarchy
+            analysisResult.hierarchy = hierarchyResult.hierarchy;
+            analysisResult.hierarchy_confidence = hierarchyResult.confidence;
+            analysisResult.hierarchy_reasoning = hierarchyResult.reasoning;
 
-            // 5. Log generations (already done in performAIAnalysis)
-            this.updateStatus(3, 'AI generations logged successfully');
-
-            // 6. Create note
+            // 5. Create note with hierarchy
             this.updateStatus(4, 'Creating note...');
             const note = await this.createNote(analysisResult, input.url, input.intent);
             this.updateStatus(4, 'Note created successfully');
 
-            // 7. MOC cascade within span
-            this.updateStatus(5, 'Starting MOC cascade span...');
+            // 6. MOC cascade within span
+            this.updateStatus(5, 'Creating MOC structure...');
             await this.traceManager.withSpan(
                 'moc-cascade',
                 async (spanId) => {
@@ -101,17 +115,20 @@ export class NoteProcessor {
                 { 
                     input: { 
                         hierarchy: analysisResult.hierarchy,
-                        noteTitle: analysisResult.title 
+                        noteTitle: analysisResult.title,
+                        confidence: analysisResult.hierarchy_confidence
                     }
                 }
             );
 
-            // 9. End trace
-            this.updateStatus(7, 'Ending trace...');
+            // 7. End trace
+            this.updateStatus(7, 'Finalizing...');
             await this.traceManager.endTrace(traceId, {
                 output: { 
                     noteCreated: true,
-                    notePath: note.path 
+                    notePath: note.path,
+                    hierarchy: analysisResult.hierarchy,
+                    confidence: analysisResult.hierarchy_confidence
                 }
             });
 
@@ -211,7 +228,7 @@ export class NoteProcessor {
                         retryCount++;
                         const waitTime = retryCount * 10; // 10s, 20s
                         console.log(`[NoteProcessor] AI Pass ${i + 1} failed with 503, retrying in ${waitTime}s (attempt ${retryCount}/${maxRetries})`);
-                        this.updateStatus(2, `AI overloaded, retrying in ${waitTime}s (attempt ${retryCount}/${maxRetries})...`);
+                        this.updateStatus(3, `AI overloaded, retrying in ${waitTime}s (attempt ${retryCount}/${maxRetries})...`);
                         await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
                     } else {
                         throw error; // Re-throw if not 503 or max retries reached
@@ -445,6 +462,7 @@ export class NoteProcessor {
                 throw new Error(`Invalid pass index: ${passIndex}. Must be 0-4.`);
         }
     }
+
 
     private async createNote(analysisResult: any, url: string, intent: string = 'knowledge_building'): Promise<TFile> {
         console.log('[NoteProcessor] Creating enhanced note with full functionality:', analysisResult.title);

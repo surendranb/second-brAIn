@@ -34,14 +34,14 @@ class SummaryView extends ItemView {
     private currentStep: number = 0;
     private steps: string[] = ['Fetch', 'Generate'];
     private statusSteps: { label: string, state: 'idle' | 'in-progress' | 'success' | 'error', currentAttempt?: number, totalAttempts?: number }[] = [
-        { label: 'Fetch Content/Transcript', state: 'idle' },
-        { label: 'AI Analysis: Structure & Metadata', state: 'idle' },
-        { label: 'AI Analysis: Content & Concepts', state: 'idle' },
-        { label: 'AI Analysis: Perspectives & Examples', state: 'idle' },
-        { label: 'AI Analysis: Connections & Applications', state: 'idle' },
-        { label: 'AI Analysis: Learning Paths & Actions', state: 'idle' },
-        { label: 'Create Knowledge Hierarchy', state: 'idle' },
-        { label: 'Save & Open Note', state: 'idle' }
+        { label: 'Extract Content', state: 'idle' },
+        { label: 'Start Trace', state: 'idle' },
+        { label: 'Analyze Hierarchy', state: 'idle' },
+        { label: '5-Pass AI Analysis', state: 'idle' },
+        { label: 'Create Note', state: 'idle' },
+        { label: 'Build MOCs', state: 'idle' },
+        { label: 'Update Intelligence', state: 'idle' },
+        { label: 'Complete', state: 'idle' }
     ];
     private currentTitle: string = '';
     private currentMetadata: any = null;
@@ -1557,14 +1557,14 @@ ${item.items.map(action => `- [ ] ${action}`).join('\n')}
             const label = document.createElement('div');
             label.className = 'brain-progress-label';
             const shortLabels = [
-                'Fetch Content',
-                'Structure',
-                'Content',
-                'Perspectives',
-                'Connections',
-                'Learning',
+                'Extract',
+                'Trace',
                 'Hierarchy',
-                'Save & Open'
+                '5-Pass AI',
+                'Note',
+                'MOCs',
+                'Intelligence',
+                'Complete'
             ];
             label.textContent = shortLabels[i] || step.label;
             stepEl.appendChild(label);
