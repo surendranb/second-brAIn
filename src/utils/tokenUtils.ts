@@ -46,8 +46,8 @@ export function calculateCost(inputTokens: number, outputTokens: number, model: 
         : modelPricing.input.small;
     const inputCost = (inputTokens / 1000000) * inputRate;
 
-    // Calculate output cost
-    const outputRate = inputTokens > modelPricing.output.threshold
+    // Calculate output cost (FIXED: use outputTokens for threshold check)
+    const outputRate = outputTokens > modelPricing.output.threshold
         ? modelPricing.output.large
         : modelPricing.output.small;
     const outputCost = (outputTokens / 1000000) * outputRate;

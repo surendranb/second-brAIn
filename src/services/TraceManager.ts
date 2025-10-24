@@ -1,5 +1,6 @@
 /**
  * Trace Manager - Provider-agnostic tracing service that wraps LLM service
+ * Enhanced to serve as the single source of truth for token usage and cost tracking
  */
 
 import type { 
@@ -12,11 +13,32 @@ import type {
   LLMResponse
 } from '../types';
 import { LLMService } from './LLMService';
+import { calculateCost, formatTokens } from '../utils';
+
+// Usage event for UI consumption
+export interface UsageEvent {
+  type: 'generation' | 'analysis' | 'research';
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  cost: number;
+  model: string;
+  intent?: string;
+  pass?: string;
+  duration?: number;
+}
+
+// Usage callback type for UI updates
+export type UsageCallback = (event: UsageEvent) => void;
 
 export class TraceManager {
   private provider: TraceProvider;
   private llmService: LLMService;
   private activeTraces: Map<string, string> = new Map();
+  
+  // Usage tracking
+  private usageCallbacks: UsageCallback[] = [];
+  private currentNoteUsage: { tokens: number; cost: number } = { tokens: 0, cost: 0 };
   
   constructor(llmService: LLMService, provider: TraceProvider) {
     this.llmService = llmService;
@@ -58,6 +80,22 @@ export class TraceManager {
       });
       
       await this.endTrace(traceId, { output: response.text });
+      
+      // Emit usage event for UI consumption
+      this.emitUsageEvent({
+        type: 'generation',
+        promptTokens: response.usage?.promptTokens || 0,
+        completionTokens: response.usage?.completionTokens || 0,
+        totalTokens: response.usage?.totalTokens || 0,
+        cost: this.calculateCost(
+          response.usage?.promptTokens || 0,
+          response.usage?.completionTokens || 0,
+          request.model || 'gemini-2.5-flash'
+        ),
+        model: request.model || 'gemini-2.5-flash',
+        intent: request.metadata?.intent,
+        pass: request.metadata?.pass
+      });
       
       return response;
     } catch (error) {
@@ -216,18 +254,70 @@ export class TraceManager {
   }
 
   /**
-   * Calculate cost for token usage (basic implementation)
+   * Calculate cost for token usage (enhanced with proper pricing tiers)
    */
   private calculateCost(promptTokens: number, completionTokens: number, model: string): number {
-    // Basic cost calculation - should be enhanced based on actual model pricing
-    const costs: Record<string, { input: number, output: number }> = {
-      'gemini-2.5-flash': { input: 0.000075, output: 0.0003 },
-      'gemini-2.5-pro': { input: 0.00125, output: 0.005 },
-      'gemini-1.5-flash': { input: 0.000075, output: 0.0003 },
-      'gemini-1.5-pro': { input: 0.00125, output: 0.005 }
-    };
-    
-    const modelCost = costs[model] || costs['gemini-2.5-flash'];
-    return (promptTokens * modelCost.input) + (completionTokens * modelCost.output);
+    // Use the enhanced cost calculation from utils (which has the pricing bug fixed)
+    return calculateCost(promptTokens, completionTokens, model);
+  }
+
+  // ===== USAGE TRACKING METHODS =====
+
+  /**
+   * Add a callback to listen for usage events
+   */
+  onUsage(callback: UsageCallback): void {
+    this.usageCallbacks.push(callback);
+  }
+
+  /**
+   * Remove a usage callback
+   */
+  offUsage(callback: UsageCallback): void {
+    const index = this.usageCallbacks.indexOf(callback);
+    if (index > -1) {
+      this.usageCallbacks.splice(index, 1);
+    }
+  }
+
+  /**
+   * Emit usage event to all listeners
+   */
+  private emitUsageEvent(event: UsageEvent): void {
+    // Update current note usage
+    this.currentNoteUsage.tokens += event.totalTokens;
+    this.currentNoteUsage.cost += event.cost;
+
+    // Notify all listeners
+    this.usageCallbacks.forEach(callback => {
+      try {
+        callback(event);
+      } catch (error) {
+        console.error('[TraceManager] Error in usage callback:', error);
+      }
+    });
+
+    console.log(`[TraceManager] Usage tracked - ${event.totalTokens} tokens, $${event.cost.toFixed(4)} (${event.model})`);
+  }
+
+  /**
+   * Get current note usage stats
+   */
+  getCurrentNoteUsage(): { tokens: number; cost: number } {
+    return { ...this.currentNoteUsage };
+  }
+
+  /**
+   * Reset current note usage (call when starting a new note)
+   */
+  resetCurrentNoteUsage(): void {
+    this.currentNoteUsage = { tokens: 0, cost: 0 };
+  }
+
+  /**
+   * Format token count for display
+   */
+  formatTokens(tokens: number): string {
+    return formatTokens(tokens);
   }
 }

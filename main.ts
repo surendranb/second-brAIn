@@ -3,7 +3,7 @@ import { AISummarizerSettingsTab } from './settings';
 import { HierarchyManager } from './hierarchy-manager';
 import { PromptLoader } from './prompt-loader';
 import { MOCManager } from './moc-manager';
-import { HierarchyAnalyzer } from './hierarchy-analyzer';
+// import { HierarchyAnalyzer } from './hierarchy-analyzer'; // Removed - replaced by HierarchyService
 import { PluginIntegration, LLMService, TraceManager, ContentExtractionError } from './src/services';
 import { NoteProcessor } from './src/services/NoteProcessor';
 import { findUniqueFileName, generateId, estimateTokens, calculateCost, formatTokens } from './src/utils';
@@ -116,12 +116,7 @@ class SummaryView extends ItemView {
             const traceContext = this.currentTraceId ? { traceId: this.currentTraceId } : undefined;
             const response = await traceManager.generateText(request, traceContext);
 
-            this.updateUsageStats(
-                response.usage?.promptTokens || estimateTokens(prompt),
-                response.usage?.completionTokens || estimateTokens(response.text),
-                model
-            );
-
+            // Usage tracking is now handled automatically by TraceManager
             return response.text;
         } catch (error) {
             return this.makeTracedAIRequest(prompt, metadata);
@@ -558,6 +553,7 @@ class SummaryView extends ItemView {
         this.resultArea.style.display = 'none';
 
         this.createStatsFooter();
+        this.setupUsageTracking();
     }
 
     private addCustomStyles() {
@@ -1311,7 +1307,7 @@ ${JSON.stringify(response, null, 2)}
         const cost = calculateCost(inputTokens, outputTokens, model);
 
 
-        this.updateUsageStats(inputTokens, outputTokens, model);
+        // Usage tracking now handled by TraceManager automatically
 
         try {
             const generationId = generateId();
@@ -1344,8 +1340,36 @@ ${JSON.stringify(response, null, 2)}
         return result;
     }
 
+    // ===== TRACEMANAGER-BASED USAGE TRACKING =====
+    
+    /**
+     * Setup TraceManager usage tracking callbacks
+     */
+    private setupUsageTracking(): void {
+        const traceManager = this.getTraceManager();
+        if (!traceManager) return;
 
-    private updateUsageStats(inputTokens: number, outputTokens: number, model: string): void {
+        // Listen for usage events from TraceManager
+        traceManager.onUsage((event) => {
+            // Update settings-based usage stats for persistence
+            if (this.plugin.settings.trackUsage) {
+                this.plugin.settings.usageStats.current.tokens += event.totalTokens;
+                this.plugin.settings.usageStats.current.cost += event.cost;
+                
+                this.plugin.settings.usageStats.session.tokens += event.totalTokens;
+                this.plugin.settings.usageStats.session.cost += event.cost;
+                
+                this.plugin.settings.usageStats.lifetime.tokens += event.totalTokens;
+                this.plugin.settings.usageStats.lifetime.cost += event.cost;
+                
+                this.plugin.saveSettings();
+                this.updateStatsFooter();
+            }
+        });
+    }
+
+    // OLD METHOD - REPLACED BY TRACEMANAGER
+    private updateUsageStats_OLD(inputTokens: number, outputTokens: number, model: string): void {
         if (!this.plugin.settings.trackUsage) return;
 
         const totalTokens = inputTokens + outputTokens;
@@ -1685,7 +1709,7 @@ class AISummarizerPlugin extends Plugin {
     settings: PluginSettings;
     firstRun: boolean = true;
     mocManager: MOCManager;
-    hierarchyAnalyzer: HierarchyAnalyzer;
+    // hierarchyAnalyzer: HierarchyAnalyzer; // Replaced by HierarchyService
     hierarchyManager: HierarchyManager;
 
     public serviceIntegration: PluginIntegration;
@@ -1700,7 +1724,7 @@ class AISummarizerPlugin extends Plugin {
 
         try {
             this.mocManager = new MOCManager(this.app, this.settings, this);
-            this.hierarchyAnalyzer = new HierarchyAnalyzer();
+            // this.hierarchyAnalyzer = new HierarchyAnalyzer(); // Replaced by HierarchyService
             this.hierarchyManager = new HierarchyManager(this.app, this.settings);
 
             this.mocManager.setHierarchyManager(this.hierarchyManager);
