@@ -60,10 +60,9 @@ class SummaryView extends ItemView {
     private async initializeUsageTracking() {
         // Initialize usage history manager
         this.usageHistoryManager = new UsageHistoryManager(this.app);
-        this.usageHistoryManager = new UsageHistoryManager(this.app);
         
         // Connect it to TraceManager
-        const traceManager = this.getTraceManager();
+        const traceManager = this.plugin.traceManager;
         if (traceManager) {
             traceManager.setUsageHistoryManager(this.usageHistoryManager);
         }
@@ -570,7 +569,6 @@ class SummaryView extends ItemView {
         this.resultArea.style.display = 'none';
 
         this.createStatsFooter();
-        this.setupUsageTracking();
     }
 
     private addCustomStyles() {
@@ -1031,6 +1029,8 @@ class SummaryView extends ItemView {
             await this.app.workspace.getLeaf().openFile(result.note);
             new Notice(`Note created successfully! Trace ID: ${result.traceId}`);
 
+            await this.updateStatsFooter();
+
         } catch (error) {
             // Ensure error is shown in both UI and Notice
             console.error('[SummaryView] Process failed:', error);
@@ -1357,98 +1357,6 @@ ${JSON.stringify(response, null, 2)}
         return result;
     }
 
-    // ===== TRACEMANAGER-BASED USAGE TRACKING =====
-
-    /**
-     * Reset session counters to start fresh from now
-     */
-    private resetSessionCounters(): void {
-        const traceManager = this.getTraceManager();
-        console.log('[SummaryView] resetSessionCounters called', {
-            hasTraceManager: !!traceManager,
-            trackUsage: this.plugin.settings.trackUsage,
-            currentSession: this.plugin.settings.usageStats.session
-        });
-
-        if (traceManager && this.plugin.settings.trackUsage) {
-            // Reset session counters using TraceManager
-            traceManager.resetSessionCounters(this.plugin.settings.usageStats);
-            this.plugin.saveSettings();
-
-            console.log('[SummaryView] After reset:', {
-                session: this.plugin.settings.usageStats.session
-            });
-
-            this.updateStatsFooter();
-            console.log('[SummaryView] Session counters reset - starting fresh tracking');
-        }
-    }
-
-    /**
-     * Setup TraceManager usage tracking callbacks
-     */
-    private setupUsageTracking(): void {
-        const traceManager = this.getTraceManager();
-        if (!traceManager) return;
-
-        // Reset session counters to start fresh from now
-        this.resetSessionCounters();
-
-        // Listen for usage events from TraceManager
-        traceManager.onUsage((event) => {
-            // Update settings-based usage stats for persistence
-            if (this.plugin.settings.trackUsage) {
-                // Update current note stats
-                this.plugin.settings.usageStats.current.tokens += event.totalTokens;
-                if (!this.plugin.settings.usageStats.current.inputTokens) this.plugin.settings.usageStats.current.inputTokens = 0;
-                if (!this.plugin.settings.usageStats.current.outputTokens) this.plugin.settings.usageStats.current.outputTokens = 0;
-                this.plugin.settings.usageStats.current.inputTokens += event.promptTokens;
-                this.plugin.settings.usageStats.current.outputTokens += event.completionTokens;
-                this.plugin.settings.usageStats.current.cost += event.cost;
-
-                // Update session stats
-                this.plugin.settings.usageStats.session.tokens += event.totalTokens;
-                if (!this.plugin.settings.usageStats.session.inputTokens) this.plugin.settings.usageStats.session.inputTokens = 0;
-                if (!this.plugin.settings.usageStats.session.outputTokens) this.plugin.settings.usageStats.session.outputTokens = 0;
-                this.plugin.settings.usageStats.session.inputTokens += event.promptTokens;
-                this.plugin.settings.usageStats.session.outputTokens += event.completionTokens;
-                this.plugin.settings.usageStats.session.cost += event.cost;
-
-                // Update lifetime stats
-                this.plugin.settings.usageStats.lifetime.tokens += event.totalTokens;
-                if (!this.plugin.settings.usageStats.lifetime.inputTokens) this.plugin.settings.usageStats.lifetime.inputTokens = 0;
-                if (!this.plugin.settings.usageStats.lifetime.outputTokens) this.plugin.settings.usageStats.lifetime.outputTokens = 0;
-                this.plugin.settings.usageStats.lifetime.inputTokens += event.promptTokens;
-                this.plugin.settings.usageStats.lifetime.outputTokens += event.completionTokens;
-                this.plugin.settings.usageStats.lifetime.cost += event.cost;
-
-                this.plugin.saveSettings();
-                this.updateStatsFooter();
-            }
-        });
-    }
-
-    // OLD METHOD - REPLACED BY TRACEMANAGER
-    private updateUsageStats_OLD(inputTokens: number, outputTokens: number, model: string): void {
-        if (!this.plugin.settings.trackUsage) return;
-
-        const totalTokens = inputTokens + outputTokens;
-        const cost = calculateCost(inputTokens, outputTokens, model);
-
-        this.plugin.settings.usageStats.current.tokens += totalTokens;
-        this.plugin.settings.usageStats.current.cost += cost;
-
-        this.plugin.settings.usageStats.session.tokens += totalTokens;
-        this.plugin.settings.usageStats.session.cost += cost;
-
-        this.plugin.settings.usageStats.lifetime.tokens += totalTokens;
-        this.plugin.settings.usageStats.lifetime.cost += cost;
-
-        this.plugin.saveSettings();
-
-        this.updateStatsFooter();
-    }
-
     /**
      * Start tracking usage for a new note
      */
@@ -1513,13 +1421,14 @@ ${JSON.stringify(response, null, 2)}
 
     private createEnhancedStatsDisplay(metrics: any, current: any): string {
         const { lifetime, today } = metrics;
+        const currentTokens = current.inputTokens + current.outputTokens;
 
         return `
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
                 <div style="flex: 1;">
                     <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-normal);">📊 Lifetime</div>
                     <div style="font-size: 0.8em; line-height: 1.3;">
-                        <div>${lifetime.notes} notes • $${lifetime.cost.toFixed(2)}</div>
+                        <div>${lifetime.notes} notes • ${lifetime.cost.toFixed(2)}</div>
                         <div>${formatTokens(lifetime.totalTokens)} tokens (${formatTokens(lifetime.inputTokens)} in / ${formatTokens(lifetime.outputTokens)} out)</div>
                     </div>
                 </div>
@@ -1527,17 +1436,17 @@ ${JSON.stringify(response, null, 2)}
                 <div style="flex: 1;">
                     <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-normal);">📅 Today</div>
                     <div style="font-size: 0.8em; line-height: 1.3;">
-                        <div>${today.notes} notes • $${today.cost.toFixed(2)}</div>
+                        <div>${today.notes} notes • ${today.cost.toFixed(2)}</div>
                         <div>${formatTokens(today.totalTokens)} tokens (${formatTokens(today.inputTokens)} in / ${formatTokens(today.outputTokens)} out)</div>
                     </div>
                 </div>
                 
-                ${current.tokens > 0 ? `
+                ${currentTokens > 0 ? `
                 <div style="flex: 1;">
                     <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-accent);">⚡ Current</div>
                     <div style="font-size: 0.8em; line-height: 1.3;">
-                        <div>~$${current.cost.toFixed(3)}</div>
-                        <div>${formatTokens(current.tokens)} tokens (${formatTokens(current.inputTokens || 0)} in / ${formatTokens(current.outputTokens || 0)} out)</div>
+                        <div>~${current.cost.toFixed(3)}</div>
+                        <div>${formatTokens(currentTokens)} tokens (${formatTokens(current.inputTokens || 0)} in / ${formatTokens(current.outputTokens || 0)} out)</div>
                     </div>
                 </div>
                 ` : ''}

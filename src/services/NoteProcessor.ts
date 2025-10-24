@@ -4,6 +4,7 @@ import { ContentExtractor, ContentExtractionError, type ExtractedContent } from 
 import { HierarchyService, type HierarchyAnalysisResult } from './HierarchyService';
 import { Notice, TFile } from 'obsidian';
 import { PromptLoader } from '../../prompt-loader';
+import { generateId } from '../utils';
 
 export interface ProcessingInput {
     url: string;
@@ -66,6 +67,9 @@ export class NoteProcessor {
             input: { url: input.url, intent: input.intent },
             metadata: { source: 'note-processor' }
         });
+
+        const noteId = generateId();
+        this.traceManager.startNoteTracking(noteId);
 
         try {
             // 3. AI-Driven Hierarchy Analysis (NEW - replaces hierarchy in 5-pass)
@@ -170,6 +174,8 @@ export class NoteProcessor {
             
             // Re-throw the error to stop the entire process
             throw error;
+        } finally {
+            await this.traceManager.completeNoteTracking();
         }
     }
 

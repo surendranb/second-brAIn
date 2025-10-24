@@ -177,7 +177,20 @@ export class TraceManager {
         }
       });
       
-      console.log(`[TraceManager] Generation completed - Pass: ${traceContext.pass}, Duration: ${duration}ms, Cost: $${cost.toFixed(4)}`);
+      console.log(`[TraceManager] Generation completed - Pass: ${traceContext.pass}, Duration: ${duration}ms, Cost: ${cost.toFixed(4)}`);
+      
+      // Emit usage event for UI consumption
+      this.emitUsageEvent({
+        type: 'generation',
+        promptTokens: response.usage?.promptTokens || 0,
+        completionTokens: response.usage?.completionTokens || 0,
+        totalTokens: response.usage?.totalTokens || 0,
+        cost: cost,
+        model: request.model || 'gemini-2.5-flash',
+        intent: request.metadata?.intent,
+        pass: traceContext.pass,
+        duration: duration
+      });
       
       return response;
     } catch (error) {

@@ -41,41 +41,6 @@ export interface DebugSettings {
     generateComparisons: boolean;
 }
 
-// Define UsageStats locally to avoid import issues
-interface NoteUsageRecord {
-    noteId: string;
-    timestamp: string;
-    inputTokens: number;
-    outputTokens: number;
-    cost: number;
-    model: string;
-}
-
-interface UsageStats {
-    lifetime: {
-        notes: number;
-        tokens: number;
-        inputTokens: number;
-        outputTokens: number;
-        cost: number;
-    };
-    session: {
-        notes: number;
-        tokens: number;
-        inputTokens: number;
-        outputTokens: number;
-        cost: number;
-        startTime: string;
-    };
-    current: {
-        tokens: number;
-        inputTokens: number;
-        outputTokens: number;
-        cost: number;
-    };
-    noteHistory: NoteUsageRecord[];
-}
-
 export interface PluginSettings {
     provider: Provider;
     gemini: GeminiSettings;
@@ -86,7 +51,6 @@ export interface PluginSettings {
     topicFolders: TopicFolderSettings;
     debug: DebugSettings;
     langfuse: LangfuseSettings;
-    usageStats: UsageStats;
     trackUsage: boolean;
     analysisPrompts: {
         structure: string;
@@ -129,12 +93,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         publicKey: '',
         secretKey: '',
         baseUrl: 'https://cloud.langfuse.com'
-    },
-    usageStats: {
-        lifetime: { notes: 0, tokens: 0, inputTokens: 0, outputTokens: 0, cost: 0 },
-        session: { notes: 0, tokens: 0, inputTokens: 0, outputTokens: 0, cost: 0, startTime: new Date().toISOString() },
-        current: { tokens: 0, inputTokens: 0, outputTokens: 0, cost: 0 },
-        noteHistory: []
     },
     trackUsage: true,
     analysisPrompts: {

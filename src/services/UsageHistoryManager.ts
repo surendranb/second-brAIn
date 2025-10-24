@@ -30,7 +30,8 @@ export class UsageHistoryManager {
 
     constructor(app: App) {
         this.app = app;
-        this.historyFile = '.obsidian/plugins/second-brAIn/usage-history.json';
+        // Use plugin data directory for the usage history file
+        this.historyFile = app.vault.configDir + '/plugins/second-brAIn/usage-history.json';
     }
 
     /**
@@ -121,19 +122,23 @@ export class UsageHistoryManager {
      * Calculate metrics from records
      */
     private calculateMetrics(records: UsageRecord[]): UsageMetrics {
-        return records.reduce((acc, record) => ({
-            notes: acc.notes + 1,
-            inputTokens: acc.inputTokens + record.inputTokens,
-            outputTokens: acc.outputTokens + record.outputTokens,
-            totalTokens: acc.totalTokens + record.inputTokens + record.outputTokens,
-            cost: acc.cost + record.cost
-        }), {
+        const metrics = records.reduce((acc, record) => {
+            acc.inputTokens += record.inputTokens;
+            acc.outputTokens += record.outputTokens;
+            acc.totalTokens += record.inputTokens + record.outputTokens;
+            acc.cost += record.cost;
+            return acc;
+        }, {
             notes: 0,
             inputTokens: 0,
             outputTokens: 0,
             totalTokens: 0,
             cost: 0
         });
+
+        metrics.notes = new Set(records.map(r => r.noteId)).size;
+
+        return metrics;
     }
 
     /**
