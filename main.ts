@@ -1492,10 +1492,22 @@ ${JSON.stringify(response, null, 2)}
 
         const traceManager = this.getTraceManager();
 
-        // Calculate metrics from note history if available
+        // Always use session stats for "today" to respect manual resets
+        // Only use noteHistory for lifetime calculations
         let metrics;
         if (traceManager && (stats as any).noteHistory && (stats as any).noteHistory.length > 0) {
-            metrics = traceManager.calculateMetrics((stats as any).noteHistory);
+            const historyMetrics = traceManager.calculateMetrics((stats as any).noteHistory);
+            metrics = {
+                lifetime: historyMetrics.lifetime,
+                today: {
+                    // Use session stats for today (respects manual resets)
+                    notes: session.notes,
+                    inputTokens: (session as any).inputTokens || 0,
+                    outputTokens: (session as any).outputTokens || 0,
+                    totalTokens: session.tokens,
+                    cost: session.cost
+                }
+            };
         } else {
             // Fallback to legacy stats
             metrics = {
