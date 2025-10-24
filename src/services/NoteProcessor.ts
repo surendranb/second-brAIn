@@ -1,5 +1,6 @@
 import { TraceManager } from './TraceManager';
 import { LLMService } from './LLMService';
+import { ContentExtractor, ContentExtractionError, type ExtractedContent } from './ContentExtractor';
 import { Notice, TFile } from 'obsidian';
 import { PromptLoader } from '../../prompt-loader';
 
@@ -21,6 +22,7 @@ export interface StatusCallback {
 export class NoteProcessor {
     private traceManager: TraceManager;
     private llmService: LLMService;
+    private contentExtractor: ContentExtractor;
     private plugin: any; // Plugin reference for file operations
     private summaryView: any; // SummaryView reference for note creation
     private statusCallback?: StatusCallback;
@@ -31,6 +33,7 @@ export class NoteProcessor {
         this.llmService = llmService;
         this.plugin = plugin;
         this.summaryView = summaryView;
+        this.contentExtractor = new ContentExtractor(plugin);
         this.promptLoader = new PromptLoader();
     }
 
@@ -48,10 +51,10 @@ export class NoteProcessor {
     async processURL(input: ProcessingInput): Promise<ProcessingResult> {
         console.log('[NoteProcessor] Starting processing for:', input.url);
 
-        // 1. Extract transcript/content
+        // 1. Extract content using ContentExtractor service
         this.updateStatus(0, 'Extracting content...');
-        const content = await this.extractContent(input.url);
-        this.updateStatus(0, 'Content extracted successfully');
+        const extractedContent = await this.contentExtractor.extractContent(input.url);
+        this.updateStatus(0, `Content extracted successfully (${extractedContent.metadata.type}, ${extractedContent.metadata.length} chars)`);
         
         // 2. Start trace
         this.updateStatus(1, 'Starting trace and span...');
@@ -67,10 +70,14 @@ export class NoteProcessor {
             const analysisResult = await this.traceManager.withSpan(
                 'content-analysis',
                 async (spanId) => {
-                    return await this.performAIAnalysis(content, input, traceId);
+                    return await this.performAIAnalysis(extractedContent, input, traceId);
                 },
                 traceId,
-                { input: { content: content.substring(0, 500) + '...' } }
+                { input: { 
+                    content: extractedContent.content.substring(0, 500) + '...',
+                    contentType: extractedContent.metadata.type,
+                    contentLength: extractedContent.metadata.length
+                } }
             );
 
             // 5. Log generations (already done in performAIAnalysis)
@@ -112,164 +119,46 @@ export class NoteProcessor {
             return { note, traceId };
 
         } catch (error) {
-            // Determine which step failed based on the error context
+            // Determine which step failed based on the error type and context
             let errorStep = 7; // Default to final step
             let errorMessage = `Error: ${error.message}`;
             
-            if (error.message.includes('Gemini API error') || error.message.includes('503')) {
-                errorStep = 2; // AI Analysis step
-                errorMessage = `AI Analysis failed: ${error.message}`;
-            } else if (error.message.includes('transcript') || error.message.includes('content')) {
+            if (error instanceof ContentExtractionError) {
                 errorStep = 0; // Content extraction step
-                errorMessage = `Content extraction failed: ${error.message}`;
+                errorMessage = `❌ Content extraction failed: ${error.message}`;
+                console.error('[NoteProcessor] ❌ STOPPING PROCESS - Content extraction failed:', {
+                    url: error.url,
+                    type: error.extractorType,
+                    reason: error.reason
+                });
+            } else if (error.message.includes('Gemini API error') || error.message.includes('503')) {
+                errorStep = 2; // AI Analysis step
+                errorMessage = `❌ AI Analysis failed: ${error.message}`;
             } else if (error.message.includes('note') || error.message.includes('file')) {
                 errorStep = 4; // Note creation step
-                errorMessage = `Note creation failed: ${error.message}`;
+                errorMessage = `❌ Note creation failed: ${error.message}`;
             }
             
             this.updateStatus(errorStep, errorMessage, true);
+            
+            // End trace with error details
             await this.traceManager.endTrace(traceId, { 
-                output: { error: error.message } 
+                output: { 
+                    error: error.message,
+                    errorStep: errorStep,
+                    errorType: error.constructor.name,
+                    processStopped: true
+                } 
             });
+            
+            // Re-throw the error to stop the entire process
             throw error;
         }
     }
 
-    private async extractContent(url: string): Promise<string> {
-        console.log('[NoteProcessor] Extracting content from:', url);
-        
-        if (url.includes('youtube.com')) {
-            return await this.fetchYouTubeTranscript(url);
-        } else {
-            return await this.fetchWebContent(url);
-        }
-    }
 
-    private async fetchYouTubeTranscript(url: string): Promise<string> {
-        // Use the exact same approach as the existing app
-        const path = require('path');
-        
-        // @ts-ignore - Get vault path same way as existing code
-        const vaultPath = this.plugin.app.vault.adapter.basePath || '';
-        const scriptPath = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'fetch_transcript.py');
-        const venvPython = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'venv', 'bin', 'python3');
 
-        console.log('[NoteProcessor] Preparing to run command:', venvPython, scriptPath, url);
-
-        const { spawn } = require('child_process');
-        const pythonProcess = spawn(venvPython, [scriptPath, url]);
-
-        let fullOutput = "";
-        let lastErrorLine = "";
-
-        return new Promise((resolve, reject) => {
-            pythonProcess.stdout.on('data', (data: Buffer) => {
-                const output = data.toString();
-                fullOutput += output;
-                console.log('[NoteProcessor] STDOUT:', output);
-            });
-
-            pythonProcess.stderr.on('data', (data: Buffer) => {
-                const errorOutput = data.toString();
-                fullOutput += errorOutput;
-                console.error('[NoteProcessor] STDERR:', errorOutput);
-                if (errorOutput.includes("[ERROR]")) {
-                    lastErrorLine = errorOutput.trim();
-                }
-            });
-
-            pythonProcess.on('close', (code: number) => {
-                console.log(`[NoteProcessor] Child process exited with code ${code}`);
-
-                const resultMarker = "[INFO] Script finished. Outputting result.";
-                const markerIndex = fullOutput.lastIndexOf(resultMarker);
-                let processedResult = "";
-
-                if (markerIndex !== -1) {
-                    processedResult = fullOutput.substring(markerIndex + resultMarker.length).trim();
-                } else {
-                    processedResult = fullOutput.trim();
-                }
-
-                if (processedResult.startsWith('Error: Failed to fetch transcript after')) {
-                    console.error('[NoteProcessor] Command failed with final error message:', processedResult);
-                    reject(new Error(processedResult));
-                } else if (lastErrorLine && lastErrorLine.startsWith('[ERROR]')) {
-                    console.error('[NoteProcessor] Command failed with error from STDERR:', lastErrorLine);
-                    reject(new Error(lastErrorLine));
-                } else if (code !== 0) {
-                    const finalError = `Python script exited with code ${code}. Output: ${processedResult || 'No specific output.'}`;
-                    console.error('[NoteProcessor] Command failed with exit code:', finalError);
-                    reject(new Error(finalError));
-                } else if (!processedResult) {
-                    const noTranscriptError = "Error: No transcript data was returned by the script, though it exited cleanly.";
-                    console.warn('[NoteProcessor] No transcript data returned:', noTranscriptError);
-                    reject(new Error(noTranscriptError));
-                } else {
-                    console.log('[NoteProcessor] Successfully fetched:', processedResult.substring(0, 100) + "...");
-                    resolve(processedResult);
-                }
-            });
-
-            pythonProcess.on('error', (err: Error) => {
-                console.error('[NoteProcessor] Failed to start subprocess.', err);
-                reject(new Error(`Failed to start transcript extraction process: ${err.message}`));
-            });
-        });
-    }
-
-    private async fetchWebContent(url: string): Promise<string> {
-        // Use the exact same approach as the existing app
-        const path = require('path');
-        
-        // @ts-ignore - Get vault path same way as existing code
-        const vaultPath = this.plugin.app.vault.adapter.basePath || '';
-        const scriptPath = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'fetch_content.py');
-        const venvPython = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'venv', 'bin', 'python3');
-
-        console.log('[NoteProcessor] Preparing to run command:', venvPython, scriptPath, url);
-
-        const { spawn } = require('child_process');
-        const pythonProcess = spawn(venvPython, [scriptPath, url]);
-
-        let fullOutput = "";
-        let lastErrorLine = "";
-
-        return new Promise((resolve, reject) => {
-            pythonProcess.stdout.on('data', (data: Buffer) => {
-                const output = data.toString();
-                fullOutput += output;
-                console.log('[NoteProcessor] STDOUT:', output);
-            });
-
-            pythonProcess.stderr.on('data', (data: Buffer) => {
-                const errorOutput = data.toString();
-                fullOutput += errorOutput;
-                console.error('[NoteProcessor] STDERR:', errorOutput);
-                if (errorOutput.includes("[ERROR]")) {
-                    lastErrorLine = errorOutput.trim();
-                }
-            });
-
-            pythonProcess.on('close', (code: number) => {
-                console.log(`[NoteProcessor] Child process exited with code ${code}`);
-                if (code === 0) {
-                    resolve(fullOutput.trim());
-                } else {
-                    const finalError = lastErrorLine || `Python script for web content exited with code ${code}. Full output: ${fullOutput}`;
-                    console.error('[NoteProcessor] Command failed:', finalError);
-                    reject(new Error(finalError));
-                }
-            });
-
-            pythonProcess.on('error', (err: Error) => {
-                console.error('[NoteProcessor] Failed to start subprocess.', err);
-                reject(new Error(`Failed to start web content extraction process: ${err.message}`));
-            });
-        });
-    }
-
-    private async performAIAnalysis(content: string, input: ProcessingInput, traceId: string): Promise<any> {
+    private async performAIAnalysis(extractedContent: ExtractedContent, input: ProcessingInput, traceId: string): Promise<any> {
         console.log('[NoteProcessor] Starting 5-pass AI analysis');
         
         const passes = [
@@ -294,7 +183,7 @@ export class NoteProcessor {
 
             // Get prompt for this pass
             const prompt = await this.getPromptForPass(i, input.intent);
-            const fullPrompt = `${prompt}\n\nContent to analyze:\n${content}`;
+            const fullPrompt = `${prompt}\n\nContent to analyze:\n${extractedContent.content}`;
 
             // Call AI with tracing and retry logic for 503 errors
             let response;
@@ -601,19 +490,19 @@ export class NoteProcessor {
         // Create comprehensive frontmatter with all features
         const now = new Date();
         const frontmatter: any = {
-            title: `"${title}"`,
-            date: `"${now.toISOString().split('T')[0]}"`,
-            type: `"summary"`,
-            intent: `"${intent}"`,
+            title: title,
+            date: now.toISOString().split('T')[0],
+            type: "summary",
+            intent: intent,
             source: {
-                type: `"${url.includes('youtube.com') ? 'youtube' : 'web'}"`,
-                url: `"${url}"`,
-                source_type: `"${url.includes('youtube.com') ? 'video' : 'article'}"`,
-                detected_platform: `"${url.includes('youtube.com') ? 'youtube' : 'web'}"`
+                type: url.includes('youtube.com') ? 'youtube' : 'web',
+                url: url,
+                source_type: url.includes('youtube.com') ? 'video' : 'article',
+                detected_platform: url.includes('youtube.com') ? 'youtube' : 'web'
             },
-            status: `"draft"`,
-            created: `"${now.toISOString()}"`,
-            modified: `"${now.toISOString()}"`
+            status: "draft",
+            created: now.toISOString(),
+            modified: now.toISOString()
         };
         
         // Add action items if available
@@ -628,7 +517,7 @@ export class NoteProcessor {
         
         // Add MOC path if created
         if (mocPath) {
-            frontmatter.moc = `"${mocPath}"`;
+            frontmatter.moc = mocPath;
         }
         
         // Add learning context if available
@@ -647,21 +536,32 @@ export class NoteProcessor {
             frontmatter.topics = metadata.topics;
         }
         
-        // Create YAML frontmatter
+        // Create YAML frontmatter with proper formatting
         let noteContent = '---\n';
+        
+        const formatYamlValue = (value: any, indent: string = ''): string => {
+            if (Array.isArray(value)) {
+                return value.map(item => `${indent}  - "${item}"`).join('\n');
+            } else if (typeof value === 'object' && value !== null) {
+                return Object.entries(value)
+                    .map(([subKey, subValue]) => `${indent}  ${subKey}: "${subValue}"`)
+                    .join('\n');
+            } else if (typeof value === 'string') {
+                return `"${value}"`;
+            } else {
+                return String(value);
+            }
+        };
+        
         for (const [key, value] of Object.entries(frontmatter)) {
             if (Array.isArray(value)) {
                 noteContent += `${key}:\n`;
-                value.forEach(item => {
-                    noteContent += `  - "${item}"\n`;
-                });
+                noteContent += formatYamlValue(value) + '\n';
             } else if (typeof value === 'object' && value !== null) {
                 noteContent += `${key}:\n`;
-                for (const [subKey, subValue] of Object.entries(value)) {
-                    noteContent += `  ${subKey}: ${subValue}\n`;
-                }
+                noteContent += formatYamlValue(value) + '\n';
             } else {
-                noteContent += `${key}: ${value}\n`;
+                noteContent += `${key}: ${formatYamlValue(value)}\n`;
             }
         }
         noteContent += '---\n\n';

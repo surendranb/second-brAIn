@@ -1,35 +1,16 @@
 import { Plugin, WorkspaceLeaf, ItemView, Notice, TFolder, App, TFile, Modal } from 'obsidian';
-
 import { AISummarizerSettingsTab } from './settings';
-
 import { HierarchyManager } from './hierarchy-manager';
 import { PromptLoader } from './prompt-loader';
 import { MOCManager } from './moc-manager';
 import { HierarchyAnalyzer } from './hierarchy-analyzer';
-import { PluginIntegration, LLMService, TraceManager } from './src/services';
+import { PluginIntegration, LLMService, TraceManager, ContentExtractionError } from './src/services';
 import { NoteProcessor } from './src/services/NoteProcessor';
-import {
-    findUniqueFileName,
-    generateId,
-    estimateTokens,
-    calculateCost,
-    formatTokens
-} from './src/utils';
-import {
-    GEMINI_MODELS,
-    PROCESSING_INTENTS,
-    DEFAULT_SETTINGS,
-    type GeminiModel,
-    type ProcessingIntent,
-    type ProcessingIntentOption,
-    type PluginSettings,
-    type Provider
-} from './src/config';
-
+import { findUniqueFileName, generateId, estimateTokens, calculateCost, formatTokens } from './src/utils';
+import { GEMINI_MODELS, PROCESSING_INTENTS, DEFAULT_SETTINGS, type GeminiModel, type ProcessingIntent, type ProcessingIntentOption, type PluginSettings, type Provider } from './src/config';
 import { SettingModal } from './src/components';
 
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
-
 
 class SummaryView extends ItemView {
     private urlInput: HTMLInputElement;
@@ -40,7 +21,6 @@ class SummaryView extends ItemView {
     private generateButton: HTMLButtonElement;
     private resultArea: HTMLDivElement;
     private loadingIndicator: HTMLDivElement;
-
     private modelDropdown: HTMLSelectElement;
     private intentDropdown: HTMLSelectElement;
     private topicDropdown: HTMLSelectElement;
@@ -69,7 +49,6 @@ class SummaryView extends ItemView {
     constructor(leaf: WorkspaceLeaf, private plugin: AISummarizerPlugin) {
         super(leaf);
         this.promptLoader = new PromptLoader();
-
         this.initializeNoteProcessor();
     }
 
@@ -282,7 +261,6 @@ class SummaryView extends ItemView {
         };
 
         const response = await llmService.generateText(request);
-
         const jsonMatch = response.text.match(/```(?:json)?\s*([\s\S]*?)```/);
         const jsonText = jsonMatch ? jsonMatch[1].trim() : response.text.trim();
 
@@ -343,13 +321,10 @@ class SummaryView extends ItemView {
         try {
             const debugFolder = this.plugin.settings.debug.debugFolder;
             const fullPath = subfolder ? `${debugFolder}/${subfolder}` : debugFolder;
-
             await this.ensureFolderExists(fullPath);
-
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const fullFilename = `${timestamp}_${filename}`;
             const filePath = `${fullPath}/${fullFilename}`;
-
             await this.app.vault.create(filePath, content);
         } catch (error) {
         }
@@ -370,13 +345,10 @@ class SummaryView extends ItemView {
         this.addCustomStyles();
 
         const mainContainer = contentEl.createEl('div', { cls: 'brain-main-container' });
-
         const inputCard = mainContainer.createEl('div', { cls: 'brain-card' });
         const inputHeader = inputCard.createEl('div', { cls: 'brain-card-header' });
         inputHeader.createEl('h3', { text: '📝 Input', cls: 'brain-card-title' });
-
         const modeSelector = inputCard.createEl('div', { cls: 'brain-mode-selector' });
-
         const urlModeOption = modeSelector.createEl('div', { cls: 'brain-mode-option active' });
         this.urlModeRadio = urlModeOption.createEl('input', { type: 'radio' }) as HTMLInputElement;
         this.urlModeRadio.name = 'inputMode';
@@ -393,11 +365,10 @@ class SummaryView extends ItemView {
         noteModeOption.createEl('span', { text: '📄 Organize existing note' });
 
         const configSection = inputCard.createEl('div', { cls: 'brain-config-section' });
-
         const dropdownRow = configSection.createEl('div', { cls: 'brain-dropdown-row' });
-
         const modelGroup = dropdownRow.createEl('div', { cls: 'brain-form-group brain-form-group-half' });
         const modelLabel = modelGroup.createEl('label', { text: '🤖 AI Model', cls: 'brain-form-label' });
+
         this.modelDropdown = modelGroup.createEl('select', { cls: 'brain-select' }) as HTMLSelectElement;
         this.populateModelDropdown();
         this.modelDropdown.addEventListener('change', async () => {
@@ -421,7 +392,6 @@ class SummaryView extends ItemView {
         this.topicSection.createEl('div', { text: 'Choose a topic folder to organize this content', cls: 'brain-form-hint' });
         this.topicDropdown = this.topicSection.createEl('select', { cls: 'brain-select' }) as HTMLSelectElement;
         this.populateTopicDropdown();
-
 
         const urlSection = configSection.createEl('div', { cls: 'brain-input-section url-input-section' });
         urlSection.createEl('label', { text: '🌐 Content URL', cls: 'brain-form-label' });
@@ -465,7 +435,6 @@ class SummaryView extends ItemView {
         this.generateButton.style.display = 'none';
 
         const cleanButton = inputCard.createEl('button', { text: '🧪 Summarize', cls: 'brain-clean-button' }) as HTMLButtonElement;
-
         const progressCard = mainContainer.createEl('div', { cls: 'brain-card brain-progress-card' });
         const progressHeader = progressCard.createEl('div', { cls: 'brain-card-header' });
         progressHeader.createEl('h3', { text: '⚡ Progress', cls: 'brain-card-title' });
@@ -578,7 +547,6 @@ class SummaryView extends ItemView {
                 this.generateButton.click();
             }
         });
-
 
         this.urlInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
@@ -1047,13 +1015,22 @@ class SummaryView extends ItemView {
             });
 
             this.updateStatusSteps(7, 'Complete! Note created and organized.');
-
             await this.app.workspace.getLeaf().openFile(result.note);
-
             new Notice(`Note created successfully! Trace ID: ${result.traceId}`);
 
         } catch (error) {
-            new Notice('Failed to process URL: ' + error.message);
+            // Ensure error is shown in both UI and Notice
+            console.error('[SummaryView] Process failed:', error);
+
+            // Update status steps to show error
+            if (error.name === 'ContentExtractionError') {
+                this.updateStatusSteps(0, `❌ ${error.message}`, true);
+            } else {
+                this.updateStatusSteps(7, `❌ Process failed: ${error.message}`, true);
+            }
+
+            // Show notice with user-friendly message
+            new Notice(`❌ Failed to process URL: ${error.message}`, 8000);
         }
     }
 
@@ -1327,7 +1304,6 @@ ${JSON.stringify(response, null, 2)}
         const startTime = Date.now();
         const result = await this.makeAIRequestDirect(prompt);
         const duration = Date.now() - startTime;
-
         const inputTokens = estimateTokens(prompt);
         const outputTokens = estimateTokens(JSON.stringify(result));
         const totalTokens = inputTokens + outputTokens;
@@ -1391,14 +1367,10 @@ ${JSON.stringify(response, null, 2)}
 
     private commitNoteToStats(): void {
         if (!this.plugin.settings.trackUsage) return;
-
         this.plugin.settings.usageStats.session.notes += 1;
         this.plugin.settings.usageStats.lifetime.notes += 1;
-
         this.plugin.settings.usageStats.current = { tokens: 0, cost: 0 };
-
         this.plugin.saveSettings();
-
         this.updateStatsFooter();
     }
 
@@ -1850,6 +1822,15 @@ class AISummarizerPlugin extends Plugin {
             this.llmService = this.serviceIntegration.getLLMService();
             this.traceManager = this.serviceIntegration.getTraceManager();
 
+            // Initialize NoteProcessor with the services
+            if (this.llmService && this.traceManager) {
+                this.noteProcessor = new NoteProcessor(
+                    this.traceManager,
+                    this.llmService,
+                    this, // plugin reference
+                    null // summaryView reference - will be set when view is created
+                );
+            }
         }
     }
 
@@ -1881,6 +1862,5 @@ class AISummarizerPlugin extends Plugin {
 
     }
 }
-
 
 export default AISummarizerPlugin;
