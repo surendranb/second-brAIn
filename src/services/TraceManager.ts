@@ -12,6 +12,16 @@ import type {
   LLMRequest,
   LLMResponse
 } from '../types';
+
+// Define NoteUsageRecord locally for now
+interface NoteUsageRecord {
+  noteId: string;
+  timestamp: string;
+  inputTokens: number;
+  outputTokens: number;
+  cost: number;
+  model: string;
+}
 import { LLMService } from './LLMService';
 import { calculateCost, formatTokens } from '../utils';
 
@@ -38,7 +48,19 @@ export class TraceManager {
   
   // Usage tracking
   private usageCallbacks: UsageCallback[] = [];
-  private currentNoteUsage: { tokens: number; cost: number } = { tokens: 0, cost: 0 };
+  private currentNoteUsage: { 
+    noteId: string | null;
+    inputTokens: number; 
+    outputTokens: number; 
+    cost: number;
+    model: string | null;
+  } = { 
+    noteId: null,
+    inputTokens: 0, 
+    outputTokens: 0, 
+    cost: 0,
+    model: null
+  };
   
   constructor(llmService: LLMService, provider: TraceProvider) {
     this.llmService = llmService;
@@ -285,8 +307,10 @@ export class TraceManager {
    */
   private emitUsageEvent(event: UsageEvent): void {
     // Update current note usage
-    this.currentNoteUsage.tokens += event.totalTokens;
+    this.currentNoteUsage.inputTokens += event.promptTokens;
+    this.currentNoteUsage.outputTokens += event.completionTokens;
     this.currentNoteUsage.cost += event.cost;
+    this.currentNoteUsage.model = event.model;
 
     // Notify all listeners
     this.usageCallbacks.forEach(callback => {
@@ -301,17 +325,105 @@ export class TraceManager {
   }
 
   /**
+   * Start tracking usage for a new note
+   */
+  startNoteTracking(noteId: string): void {
+    this.currentNoteUsage = {
+      noteId: noteId,
+      inputTokens: 0,
+      outputTokens: 0,
+      cost: 0,
+      model: null
+    };
+    console.log(`[TraceManager] Started tracking usage for note: ${noteId}`);
+  }
+
+  /**
+   * Complete note tracking and save to history
+   */
+  completeNoteTracking(usageStats: any): NoteUsageRecord | null {
+    if (!this.currentNoteUsage.noteId) {
+      console.warn('[TraceManager] No active note tracking to complete');
+      return null;
+    }
+
+    const record: NoteUsageRecord = {
+      noteId: this.currentNoteUsage.noteId,
+      timestamp: new Date().toISOString(),
+      inputTokens: this.currentNoteUsage.inputTokens,
+      outputTokens: this.currentNoteUsage.outputTokens,
+      cost: this.currentNoteUsage.cost,
+      model: this.currentNoteUsage.model || 'unknown'
+    };
+
+    // Add to usage history
+    if (!usageStats.noteHistory) {
+      usageStats.noteHistory = [];
+    }
+    usageStats.noteHistory.push(record);
+
+    console.log(`[TraceManager] Completed note tracking:`, record);
+
+    // Reset for next note
+    this.resetCurrentNoteUsage();
+    
+    return record;
+  }
+
+  /**
    * Get current note usage stats
    */
-  getCurrentNoteUsage(): { tokens: number; cost: number } {
-    return { ...this.currentNoteUsage };
+  getCurrentNoteUsage(): { inputTokens: number; outputTokens: number; cost: number } {
+    return {
+      inputTokens: this.currentNoteUsage.inputTokens,
+      outputTokens: this.currentNoteUsage.outputTokens,
+      cost: this.currentNoteUsage.cost
+    };
   }
 
   /**
    * Reset current note usage (call when starting a new note)
    */
   resetCurrentNoteUsage(): void {
-    this.currentNoteUsage = { tokens: 0, cost: 0 };
+    this.currentNoteUsage = {
+      noteId: null,
+      inputTokens: 0,
+      outputTokens: 0,
+      cost: 0,
+      model: null
+    };
+  }
+
+  /**
+   * Calculate metrics from note history
+   */
+  calculateMetrics(noteHistory: NoteUsageRecord[]): {
+    lifetime: { notes: number; inputTokens: number; outputTokens: number; totalTokens: number; cost: number };
+    today: { notes: number; inputTokens: number; outputTokens: number; totalTokens: number; cost: number };
+  } {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    const lifetime = noteHistory.reduce((acc, record) => ({
+      notes: acc.notes + 1,
+      inputTokens: acc.inputTokens + record.inputTokens,
+      outputTokens: acc.outputTokens + record.outputTokens,
+      totalTokens: acc.totalTokens + record.inputTokens + record.outputTokens,
+      cost: acc.cost + record.cost
+    }), { notes: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 });
+
+    const todayRecords = noteHistory.filter(record => 
+      record.timestamp.startsWith(today)
+    );
+    
+    const todayStats = todayRecords.reduce((acc, record) => ({
+      notes: acc.notes + 1,
+      inputTokens: acc.inputTokens + record.inputTokens,
+      outputTokens: acc.outputTokens + record.outputTokens,
+      totalTokens: acc.totalTokens + record.inputTokens + record.outputTokens,
+      cost: acc.cost + record.cost
+    }), { notes: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 });
+
+    return { lifetime, today: todayStats };
   }
 
   /**

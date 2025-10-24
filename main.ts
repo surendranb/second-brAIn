@@ -7,7 +7,9 @@ import { MOCManager } from './moc-manager';
 import { PluginIntegration, LLMService, TraceManager, ContentExtractionError } from './src/services';
 import { NoteProcessor } from './src/services/NoteProcessor';
 import { findUniqueFileName, generateId, estimateTokens, calculateCost, formatTokens } from './src/utils';
-import { GEMINI_MODELS, PROCESSING_INTENTS, DEFAULT_SETTINGS, type GeminiModel, type ProcessingIntent, type ProcessingIntentOption, type PluginSettings, type Provider } from './src/config';
+import { GEMINI_MODELS, PROCESSING_INTENTS, DEFAULT_SETTINGS, type GeminiModel, type ProcessingIntent, type ProcessingIntentOption, type Provider } from './src/config';
+// Use the PluginSettings from config for now
+type PluginSettings = typeof DEFAULT_SETTINGS;
 import { SettingModal } from './src/components';
 
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
@@ -1341,7 +1343,7 @@ ${JSON.stringify(response, null, 2)}
     }
 
     // ===== TRACEMANAGER-BASED USAGE TRACKING =====
-    
+
     /**
      * Setup TraceManager usage tracking callbacks
      */
@@ -1353,15 +1355,30 @@ ${JSON.stringify(response, null, 2)}
         traceManager.onUsage((event) => {
             // Update settings-based usage stats for persistence
             if (this.plugin.settings.trackUsage) {
+                // Update current note stats
                 this.plugin.settings.usageStats.current.tokens += event.totalTokens;
+                if (!this.plugin.settings.usageStats.current.inputTokens) this.plugin.settings.usageStats.current.inputTokens = 0;
+                if (!this.plugin.settings.usageStats.current.outputTokens) this.plugin.settings.usageStats.current.outputTokens = 0;
+                this.plugin.settings.usageStats.current.inputTokens += event.promptTokens;
+                this.plugin.settings.usageStats.current.outputTokens += event.completionTokens;
                 this.plugin.settings.usageStats.current.cost += event.cost;
-                
+
+                // Update session stats
                 this.plugin.settings.usageStats.session.tokens += event.totalTokens;
+                if (!this.plugin.settings.usageStats.session.inputTokens) this.plugin.settings.usageStats.session.inputTokens = 0;
+                if (!this.plugin.settings.usageStats.session.outputTokens) this.plugin.settings.usageStats.session.outputTokens = 0;
+                this.plugin.settings.usageStats.session.inputTokens += event.promptTokens;
+                this.plugin.settings.usageStats.session.outputTokens += event.completionTokens;
                 this.plugin.settings.usageStats.session.cost += event.cost;
-                
+
+                // Update lifetime stats
                 this.plugin.settings.usageStats.lifetime.tokens += event.totalTokens;
+                if (!this.plugin.settings.usageStats.lifetime.inputTokens) this.plugin.settings.usageStats.lifetime.inputTokens = 0;
+                if (!this.plugin.settings.usageStats.lifetime.outputTokens) this.plugin.settings.usageStats.lifetime.outputTokens = 0;
+                this.plugin.settings.usageStats.lifetime.inputTokens += event.promptTokens;
+                this.plugin.settings.usageStats.lifetime.outputTokens += event.completionTokens;
                 this.plugin.settings.usageStats.lifetime.cost += event.cost;
-                
+
                 this.plugin.saveSettings();
                 this.updateStatsFooter();
             }
@@ -1389,13 +1406,45 @@ ${JSON.stringify(response, null, 2)}
         this.updateStatsFooter();
     }
 
+    /**
+     * Start tracking usage for a new note
+     */
+    private startNoteTracking(noteId: string): void {
+        const traceManager = this.getTraceManager();
+        if (traceManager && this.plugin.settings.trackUsage) {
+            traceManager.startNoteTracking(noteId);
+            console.log('[SummaryView] Started tracking for note:', noteId);
+        }
+    }
+
+    /**
+     * Complete note tracking and save to history
+     */
     private commitNoteToStats(): void {
-        if (!this.plugin.settings.trackUsage) return;
-        this.plugin.settings.usageStats.session.notes += 1;
-        this.plugin.settings.usageStats.lifetime.notes += 1;
-        this.plugin.settings.usageStats.current = { tokens: 0, cost: 0 };
-        this.plugin.saveSettings();
-        this.updateStatsFooter();
+        const traceManager = this.getTraceManager();
+        if (traceManager && this.plugin.settings.trackUsage) {
+            // Complete note tracking and save to history
+            const noteRecord = traceManager.completeNoteTracking(this.plugin.settings.usageStats);
+            
+            if (noteRecord) {
+                // Update note counts
+                this.plugin.settings.usageStats.session.notes += 1;
+                this.plugin.settings.usageStats.lifetime.notes += 1;
+                
+                // Reset current note stats
+                this.plugin.settings.usageStats.current = { 
+                    tokens: 0, 
+                    inputTokens: 0,
+                    outputTokens: 0,
+                    cost: 0 
+                };
+                
+                this.plugin.saveSettings();
+                this.updateStatsFooter();
+                
+                console.log('[SummaryView] Note committed to stats:', noteRecord);
+            }
+        }
     }
 
     private statsFooter: HTMLElement;
@@ -1424,15 +1473,68 @@ ${JSON.stringify(response, null, 2)}
         const stats = this.plugin.settings.usageStats;
         const { lifetime, session, current } = stats;
 
-        let text = `📊 ${lifetime.notes} notes • ${formatTokens(lifetime.tokens)} tokens • $${lifetime.cost.toFixed(2)}`;
-
-        if (current.tokens > 0) {
-            text += ` • This note: ${formatTokens(current.tokens)} tokens, ~$${current.cost.toFixed(3)}`;
-        } else if (session.notes > 0) {
-            text += ` • Today: ${session.notes} notes, $${session.cost.toFixed(2)}`;
+        const traceManager = this.getTraceManager();
+        
+        // Calculate metrics from note history if available
+        let metrics;
+        if (traceManager && (stats as any).noteHistory && (stats as any).noteHistory.length > 0) {
+            metrics = traceManager.calculateMetrics((stats as any).noteHistory);
+        } else {
+            // Fallback to legacy stats
+            metrics = {
+                lifetime: {
+                    notes: lifetime.notes,
+                    inputTokens: (lifetime as any).inputTokens || 0,
+                    outputTokens: (lifetime as any).outputTokens || 0,
+                    totalTokens: lifetime.tokens,
+                    cost: lifetime.cost
+                },
+                today: {
+                    notes: session.notes,
+                    inputTokens: (session as any).inputTokens || 0,
+                    outputTokens: (session as any).outputTokens || 0,
+                    totalTokens: session.tokens,
+                    cost: session.cost
+                }
+            };
         }
 
-        this.statsFooter.textContent = text;
+        // Create enhanced display
+        this.statsFooter.innerHTML = this.createEnhancedStatsDisplay(metrics, current);
+    }
+
+    private createEnhancedStatsDisplay(metrics: any, current: any): string {
+        const { lifetime, today } = metrics;
+        
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-normal);">📊 Lifetime</div>
+                    <div style="font-size: 0.8em; line-height: 1.3;">
+                        <div>${lifetime.notes} notes • $${lifetime.cost.toFixed(2)}</div>
+                        <div>${formatTokens(lifetime.totalTokens)} tokens (${formatTokens(lifetime.inputTokens)} in / ${formatTokens(lifetime.outputTokens)} out)</div>
+                    </div>
+                </div>
+                
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-normal);">📅 Today</div>
+                    <div style="font-size: 0.8em; line-height: 1.3;">
+                        <div>${today.notes} notes • $${today.cost.toFixed(2)}</div>
+                        <div>${formatTokens(today.totalTokens)} tokens (${formatTokens(today.inputTokens)} in / ${formatTokens(today.outputTokens)} out)</div>
+                    </div>
+                </div>
+                
+                ${current.tokens > 0 ? `
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-accent);">⚡ Current</div>
+                    <div style="font-size: 0.8em; line-height: 1.3;">
+                        <div>~$${current.cost.toFixed(3)}</div>
+                        <div>${formatTokens(current.tokens)} tokens (${formatTokens(current.inputTokens || 0)} in / ${formatTokens(current.outputTokens || 0)} out)</div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
     }
 
     private async updateActionTracker(): Promise<void> {
