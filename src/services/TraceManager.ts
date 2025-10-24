@@ -12,17 +12,8 @@ import type {
   LLMRequest,
   LLMResponse
 } from '../types';
-
-// Define NoteUsageRecord locally for now
-interface NoteUsageRecord {
-  noteId: string;
-  timestamp: string;
-  inputTokens: number;
-  outputTokens: number;
-  cost: number;
-  model: string;
-}
 import { LLMService } from './LLMService';
+import { UsageHistoryManager, type UsageRecord } from './UsageHistoryManager';
 import { calculateCost, formatTokens } from '../utils';
 
 // Usage event for UI consumption
@@ -46,8 +37,9 @@ export class TraceManager {
   private llmService: LLMService;
   private activeTraces: Map<string, string> = new Map();
   
-  // Usage tracking
+  // Simplified usage tracking
   private usageCallbacks: UsageCallback[] = [];
+  private usageHistoryManager: UsageHistoryManager | null = null;
   private currentNoteUsage: { 
     noteId: string | null;
     inputTokens: number; 
@@ -65,6 +57,13 @@ export class TraceManager {
   constructor(llmService: LLMService, provider: TraceProvider) {
     this.llmService = llmService;
     this.provider = provider;
+  }
+
+  /**
+   * Set the usage history manager
+   */
+  setUsageHistoryManager(manager: UsageHistoryManager): void {
+    this.usageHistoryManager = manager;
   }
   
   /**
@@ -339,15 +338,15 @@ export class TraceManager {
   }
 
   /**
-   * Complete note tracking and save to history
+   * Complete note tracking and save to history file
    */
-  completeNoteTracking(usageStats: any): NoteUsageRecord | null {
-    if (!this.currentNoteUsage.noteId) {
-      console.warn('[TraceManager] No active note tracking to complete');
+  async completeNoteTracking(): Promise<UsageRecord | null> {
+    if (!this.currentNoteUsage.noteId || !this.usageHistoryManager) {
+      console.warn('[TraceManager] No active note tracking or history manager');
       return null;
     }
 
-    const record: NoteUsageRecord = {
+    const record: UsageRecord = {
       noteId: this.currentNoteUsage.noteId,
       timestamp: new Date().toISOString(),
       inputTokens: this.currentNoteUsage.inputTokens,
@@ -356,11 +355,8 @@ export class TraceManager {
       model: this.currentNoteUsage.model || 'unknown'
     };
 
-    // Add to usage history
-    if (!usageStats.noteHistory) {
-      usageStats.noteHistory = [];
-    }
-    usageStats.noteHistory.push(record);
+    // Save to usage history file
+    await this.usageHistoryManager.addRecord(record);
 
     console.log(`[TraceManager] Completed note tracking:`, record);
 
@@ -382,6 +378,21 @@ export class TraceManager {
   }
 
   /**
+   * Get aggregated usage metrics from history file
+   */
+  async getUsageMetrics() {
+    if (!this.usageHistoryManager) {
+      return {
+        lifetime: { notes: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 },
+        today: { notes: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 }
+      };
+    }
+    return await this.usageHistoryManager.getMetrics();
+  }
+
+  // Duplicate method removed
+
+  /**
    * Reset current note usage (call when starting a new note)
    */
   resetCurrentNoteUsage(): void {
@@ -397,7 +408,7 @@ export class TraceManager {
   /**
    * Calculate metrics from note history
    */
-  calculateMetrics(noteHistory: NoteUsageRecord[]): {
+  calculateMetrics(noteHistory: UsageRecord[]): {
     lifetime: { notes: number; inputTokens: number; outputTokens: number; totalTokens: number; cost: number };
     today: { notes: number; inputTokens: number; outputTokens: number; totalTokens: number; cost: number };
   } {

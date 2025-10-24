@@ -6,6 +6,7 @@ import { MOCManager } from './moc-manager';
 // import { HierarchyAnalyzer } from './hierarchy-analyzer'; // Removed - replaced by HierarchyService
 import { PluginIntegration, LLMService, TraceManager, ContentExtractionError } from './src/services';
 import { NoteProcessor } from './src/services/NoteProcessor';
+import { UsageHistoryManager } from './src/services/UsageHistoryManager';
 import { findUniqueFileName, generateId, estimateTokens, calculateCost, formatTokens } from './src/utils';
 import { GEMINI_MODELS, PROCESSING_INTENTS, DEFAULT_SETTINGS, type GeminiModel, type ProcessingIntent, type ProcessingIntentOption, type Provider } from './src/config';
 // Use the PluginSettings from config for now
@@ -29,6 +30,7 @@ class SummaryView extends ItemView {
     private topicSection: HTMLDivElement;
     private promptLoader: PromptLoader;
     private currentTraceId: string | null = null;
+    private usageHistoryManager: UsageHistoryManager;
     private progressContainer: HTMLDivElement;
     private statusMessage: HTMLDivElement;
     private retryButton: HTMLButtonElement;
@@ -51,7 +53,20 @@ class SummaryView extends ItemView {
     constructor(leaf: WorkspaceLeaf, private plugin: AISummarizerPlugin) {
         super(leaf);
         this.promptLoader = new PromptLoader();
+        this.initializeUsageTracking();
         this.initializeNoteProcessor();
+    }
+
+    private async initializeUsageTracking() {
+        // Initialize usage history manager
+        this.usageHistoryManager = new UsageHistoryManager(this.app);
+        this.usageHistoryManager = new UsageHistoryManager(this.app);
+        
+        // Connect it to TraceManager
+        const traceManager = this.getTraceManager();
+        if (traceManager) {
+            traceManager.setUsageHistoryManager(this.usageHistoryManager);
+        }
     }
 
     private initializeNoteProcessor() {
@@ -1446,27 +1461,18 @@ ${JSON.stringify(response, null, 2)}
     }
 
     /**
-     * Complete note tracking - simplified data-driven approach
+     * Complete note tracking - save to usage history file
      */
-    private commitNoteToStats(): void {
+    private async commitNoteToStats(): Promise<void> {
         const traceManager = this.getTraceManager();
         if (traceManager && this.plugin.settings.trackUsage) {
-            // Simply add the note record to history - UI will calculate everything from data
-            const noteRecord = traceManager.completeNoteTracking(this.plugin.settings.usageStats);
+            // Save note record to usage history file
+            const noteRecord = await traceManager.completeNoteTracking();
 
             if (noteRecord) {
-                // Reset current note stats for next note
-                this.plugin.settings.usageStats.current = {
-                    tokens: 0,
-                    inputTokens: 0,
-                    outputTokens: 0,
-                    cost: 0
-                };
-
-                this.plugin.saveSettings();
-                this.updateStatsFooter(); // UI will recalculate from noteHistory
-
-                console.log('[SummaryView] Note added to history:', noteRecord);
+                // Update UI with fresh data from file
+                await this.updateStatsFooter();
+                console.log('[SummaryView] Note saved to usage history:', noteRecord);
             }
         }
     }
@@ -1491,50 +1497,19 @@ ${JSON.stringify(response, null, 2)}
         this.updateStatsFooter();
     }
 
-    private updateStatsFooter(): void {
-        if (!this.statsFooter || !this.plugin.settings.trackUsage) return;
+    private async updateStatsFooter(): Promise<void> {
+        if (!this.statsFooter || !this.plugin.settings.trackUsage || !this.usageHistoryManager) return;
 
+        // Get metrics directly from usage history file
+        const metrics = await this.usageHistoryManager.getMetrics();
         const traceManager = this.getTraceManager();
-        const noteHistory = (this.plugin.settings.usageStats as any).noteHistory || [];
-        
-        // Pure data-driven approach: calculate everything from noteHistory
-        const metrics = this.calculateMetricsFromData(noteHistory);
-        const current = this.plugin.settings.usageStats.current;
+        const current = traceManager?.getCurrentNoteUsage() || { inputTokens: 0, outputTokens: 0, cost: 0 };
 
         // Create enhanced display
         this.statsFooter.innerHTML = this.createEnhancedStatsDisplay(metrics, current);
     }
 
-    /**
-     * Calculate metrics purely from noteHistory data
-     */
-    private calculateMetricsFromData(noteHistory: any[]): any {
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        
-        // Calculate lifetime (all records)
-        const lifetime = noteHistory.reduce((acc, record) => ({
-            notes: acc.notes + 1,
-            inputTokens: acc.inputTokens + (record.inputTokens || 0),
-            outputTokens: acc.outputTokens + (record.outputTokens || 0),
-            totalTokens: acc.totalTokens + (record.inputTokens || 0) + (record.outputTokens || 0),
-            cost: acc.cost + (record.cost || 0)
-        }), { notes: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 });
-
-        // Calculate today (records from today only)
-        const todayRecords = noteHistory.filter(record => 
-            record.timestamp && record.timestamp.startsWith(today)
-        );
-        
-        const todayStats = todayRecords.reduce((acc, record) => ({
-            notes: acc.notes + 1,
-            inputTokens: acc.inputTokens + (record.inputTokens || 0),
-            outputTokens: acc.outputTokens + (record.outputTokens || 0),
-            totalTokens: acc.totalTokens + (record.inputTokens || 0) + (record.outputTokens || 0),
-            cost: acc.cost + (record.cost || 0)
-        }), { notes: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 });
-
-        return { lifetime, today: todayStats };
-    }
+    // calculateMetricsFromData method removed - now handled by UsageHistoryManager
 
     private createEnhancedStatsDisplay(metrics: any, current: any): string {
         const { lifetime, today } = metrics;
