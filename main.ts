@@ -1349,10 +1349,21 @@ ${JSON.stringify(response, null, 2)}
      */
     private resetSessionCounters(): void {
         const traceManager = this.getTraceManager();
+        console.log('[SummaryView] resetSessionCounters called', {
+            hasTraceManager: !!traceManager,
+            trackUsage: this.plugin.settings.trackUsage,
+            currentSession: this.plugin.settings.usageStats.session
+        });
+
         if (traceManager && this.plugin.settings.trackUsage) {
             // Reset session counters using TraceManager
             traceManager.resetSessionCounters(this.plugin.settings.usageStats);
             this.plugin.saveSettings();
+
+            console.log('[SummaryView] After reset:', {
+                session: this.plugin.settings.usageStats.session
+            });
+
             this.updateStatsFooter();
             console.log('[SummaryView] Session counters reset - starting fresh tracking');
         }
@@ -1435,20 +1446,16 @@ ${JSON.stringify(response, null, 2)}
     }
 
     /**
-     * Complete note tracking and save to history
+     * Complete note tracking - simplified data-driven approach
      */
     private commitNoteToStats(): void {
         const traceManager = this.getTraceManager();
         if (traceManager && this.plugin.settings.trackUsage) {
-            // Complete note tracking and save to history
+            // Simply add the note record to history - UI will calculate everything from data
             const noteRecord = traceManager.completeNoteTracking(this.plugin.settings.usageStats);
 
             if (noteRecord) {
-                // Update note counts
-                this.plugin.settings.usageStats.session.notes += 1;
-                this.plugin.settings.usageStats.lifetime.notes += 1;
-
-                // Reset current note stats
+                // Reset current note stats for next note
                 this.plugin.settings.usageStats.current = {
                     tokens: 0,
                     inputTokens: 0,
@@ -1457,9 +1464,9 @@ ${JSON.stringify(response, null, 2)}
                 };
 
                 this.plugin.saveSettings();
-                this.updateStatsFooter();
+                this.updateStatsFooter(); // UI will recalculate from noteHistory
 
-                console.log('[SummaryView] Note committed to stats:', noteRecord);
+                console.log('[SummaryView] Note added to history:', noteRecord);
             }
         }
     }
@@ -1487,49 +1494,46 @@ ${JSON.stringify(response, null, 2)}
     private updateStatsFooter(): void {
         if (!this.statsFooter || !this.plugin.settings.trackUsage) return;
 
-        const stats = this.plugin.settings.usageStats;
-        const { lifetime, session, current } = stats;
-
         const traceManager = this.getTraceManager();
-
-        // Always use session stats for "today" to respect manual resets
-        // Only use noteHistory for lifetime calculations
-        let metrics;
-        if (traceManager && (stats as any).noteHistory && (stats as any).noteHistory.length > 0) {
-            const historyMetrics = traceManager.calculateMetrics((stats as any).noteHistory);
-            metrics = {
-                lifetime: historyMetrics.lifetime,
-                today: {
-                    // Use session stats for today (respects manual resets)
-                    notes: session.notes,
-                    inputTokens: (session as any).inputTokens || 0,
-                    outputTokens: (session as any).outputTokens || 0,
-                    totalTokens: session.tokens,
-                    cost: session.cost
-                }
-            };
-        } else {
-            // Fallback to legacy stats
-            metrics = {
-                lifetime: {
-                    notes: lifetime.notes,
-                    inputTokens: (lifetime as any).inputTokens || 0,
-                    outputTokens: (lifetime as any).outputTokens || 0,
-                    totalTokens: lifetime.tokens,
-                    cost: lifetime.cost
-                },
-                today: {
-                    notes: session.notes,
-                    inputTokens: (session as any).inputTokens || 0,
-                    outputTokens: (session as any).outputTokens || 0,
-                    totalTokens: session.tokens,
-                    cost: session.cost
-                }
-            };
-        }
+        const noteHistory = (this.plugin.settings.usageStats as any).noteHistory || [];
+        
+        // Pure data-driven approach: calculate everything from noteHistory
+        const metrics = this.calculateMetricsFromData(noteHistory);
+        const current = this.plugin.settings.usageStats.current;
 
         // Create enhanced display
         this.statsFooter.innerHTML = this.createEnhancedStatsDisplay(metrics, current);
+    }
+
+    /**
+     * Calculate metrics purely from noteHistory data
+     */
+    private calculateMetricsFromData(noteHistory: any[]): any {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        // Calculate lifetime (all records)
+        const lifetime = noteHistory.reduce((acc, record) => ({
+            notes: acc.notes + 1,
+            inputTokens: acc.inputTokens + (record.inputTokens || 0),
+            outputTokens: acc.outputTokens + (record.outputTokens || 0),
+            totalTokens: acc.totalTokens + (record.inputTokens || 0) + (record.outputTokens || 0),
+            cost: acc.cost + (record.cost || 0)
+        }), { notes: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 });
+
+        // Calculate today (records from today only)
+        const todayRecords = noteHistory.filter(record => 
+            record.timestamp && record.timestamp.startsWith(today)
+        );
+        
+        const todayStats = todayRecords.reduce((acc, record) => ({
+            notes: acc.notes + 1,
+            inputTokens: acc.inputTokens + (record.inputTokens || 0),
+            outputTokens: acc.outputTokens + (record.outputTokens || 0),
+            totalTokens: acc.totalTokens + (record.inputTokens || 0) + (record.outputTokens || 0),
+            cost: acc.cost + (record.cost || 0)
+        }), { notes: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 });
+
+        return { lifetime, today: todayStats };
     }
 
     private createEnhancedStatsDisplay(metrics: any, current: any): string {
