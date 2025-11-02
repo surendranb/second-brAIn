@@ -53,26 +53,41 @@ export class NoteProcessor {
     }
 
     async processURL(input: ProcessingInput): Promise<ProcessingResult> {
-        console.log('[NoteProcessor] Starting processing for:', input.url);
+        console.log('🎯 [TRACE] NoteProcessor.processURL() called with:', input);
+        console.log('🔍 [TRACE] Available services:', {
+            contentExtractor: !!this.contentExtractor,
+            hierarchyService: !!this.hierarchyService,
+            traceManager: !!this.traceManager,
+            llmService: !!this.llmService
+        });
 
         // 1. Extract content using ContentExtractor service
+        console.log('📥 [TRACE] Step 1: Starting content extraction');
         this.updateStatus(0, 'Extracting content...');
         const extractedContent = await this.contentExtractor.extractContent(input.url);
+        console.log('✅ [TRACE] Step 1: Content extraction completed:', {
+            type: extractedContent.metadata.type,
+            length: extractedContent.metadata.length,
+            title: extractedContent.metadata.title
+        });
         this.updateStatus(0, `Content extracted successfully (${extractedContent.metadata.type}, ${extractedContent.metadata.length} chars)`);
         
         // 2. Start trace
+        console.log('📊 [TRACE] Step 2: Starting trace');
         this.updateStatus(1, 'Starting trace and span...');
         const traceId = await this.traceManager.startTrace({
             name: 'note-creation',
             input: { url: input.url, intent: input.intent },
             metadata: { source: 'note-processor' }
         });
+        console.log('✅ [TRACE] Step 2: Trace started with ID:', traceId);
 
         const noteId = generateId();
         this.traceManager.startNoteTracking(noteId);
 
         try {
             // 3. AI-Driven Hierarchy Analysis (NEW - replaces hierarchy in 5-pass)
+            console.log('🧠 [TRACE] Step 3: Starting hierarchy analysis');
             this.updateStatus(2, 'Analyzing knowledge hierarchy...');
             const hierarchyResult = await this.hierarchyService.analyzeHierarchy(
                 extractedContent.metadata.title || 'Untitled',
@@ -80,8 +95,13 @@ export class NoteProcessor {
                 extractedContent.metadata,
                 traceId
             );
+            console.log('✅ [TRACE] Step 3: Hierarchy analysis completed:', {
+                hierarchy: hierarchyResult.hierarchy,
+                confidence: hierarchyResult.confidence
+            });
             
             // 4. 5-Pass AI Content Analysis (EXISTING - keep as-is)
+            console.log('🔄 [TRACE] Step 4: Starting 5-pass AI analysis');
             this.updateStatus(3, 'Running 5-pass AI analysis...');
             const analysisResult = await this.traceManager.withSpan(
                 'content-analysis',
@@ -95,6 +115,7 @@ export class NoteProcessor {
                     contentLength: extractedContent.metadata.length
                 } }
             );
+            console.log('✅ [TRACE] Step 4: 5-pass analysis completed');
             
             // Override hierarchy from 5-pass with our AI-driven hierarchy
             analysisResult.hierarchy = hierarchyResult.hierarchy;

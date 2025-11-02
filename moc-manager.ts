@@ -29,7 +29,7 @@ export class MOCManager {
 
     // Enhanced ensureMOCExists with MOC creation and parent updates
     async ensureMOCExists(hierarchy: MOCHierarchy): Promise<string> {
-        console.log('[MOCManager] 🚀 Starting MOC creation process for:', `${hierarchy.level1} > ${hierarchy.level2}`);
+        console.log('🗂️ [TRACE] MOCManager.ensureMOCExists() called for:', `${hierarchy.level1} > ${hierarchy.level2}`);
         
         // Validate hierarchy first
         if (!hierarchy.level1 || !hierarchy.level2) {
@@ -280,7 +280,7 @@ ${existingMOCs.map(moc => `- "${moc.title}" (file: ${moc.filename})`).join('\n')
         console.log(`[MOCManager] ✅ MOC created successfully: ${levelInfo.path}`);
     }
 
-    // Create MOC template with hierarchical navigation
+    // Create MOC template with hierarchical navigation and proper timestamps
     private createHierarchicalMOCTemplate(levelInfo: any, hierarchy: MOCHierarchy, allLevels: any[]): string {
         const timestamp = new Date().toISOString();
         const currentIndex = allLevels.findIndex(l => l.level === levelInfo.level);
@@ -293,7 +293,7 @@ ${existingMOCs.map(moc => `- "${moc.title}" (file: ${moc.filename})`).join('\n')
             domain: hierarchy.level1,
             level: levelInfo.level,
             created: timestamp,
-            updated: timestamp,
+            updated: timestamp, // For new MOCs, created and updated are the same
             tags: ['moc', hierarchy.level1.toLowerCase().replace(/\s+/g, '-'), `level-${levelInfo.level}`],
             note_count: 0,
             learning_paths: []
@@ -358,6 +358,40 @@ ${navigationSection}## Learning Paths
         }
     }
 
+    /**
+     * Updates the 'updated' timestamp in frontmatter while preserving 'created' timestamp
+     */
+    private updateTimestamps(content: string): string {
+        const now = new Date().toISOString();
+        
+        // Extract frontmatter
+        const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+        if (!frontmatterMatch) {
+            console.warn('[MOCManager] No frontmatter found, cannot update timestamps');
+            return content;
+        }
+        
+        let frontmatter = frontmatterMatch[1];
+        
+        // Update the 'updated' field while preserving 'created'
+        if (frontmatter.includes('updated:')) {
+            // Replace existing updated timestamp
+            frontmatter = frontmatter.replace(/updated:\s*"[^"]*"/, `updated: "${now}"`);
+        } else {
+            // Add updated timestamp after created (if it exists)
+            if (frontmatter.includes('created:')) {
+                frontmatter = frontmatter.replace(/(created:\s*"[^"]*")/, `$1\nupdated: "${now}"`);
+            } else {
+                // Add both created and updated if neither exists
+                frontmatter += `\ncreated: "${now}"\nupdated: "${now}"`;
+            }
+        }
+        
+        // Reconstruct content with updated frontmatter
+        const afterFrontmatter = content.substring(frontmatterMatch[0].length);
+        return `---\n${frontmatter}\n---${afterFrontmatter}`;
+    }
+
     // Update parent MOC structure with new child
     private async updateParentMOCStructure(parentMocPath: string, childLevelInfo: any): Promise<void> {
         console.log(`[MOCManager] 🔗 Updating parent MOC with child: ${parentMocPath}`);
@@ -393,8 +427,11 @@ ${navigationSection}## Learning Paths
                 }
             }
 
+            // Update timestamps before saving
+            parentContent = this.updateTimestamps(parentContent);
+            
             await this.app.vault.modify(parentFile, parentContent);
-            console.log(`[MOCManager] ✅ Parent MOC updated with child: ${childLevelInfo.title}`);
+            console.log(`[MOCManager] ✅ Parent MOC updated with child and timestamp: ${childLevelInfo.title}`);
 
         } catch (error) {
             console.error(`[MOCManager] ❌ Error updating parent MOC:`, error);

@@ -42,17 +42,20 @@ export class ContentExtractor {
      * Determines the content type and delegates to appropriate extractor
      */
     async extractContent(url: string): Promise<ExtractedContent> {
-        console.log('[ContentExtractor] Starting extraction for:', url);
+        console.log('📥 [TRACE] ContentExtractor.extractContent() called with:', url);
         
         const contentType = this.detectContentType(url);
+        console.log('🔍 [TRACE] Detected content type:', contentType);
         let content: string;
         
         try {
             switch (contentType) {
                 case 'youtube':
+                    console.log('📺 [TRACE] Delegating to fetchYouTubeTranscript()');
                     content = await this.fetchYouTubeTranscript(url);
                     break;
                 case 'web':
+                    console.log('🌐 [TRACE] Delegating to fetchWebContent()');
                     content = await this.fetchWebContent(url);
                     break;
                 default:
@@ -164,7 +167,7 @@ export class ContentExtractor {
      * Extract transcript from YouTube video using Python script
      */
     private async fetchYouTubeTranscript(url: string): Promise<string> {
-        console.log('[ContentExtractor] Extracting YouTube transcript for:', url);
+        console.log('📺 [TRACE] fetchYouTubeTranscript() called for:', url);
         
         const path = require('path');
         
@@ -174,7 +177,7 @@ export class ContentExtractor {
         const scriptPath = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'fetch_transcript.py');
         const venvPython = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'venv', 'bin', 'python3');
 
-        console.log('[ContentExtractor] Running Python script:', { venvPython, scriptPath, url });
+        console.log('🐍 [TRACE] Running YouTube Python script:', { venvPython, scriptPath, url });
 
         const { spawn } = require('child_process');
         const pythonProcess = spawn(venvPython, [scriptPath, url]);
@@ -243,7 +246,7 @@ export class ContentExtractor {
      * Extract content from web page using Python script
      */
     private async fetchWebContent(url: string): Promise<string> {
-        console.log('[ContentExtractor] Extracting web content for:', url);
+        console.log('🌐 [TRACE] fetchWebContent() called for:', url);
         
         const path = require('path');
         
@@ -253,7 +256,7 @@ export class ContentExtractor {
         const scriptPath = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'fetch_content.py');
         const venvPython = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'venv', 'bin', 'python3');
 
-        console.log('[ContentExtractor] Running Python script:', { venvPython, scriptPath, url });
+        console.log('🐍 [TRACE] Running Web Python script:', { venvPython, scriptPath, url });
 
         const { spawn } = require('child_process');
         const pythonProcess = spawn(venvPython, [scriptPath, url]);

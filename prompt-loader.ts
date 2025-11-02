@@ -35,14 +35,18 @@ export class PromptLoader {
     }
 
     async loadPromptsForIntent(intent: ProcessingIntent): Promise<IntentPrompts> {
+        console.log('📝 [TRACE] PromptLoader.loadPromptsForIntent() called for:', intent);
         // Check cache first
         if (this.promptCache.has(intent)) {
+            console.log('💾 [TRACE] Using cached prompts for:', intent);
             return this.promptCache.get(intent)!;
         }
 
         try {
+            console.log('🔄 [TRACE] Loading embedded prompts for:', intent);
             const prompts = this.getEmbeddedPrompts(intent);
             this.promptCache.set(intent, prompts);
+            console.log('✅ [TRACE] Prompts loaded and cached for:', intent);
             return prompts;
         } catch (error) {
             console.error(`[PromptLoader] Failed to load prompts for intent ${intent}:`, error);

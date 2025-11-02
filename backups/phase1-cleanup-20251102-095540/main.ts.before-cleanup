@@ -3,12 +3,13 @@ import { AISummarizerSettingsTab } from './settings';
 import { HierarchyManager } from './hierarchy-manager';
 import { PromptLoader } from './prompt-loader';
 import { MOCManager } from './moc-manager';
-
+// import { HierarchyAnalyzer } from './hierarchy-analyzer'; // Removed - replaced by HierarchyService
 import { PluginIntegration, LLMService, TraceManager, ContentExtractionError } from './src/services';
 import { NoteProcessor } from './src/services/NoteProcessor';
 import { UsageHistoryManager } from './src/services/UsageHistoryManager';
 import { findUniqueFileName, generateId, estimateTokens, calculateCost, formatTokens } from './src/utils';
 import { GEMINI_MODELS, PROCESSING_INTENTS, DEFAULT_SETTINGS, type GeminiModel, type ProcessingIntent, type ProcessingIntentOption, type Provider } from './src/config';
+// Use the PluginSettings from config for now
 type PluginSettings = typeof DEFAULT_SETTINGS;
 import { SettingModal } from './src/components';
 
@@ -958,17 +959,23 @@ class SummaryView extends ItemView {
     }
 
     private async startNoteGenerationClean() {
+        console.log('🚀 [TRACE] startNoteGenerationClean() called');
         const url = this.urlInput.value;
         const prompt = this.promptInput.value;
         const selectedIntent = this.intentDropdown.value as ProcessingIntent;
+        
+        console.log('📝 [TRACE] Input values:', { url, prompt, selectedIntent });
 
         if (!url) {
+            console.log('❌ [TRACE] No URL provided');
             new Notice('Please enter a URL.');
             return;
         }
 
         if (!this.plugin.noteProcessor) {
+            console.log('🔧 [TRACE] NoteProcessor not found, initializing...');
             if (this.plugin.llmService && this.plugin.traceManager) {
+                console.log('✅ [TRACE] Services available, creating NoteProcessor directly');
                 this.plugin.noteProcessor = new NoteProcessor(
                     this.plugin.traceManager,
                     this.plugin.llmService,
@@ -976,10 +983,12 @@ class SummaryView extends ItemView {
                     this
                 );
             } else {
+                console.log('⚠️ [TRACE] Services not available, calling initializeServices()');
                 try {
                     await this.plugin.initializeServices();
 
                     if (this.plugin.llmService && this.plugin.traceManager) {
+                        console.log('✅ [TRACE] Services initialized, creating NoteProcessor');
                         this.plugin.noteProcessor = new NoteProcessor(
                             this.plugin.traceManager,
                             this.plugin.llmService,
@@ -987,14 +996,18 @@ class SummaryView extends ItemView {
                             this
                         );
                     } else {
+                        console.log('❌ [TRACE] Services still not available after initialization');
                         new Notice('Failed to initialize AI services. Please check your API key settings.');
                         return;
                     }
                 } catch (error) {
+                    console.log('❌ [TRACE] Service initialization failed:', error);
                     new Notice('Failed to initialize AI services. Please check your settings.');
                     return;
                 }
             }
+        } else {
+            console.log('✅ [TRACE] NoteProcessor already exists');
         }
 
         this.statusSteps = [
@@ -1018,11 +1031,13 @@ class SummaryView extends ItemView {
                 this.updateStatusSteps(step, message, isError);
             });
 
+            console.log('🎯 [TRACE] Calling noteProcessor.processURL()');
             const result = await this.plugin.noteProcessor.processURL({
                 url,
                 prompt,
                 intent: selectedIntent
             });
+            console.log('✅ [TRACE] processURL completed successfully:', result);
 
             this.updateStatusSteps(7, 'Complete! Note created and organized.');
             await this.app.workspace.getLeaf().openFile(result.note);
@@ -1844,7 +1859,7 @@ class AISummarizerPlugin extends Plugin {
      * Initialize modular services
      */
     public async initializeServices(): Promise<void> {
-        console.log('🔧 [TRACE] Plugin.initializeServices() called');
+        console.log('🔧 [TRACE] initializeServices() called');
         try {
             console.log('🔧 [TRACE] Creating PluginIntegration...');
             this.serviceIntegration = new PluginIntegration();
@@ -1865,7 +1880,7 @@ class AISummarizerPlugin extends Plugin {
      * Update service references after initialization or settings change
      */
     private updateServiceReferences(): void {
-        console.log('🔗 [TRACE] Plugin.updateServiceReferences() called');
+        console.log('🔗 [TRACE] updateServiceReferences() called');
         if (this.serviceIntegration && this.serviceIntegration.isReady()) {
             console.log('✅ [TRACE] ServiceIntegration is ready');
             this.llmService = this.serviceIntegration.getLLMService();

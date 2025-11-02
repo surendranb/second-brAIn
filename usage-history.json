@@ -1,0 +1,98 @@
+[
+  {
+    "noteId": "717d7b78-b823-435e-b2a7-a70c74238035",
+    "timestamp": "2025-11-02T04:14:15.861Z",
+    "inputTokens": 57827,
+    "outputTokens": 13087,
+    "cost": 0.011941799999999997,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "098baf31-130c-49d7-a57f-ea68944a386c",
+    "timestamp": "2025-11-02T04:24:42.348Z",
+    "inputTokens": 28342,
+    "outputTokens": 12167,
+    "cost": 0.0088191,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "fa813ef8-172d-4dbc-ae7c-49fdb620f1c3",
+    "timestamp": "2025-11-02T04:39:55.791Z",
+    "inputTokens": 67301,
+    "outputTokens": 16687,
+    "cost": 0.0145184,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "fa7cb021-6541-46c9-be9f-7ad09fb9d8b1",
+    "timestamp": "2025-11-02T06:45:21.082Z",
+    "inputTokens": 22729,
+    "outputTokens": 14762,
+    "cost": 0.0092845,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "3531aa06-bbf7-4c0b-987f-224c35adb122",
+    "timestamp": "2025-11-02T06:51:16.713Z",
+    "inputTokens": 11686,
+    "outputTokens": 15055,
+    "cost": 0.0082962,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "2fd7843c-a5e4-4289-8ae3-f2df5bc701ae",
+    "timestamp": "2025-11-02T07:23:52.130Z",
+    "inputTokens": 18108,
+    "outputTokens": 14995,
+    "cost": 0.008789400000000001,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "25d6da5f-f4bb-40a3-859c-155d8f175a0d",
+    "timestamp": "2025-11-02T09:49:45.118Z",
+    "inputTokens": 16037,
+    "outputTokens": 14218,
+    "cost": 0.0083608,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "09e35d4c-1ec9-44ae-b204-8f763254ce8a",
+    "timestamp": "2025-11-02T09:56:11.910Z",
+    "inputTokens": 67157,
+    "outputTokens": 15994,
+    "cost": 0.014347400000000001,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "712d7f3b-8a63-41fd-9a52-a79e740dc501",
+    "timestamp": "2025-11-02T10:15:05.516Z",
+    "inputTokens": 69938,
+    "outputTokens": 17090,
+    "cost": 0.0149702,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "c99110e1-d686-4675-9e27-be19d961086c",
+    "timestamp": "2025-11-02T10:21:06.754Z",
+    "inputTokens": 54138,
+    "outputTokens": 16773,
+    "cost": 0.0131423,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "7236f581-c60d-45c6-af8b-757254db5f52",
+    "timestamp": "2025-11-02T10:24:53.092Z",
+    "inputTokens": 35167,
+    "outputTokens": 16850,
+    "cost": 0.011508800000000001,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "fa7b9cc0-26e9-4a9f-ab49-6dea7a17fa2d",
+    "timestamp": "2025-11-02T10:29:06.489Z",
+    "inputTokens": 20962,
+    "outputTokens": 15470,
+    "cost": 0.0092916,
+    "model": "gemini-2.5-flash-lite"
+  }
+]

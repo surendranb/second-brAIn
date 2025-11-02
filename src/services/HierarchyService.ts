@@ -39,9 +39,10 @@ export class HierarchyService {
         traceId?: string
     ): Promise<HierarchyAnalysisResult> {
         
+        console.log('🧠 [TRACE] HierarchyService.analyzeHierarchy() called for:', title);
         const prompt = this.buildHierarchyPrompt(title, content, metadata);
         
-        console.log('[HierarchyService] Analyzing hierarchy with AI...');
+        console.log('🤖 [TRACE] Sending hierarchy analysis prompt to AI');
         
         try {
             const response = await this.traceManager.generateText(

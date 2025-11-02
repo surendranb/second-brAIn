@@ -278,16 +278,16 @@ export class MOCIntelligence {
         
         console.log('[MOCIntelligence] 🤖 AI update response received');
         
-        // Parse AI response
+        // Parse AI response with proper object serialization
         if (typeof aiResponse === 'object' && aiResponse.overview) {
             return {
                 overview: aiResponse.overview || '',
-                keyThemes: Array.isArray(aiResponse.keyThemes) ? aiResponse.keyThemes : [],
+                keyThemes: this.ensureStringArray(aiResponse.keyThemes),
                 conceptualRelationships: aiResponse.conceptualRelationships || '',
                 learningProgress: aiResponse.learningProgress || '',
-                knowledgeGaps: Array.isArray(aiResponse.knowledgeGaps) ? aiResponse.knowledgeGaps : [],
-                crossDomainConnections: Array.isArray(aiResponse.crossDomainConnections) ? aiResponse.crossDomainConnections : [],
-                synthesizedInsights: Array.isArray(aiResponse.synthesizedInsights) ? aiResponse.synthesizedInsights : []
+                knowledgeGaps: this.ensureStringArray(aiResponse.knowledgeGaps),
+                crossDomainConnections: this.ensureStringArray(aiResponse.crossDomainConnections),
+                synthesizedInsights: this.ensureStringArray(aiResponse.synthesizedInsights)
             };
         } else {
             throw new Error('Invalid AI response format');
@@ -606,6 +606,34 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
     }
 
     /**
+     * Ensures a value is converted to a string array, handling objects properly
+     */
+    private ensureStringArray(value: any): string[] {
+        if (!value) return [];
+        
+        if (Array.isArray(value)) {
+            return value.map(item => {
+                if (typeof item === 'string') return item;
+                if (typeof item === 'object' && item !== null) {
+                    // Handle object serialization properly
+                    if (item.description) return item.description;
+                    if (item.connection) return item.connection;
+                    if (item.domain && item.description) return `${item.domain}: ${item.description}`;
+                    return JSON.stringify(item);
+                }
+                return String(item);
+            });
+        }
+        
+        if (typeof value === 'string') return [value];
+        if (typeof value === 'object' && value !== null) {
+            return [JSON.stringify(value)];
+        }
+        
+        return [String(value)];
+    }
+
+    /**
      * Creates truly empty analysis for MOCs with no notes - NO FAKE DATA
      */
     private createEmptyAnalysis(): MOCAnalysis {
@@ -673,8 +701,11 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
             }
         }
 
+        // Update the 'updated' timestamp while preserving 'created' timestamp
+        content = this.updateTimestamps(content);
+        
         await this.app.vault.modify(mocFile, content);
-        console.log('[MOCIntelligence] Successfully applied intelligence to MOC (replaced duplicates)');
+        console.log('[MOCIntelligence] Successfully applied intelligence to MOC with updated timestamp');
     }
 
     /**
@@ -770,30 +801,99 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
     }
 
     /**
-     * Finds the best insertion point for intelligence content
+     * Updates the 'updated' timestamp in frontmatter while preserving 'created' timestamp
      */
-    private findInsertionPoint(content: string): number {
-        // Look for the end of the info block
-        const infoBlockEnd = content.indexOf('> This is the most specific level');
-        if (infoBlockEnd !== -1) {
-            const nextNewline = content.indexOf('\n\n', infoBlockEnd);
-            if (nextNewline !== -1) {
-                return nextNewline + 2;
+    private updateTimestamps(content: string): string {
+        const now = new Date().toISOString();
+        
+        // Extract frontmatter
+        const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+        if (!frontmatterMatch) {
+            console.warn('[MOCIntelligence] No frontmatter found, cannot update timestamps');
+            return content;
+        }
+        
+        let frontmatter = frontmatterMatch[1];
+        
+        // Update the 'updated' field while preserving 'created'
+        if (frontmatter.includes('updated:')) {
+            // Replace existing updated timestamp
+            frontmatter = frontmatter.replace(/updated:\s*"[^"]*"/, `updated: "${now}"`);
+        } else {
+            // Add updated timestamp after created (if it exists)
+            if (frontmatter.includes('created:')) {
+                frontmatter = frontmatter.replace(/(created:\s*"[^"]*")/, `$1\nupdated: "${now}"`);
+            } else {
+                // Add both created and updated if neither exists
+                frontmatter += `\ncreated: "${now}"\nupdated: "${now}"`;
             }
         }
+        
+        // Reconstruct content with updated frontmatter
+        const afterFrontmatter = content.substring(frontmatterMatch[0].length);
+        return `---\n${frontmatter}\n---${afterFrontmatter}`;
+    }
 
-        // Fallback: look for first navigation section
-        const navigationStart = content.indexOf('\n## 🔼');
-        if (navigationStart !== -1) {
-            return navigationStart;
+    /**
+     * Finds the best insertion point for intelligence content - AFTER navigation sections
+     */
+    private findInsertionPoint(content: string): number {
+        console.log('[MOCIntelligence] 🔍 Finding insertion point for intelligence content');
+        
+        // Look for the end of the info block first
+        const infoBlockPattern = /> \[!info\] Knowledge .*?\n.*?\n/s;
+        const infoBlockMatch = content.match(infoBlockPattern);
+        if (infoBlockMatch) {
+            const infoBlockEnd = infoBlockMatch.index! + infoBlockMatch[0].length;
+            console.log('[MOCIntelligence] ✅ Found info block end at position:', infoBlockEnd);
+            
+            // Find the end of all navigation sections after the info block
+            const navigationSections = ['## 🔼 Parent Level', '## 🔽 Sub-Levels', '## 🔄 Related'];
+            let lastNavigationEnd = infoBlockEnd;
+            
+            for (const navSection of navigationSections) {
+                const navIndex = content.indexOf(navSection, infoBlockEnd);
+                if (navIndex !== -1) {
+                    console.log('[MOCIntelligence] 📍 Found navigation section:', navSection, 'at position:', navIndex);
+                    // Find the end of this navigation section
+                    const nextSectionIndex = content.indexOf('\n## ', navIndex + 1);
+                    const sectionEnd = nextSectionIndex !== -1 ? nextSectionIndex : content.length;
+                    lastNavigationEnd = Math.max(lastNavigationEnd, sectionEnd);
+                }
+            }
+            
+            console.log('[MOCIntelligence] 🎯 Intelligence insertion point (after navigation):', lastNavigationEnd);
+            return lastNavigationEnd;
+        }
+
+        // Fallback: look for first navigation section and insert AFTER all navigation
+        const navigationSections = ['## 🔼 Parent Level', '## 🔽 Sub-Levels', '## 🔄 Related'];
+        let lastNavigationEnd = -1;
+        
+        for (const navSection of navigationSections) {
+            const navIndex = content.indexOf(navSection);
+            if (navIndex !== -1) {
+                console.log('[MOCIntelligence] 📍 Fallback: Found navigation section:', navSection, 'at position:', navIndex);
+                // Find the end of this navigation section
+                const nextSectionIndex = content.indexOf('\n## ', navIndex + 1);
+                const sectionEnd = nextSectionIndex !== -1 ? nextSectionIndex : content.length;
+                lastNavigationEnd = Math.max(lastNavigationEnd, sectionEnd);
+            }
+        }
+        
+        if (lastNavigationEnd !== -1) {
+            console.log('[MOCIntelligence] 🎯 Fallback insertion point (after navigation):', lastNavigationEnd);
+            return lastNavigationEnd;
         }
 
         // Last resort: after title
         const titleEnd = content.indexOf('\n', content.indexOf('# '));
         if (titleEnd !== -1) {
+            console.log('[MOCIntelligence] ⚠️ Last resort insertion point (after title):', titleEnd + 1);
             return titleEnd + 1;
         }
 
+        console.log('[MOCIntelligence] ❌ No suitable insertion point found');
         return -1;
     }
 }
