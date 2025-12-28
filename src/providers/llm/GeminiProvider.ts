@@ -36,7 +36,7 @@ export class GeminiProvider implements LLMProvider {
 
     const model = this.client.getGenerativeModel({ 
       model: request.model || 'gemini-2.5-flash' 
-    });
+    }, { apiVersion: 'v1beta' });
 
     const geminiRequest: GenerateContentRequest = {
       contents: [{
@@ -91,7 +91,7 @@ export class GeminiProvider implements LLMProvider {
 
     const model = this.client.getGenerativeModel({ 
       model: request.model || 'gemini-2.5-flash' 
-    });
+    }, { apiVersion: 'v1beta' });
 
     const geminiRequest: GenerateContentRequest = {
       contents: [{
@@ -152,7 +152,7 @@ export class GeminiProvider implements LLMProvider {
     }
 
     try {
-      const model = this.client!.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = this.client!.getGenerativeModel({ model: 'gemini-2.5-flash' }, { apiVersion: 'v1beta' });
       const result = await model.generateContent({
         contents: [{
           role: 'user',
