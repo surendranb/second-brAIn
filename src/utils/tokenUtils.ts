@@ -35,6 +35,14 @@ export function calculateCost(inputTokens: number, outputTokens: number, model: 
         'gemini-2.0-flash': {
             input: { small: 0.10, large: 0.10, threshold: Infinity },
             output: { small: 0.40, large: 0.40, threshold: Infinity }
+        },
+        'gemma-3-27b-it': {
+            input: { small: 0.20, large: 0.20, threshold: Infinity },
+            output: { small: 0.20, large: 0.20, threshold: Infinity }
+        },
+        'gemma-3-12b-it': {
+            input: { small: 0.10, large: 0.10, threshold: Infinity },
+            output: { small: 0.10, large: 0.10, threshold: Infinity }
         }
     };
 

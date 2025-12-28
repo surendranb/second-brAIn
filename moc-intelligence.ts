@@ -9,6 +9,18 @@ export interface MOCAnalysis {
     knowledgeGaps: string[];
     crossDomainConnections: string[];
     synthesizedInsights: string[];
+    // Template sections
+    learningPaths: string[];
+    coreConcepts: string[];
+    relatedTopics: string[];
+    prerequisites: string[];
+    noteReferences: NoteReference[];
+}
+
+export interface NoteReference {
+    title: string;
+    path: string;
+    complexity: string;
 }
 
 export interface MOCNote {
@@ -205,20 +217,47 @@ export class MOCIntelligence {
 
         const learningText = learningMatch[1];
         
-        // Extract prerequisites array
-        const prereqMatch = learningText.match(/prerequisites:\s*\[([\s\S]*?)\]/);
-        const prerequisites = prereqMatch ? 
-            prereqMatch[1].split(',').map(p => p.replace(/["\s]/g, '').trim()).filter(p => p) : [];
+        // Extract prerequisites - handle both array format and comma-separated string format
+        let prerequisites: string[] = [];
+        const prereqArrayMatch = learningText.match(/prerequisites:\s*\[([\s\S]*?)\]/);
+        const prereqStringMatch = learningText.match(/prerequisites:\s*"([^"]+)"/);
+        const prereqUnquotedMatch = learningText.match(/prerequisites:\s*([^\n]+)/);
+        
+        if (prereqArrayMatch) {
+            prerequisites = prereqArrayMatch[1].split(',').map(p => p.replace(/["\s]/g, '').trim()).filter(p => p);
+        } else if (prereqStringMatch) {
+            prerequisites = prereqStringMatch[1].split(',').map(p => p.trim()).filter(p => p);
+        } else if (prereqUnquotedMatch && !prereqUnquotedMatch[1].includes(':')) {
+            prerequisites = prereqUnquotedMatch[1].split(',').map(p => p.trim()).filter(p => p);
+        }
 
-        // Extract related concepts array
-        const relatedMatch = learningText.match(/related_concepts:\s*\[([\s\S]*?)\]/);
-        const related_concepts = relatedMatch ? 
-            relatedMatch[1].split(',').map(c => c.replace(/["\s]/g, '').trim()).filter(c => c) : [];
+        // Extract related concepts - handle both formats
+        let related_concepts: string[] = [];
+        const relatedArrayMatch = learningText.match(/related_concepts:\s*\[([\s\S]*?)\]/);
+        const relatedStringMatch = learningText.match(/related_concepts:\s*"([^"]+)"/);
+        const relatedUnquotedMatch = learningText.match(/related_concepts:\s*([^\n]+)/);
+        
+        if (relatedArrayMatch) {
+            related_concepts = relatedArrayMatch[1].split(',').map(c => c.replace(/["\s]/g, '').trim()).filter(c => c);
+        } else if (relatedStringMatch) {
+            related_concepts = relatedStringMatch[1].split(',').map(c => c.trim()).filter(c => c);
+        } else if (relatedUnquotedMatch && !relatedUnquotedMatch[1].includes(':')) {
+            related_concepts = relatedUnquotedMatch[1].split(',').map(c => c.trim()).filter(c => c);
+        }
 
-        // Extract learning path array
-        const pathMatch = learningText.match(/learning_path:\s*\[([\s\S]*?)\]/);
-        const learning_path = pathMatch ? 
-            pathMatch[1].split(',').map(p => p.replace(/["\s]/g, '').trim()).filter(p => p) : [];
+        // Extract learning path - handle both formats
+        let learning_path: string[] = [];
+        const pathArrayMatch = learningText.match(/learning_path:\s*\[([\s\S]*?)\]/);
+        const pathStringMatch = learningText.match(/learning_path:\s*"([^"]+)"/);
+        const pathUnquotedMatch = learningText.match(/learning_path:\s*([^\n]+)/);
+        
+        if (pathArrayMatch) {
+            learning_path = pathArrayMatch[1].split(',').map(p => p.replace(/["\s]/g, '').trim()).filter(p => p);
+        } else if (pathStringMatch) {
+            learning_path = pathStringMatch[1].split(',').map(p => p.trim()).filter(p => p);
+        } else if (pathUnquotedMatch && !pathUnquotedMatch[1].includes(':')) {
+            learning_path = pathUnquotedMatch[1].split(',').map(p => p.trim()).filter(p => p);
+        }
 
         const complexity_level = learningText.match(/complexity_level:\s*"([^"]+)"/)?.[1] as 'beginner' | 'intermediate' | 'advanced' || 'intermediate';
 
@@ -260,7 +299,7 @@ export class MOCIntelligence {
             const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
             const existingContent = mocFile ? await this.app.vault.read(mocFile) : '';
             
-            return await this.generateAISynthesis(noteSummaries, existingContent);
+            return await this.generateAISynthesis(noteSummaries, existingContent, notes);
         } catch (error) {
             console.error('[MOCIntelligence] ❌ AI update failed, falling back to basic analysis:', error);
             return this.generateAccurateAnalysisFromNotes(notes, noteSummaries);
@@ -270,13 +309,18 @@ export class MOCIntelligence {
     /**
      * Use AI to UPDATE existing MOC intelligence (not rewrite)
      */
-    private async generateAISynthesis(noteSummaries: any[], existingMOCContent?: string): Promise<MOCAnalysis> {
+    private async generateAISynthesis(noteSummaries: any[], existingMOCContent?: string, fullNotes?: MOCNote[]): Promise<MOCAnalysis> {
         const prompt = this.createUpdatePrompt(noteSummaries, existingMOCContent);
         
         // Make AI request through the plugin's AI service
         const aiResponse = await this.makeAIRequest(prompt);
         
         console.log('[MOCIntelligence] 🤖 AI update response received');
+        
+        // Extract template sections from full notes if available
+        const templateSections = fullNotes ? 
+            this.extractTemplateSections(fullNotes) : 
+            { learningPaths: [], coreConcepts: [], relatedTopics: [], prerequisites: [], noteReferences: [] };
         
         // Parse AI response with proper object serialization
         if (typeof aiResponse === 'object' && aiResponse.overview) {
@@ -286,8 +330,16 @@ export class MOCIntelligence {
                 conceptualRelationships: aiResponse.conceptualRelationships || '',
                 learningProgress: aiResponse.learningProgress || '',
                 knowledgeGaps: this.ensureStringArray(aiResponse.knowledgeGaps),
-                crossDomainConnections: this.ensureStringArray(aiResponse.crossDomainConnections),
-                synthesizedInsights: this.ensureStringArray(aiResponse.synthesizedInsights)
+                crossDomainConnections: this.ensureStringArray(aiResponse.crossDomainConnections).length > 0 
+                    ? this.ensureStringArray(aiResponse.crossDomainConnections)
+                    : this.identifyCrossDomainConnections(fullNotes || []),
+                synthesizedInsights: this.ensureStringArray(aiResponse.synthesizedInsights),
+                // Template sections from note data
+                learningPaths: templateSections.learningPaths,
+                coreConcepts: templateSections.coreConcepts,
+                relatedTopics: templateSections.relatedTopics,
+                prerequisites: templateSections.prerequisites,
+                noteReferences: templateSections.noteReferences
             };
         } else {
             throw new Error('Invalid AI response format');
@@ -415,6 +467,9 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
         // Generate content-specific insights
         const specificInsights = this.generateSpecificInsights(notes, uniqueTopics);
         
+        // Extract template sections from notes
+        const templateSections = this.extractTemplateSections(notes);
+
         return {
             overview: notes.length > 0 && uniqueTopics.length > 0
                 ? `This knowledge area contains ${notes.length} ${noteWord} covering ${uniqueTopics.slice(0, 3).join(', ')}${uniqueTopics.length > 3 ? ' and related concepts' : ''}.`
@@ -432,7 +487,13 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
                 : 'Beginning to collect foundational knowledge.',
             knowledgeGaps: this.identifyKnowledgeGaps(notes),
             crossDomainConnections: this.identifyCrossDomainConnections(notes),
-            synthesizedInsights: specificInsights
+            synthesizedInsights: specificInsights,
+            // Template sections
+            learningPaths: templateSections.learningPaths,
+            coreConcepts: templateSections.coreConcepts,
+            relatedTopics: templateSections.relatedTopics,
+            prerequisites: templateSections.prerequisites,
+            noteReferences: templateSections.noteReferences
         };
     }
 
@@ -619,7 +680,8 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
                     if (item.description) return item.description;
                     if (item.connection) return item.connection;
                     if (item.domain && item.description) return `${item.domain}: ${item.description}`;
-                    return JSON.stringify(item);
+                    // Convert complex objects to readable format
+                    return this.objectToReadableString(item);
                 }
                 return String(item);
             });
@@ -627,10 +689,124 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
         
         if (typeof value === 'string') return [value];
         if (typeof value === 'object' && value !== null) {
-            return [JSON.stringify(value)];
+            return [this.objectToReadableString(value)];
         }
         
         return [String(value)];
+    }
+
+    /**
+     * Converts complex objects to readable strings
+     */
+    private objectToReadableString(obj: any): string {
+        if (typeof obj === 'string') return obj;
+        
+        try {
+            // Handle nested domain objects like {"physics":["relativity","quantum mechanics"]}
+            if (typeof obj === 'object' && obj !== null) {
+                const entries = Object.entries(obj);
+                if (entries.length === 1) {
+                    const [domain, concepts] = entries[0];
+                    if (Array.isArray(concepts)) {
+                        return `${domain}: ${concepts.join(', ')}`;
+                    }
+                }
+                
+                // Handle multiple domains
+                return entries.map(([domain, concepts]) => {
+                    if (Array.isArray(concepts)) {
+                        return `${domain}: ${concepts.join(', ')}`;
+                    }
+                    return `${domain}: ${concepts}`;
+                }).join(' | ');
+            }
+            
+            return JSON.stringify(obj);
+        } catch (error) {
+            return String(obj);
+        }
+    }
+
+    /**
+     * Extracts template sections from notes
+     */
+    private extractTemplateSections(notes: MOCNote[]): {
+        learningPaths: string[];
+        coreConcepts: string[];
+        relatedTopics: string[];
+        prerequisites: string[];
+        noteReferences: NoteReference[];
+    } {
+        const learningPaths = new Set<string>();
+        const coreConcepts = new Set<string>();
+        const relatedTopics = new Set<string>();
+        const prerequisites = new Set<string>();
+        const noteReferences: NoteReference[] = [];
+
+        for (const note of notes) {
+            // Extract learning paths
+            if (note.learningContext?.learning_path) {
+                if (Array.isArray(note.learningContext.learning_path)) {
+                    note.learningContext.learning_path.forEach(path => learningPaths.add(path));
+                } else if (typeof note.learningContext.learning_path === 'string') {
+                    // Handle comma-separated string
+                    (note.learningContext.learning_path as string).split(',').forEach((path: string) => 
+                        learningPaths.add(path.trim())
+                    );
+                }
+            }
+
+            // Extract core concepts from note content
+            const conceptMatches = note.content.match(/### ([^#\n]+)/g);
+            if (conceptMatches) {
+                conceptMatches.forEach(match => {
+                    const concept = match.replace('### ', '').trim();
+                    if (concept && !concept.includes('Case Study') && !concept.includes('Example')) {
+                        coreConcepts.add(concept);
+                    }
+                });
+            }
+
+            // Extract related topics from frontmatter
+            const topicsMatch = note.content.match(/topics:\s*\n([\s\S]*?)(?=\n\w+:|---|\n\n)/);
+            if (topicsMatch) {
+                const topicsText = topicsMatch[1];
+                const topicMatches = topicsText.match(/- "([^"]+)"/g);
+                if (topicMatches) {
+                    topicMatches.forEach(match => {
+                        const topic = match.replace(/- "([^"]+)"/, '$1');
+                        relatedTopics.add(topic);
+                    });
+                }
+            }
+
+            // Extract prerequisites
+            if (note.learningContext?.prerequisites) {
+                if (Array.isArray(note.learningContext.prerequisites)) {
+                    note.learningContext.prerequisites.forEach(prereq => prerequisites.add(prereq));
+                } else if (typeof note.learningContext.prerequisites === 'string') {
+                    // Handle comma-separated string
+                    (note.learningContext.prerequisites as string).split(',').forEach((prereq: string) => 
+                        prerequisites.add(prereq.trim())
+                    );
+                }
+            }
+
+            // Create note reference
+            noteReferences.push({
+                title: note.title,
+                path: `[[${note.title}]]`,
+                complexity: note.learningContext?.complexity_level || 'intermediate'
+            });
+        }
+
+        return {
+            learningPaths: Array.from(learningPaths).slice(0, 10), // Limit to top 10
+            coreConcepts: Array.from(coreConcepts).slice(0, 15), // Limit to top 15
+            relatedTopics: Array.from(relatedTopics).slice(0, 20), // Limit to top 20
+            prerequisites: Array.from(prerequisites).slice(0, 10), // Limit to top 10
+            noteReferences: noteReferences
+        };
     }
 
     /**
@@ -644,7 +820,13 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
             learningProgress: '', // Empty - no fake progress
             knowledgeGaps: [], // Empty - no fake gaps
             crossDomainConnections: [], // Empty - no fake connections
-            synthesizedInsights: [] // Empty - no fake insights
+            synthesizedInsights: [], // Empty - no fake insights
+            // Template sections
+            learningPaths: [],
+            coreConcepts: [],
+            relatedTopics: [],
+            prerequisites: [],
+            noteReferences: []
         };
     }
 
@@ -701,11 +883,14 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
             }
         }
 
+        // Update template sections with actual content from notes
+        content = this.updateTemplateSections(content, analysis);
+        
         // Update the 'updated' timestamp while preserving 'created' timestamp
         content = this.updateTimestamps(content);
         
         await this.app.vault.modify(mocFile, content);
-        console.log('[MOCIntelligence] Successfully applied intelligence to MOC with updated timestamp');
+        console.log('[MOCIntelligence] Successfully applied intelligence and template updates to MOC');
     }
 
     /**
@@ -790,7 +975,16 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
         }
 
         if (analysis.crossDomainConnections.length > 0) {
-            section += `## Cross-Domain Connections\n${analysis.crossDomainConnections.map(conn => `- ${conn}`).join('\n')}\n\n`;
+            // Format cross-domain connections as readable bullet points
+            const formattedConnections = analysis.crossDomainConnections.map(conn => {
+                // If it's already a formatted string, use it as is
+                if (typeof conn === 'string' && (conn.includes(':') || conn.includes('->'))) {
+                    return `- ${conn}`;
+                }
+                // Otherwise, ensure it's properly formatted
+                return `- ${conn}`;
+            });
+            section += `## Cross-Domain Connections\n${formattedConnections.join('\n')}\n\n`;
         }
 
         if (analysis.synthesizedInsights.length > 0) {
@@ -798,6 +992,126 @@ Return as JSON with these exact keys: overview, keyThemes, conceptualRelationshi
         }
 
         return section.trim();
+    }
+
+    /**
+     * Updates template sections with actual content from notes (UPDATE, not overwrite)
+     */
+    private updateTemplateSections(content: string, analysis: MOCAnalysis): string {
+        console.log('[MOCIntelligence] 🔧 Updating template sections with note content');
+        
+        // Update Learning Paths section
+        if (analysis.learningPaths.length > 0) {
+            const learningPathsContent = analysis.learningPaths.map(path => `- ${path}`).join('\n');
+            content = this.updateTemplateSection(content, 'Learning Paths', learningPathsContent, 
+                '<!-- Learning paths will be added as content grows -->');
+        }
+
+        // Update Core Concepts section
+        if (analysis.coreConcepts.length > 0) {
+            const coreConceptsContent = analysis.coreConcepts.map(concept => `- [[${concept}]]`).join('\n');
+            content = this.updateTemplateSection(content, 'Core Concepts', coreConceptsContent,
+                '<!-- Core concepts will be identified as content is added -->');
+        }
+
+        // Update Related Topics section
+        if (analysis.relatedTopics.length > 0) {
+            const relatedTopicsContent = analysis.relatedTopics.map(topic => `- [[${topic}]]`).join('\n');
+            content = this.updateTemplateSection(content, 'Related Topics', relatedTopicsContent,
+                '<!-- Related topics will be added automatically as new notes are created -->');
+        }
+
+        // Update Prerequisites section
+        if (analysis.prerequisites.length > 0) {
+            const prerequisitesContent = analysis.prerequisites.map(prereq => `- ${prereq}`).join('\n');
+            content = this.updateTemplateSection(content, 'Prerequisites', prerequisitesContent,
+                '<!-- Prerequisites will be populated from note learning contexts -->');
+        }
+
+        // Update Notes section
+        if (analysis.noteReferences.length > 0) {
+            const notesContent = analysis.noteReferences.map(note => 
+                `- ${note.path} (${note.complexity})`
+            ).join('\n');
+            content = this.updateTemplateSection(content, 'Notes', notesContent,
+                '<!-- Notes will be added automatically to the most specific level -->');
+        }
+
+        console.log('[MOCIntelligence] ✅ Template sections updated:', {
+            learningPaths: analysis.learningPaths.length,
+            coreConcepts: analysis.coreConcepts.length,
+            relatedTopics: analysis.relatedTopics.length,
+            prerequisites: analysis.prerequisites.length,
+            notes: analysis.noteReferences.length
+        });
+
+        return content;
+    }
+
+    /**
+     * Updates a single template section, merging new content with existing content
+     */
+    private updateTemplateSection(content: string, sectionName: string, newContent: string, placeholder: string): string {
+        // More robust section detection
+        const sectionStart = content.indexOf(`## ${sectionName}\n`);
+        if (sectionStart === -1) {
+            console.warn(`[MOCIntelligence] Section not found: ${sectionName}`);
+            return content;
+        }
+        
+        // Find the end of this section (next ## or end of file)
+        const nextSectionStart = content.indexOf('\n## ', sectionStart + 1);
+        const sectionEnd = nextSectionStart !== -1 ? nextSectionStart : content.length;
+        
+        // Extract existing content
+        const fullSection = content.substring(sectionStart, sectionEnd);
+        const existingContent = fullSection.substring(`## ${sectionName}\n`.length).trim();
+        
+        // If it's just the placeholder, replace it
+        if (existingContent === placeholder.trim() || existingContent.includes('<!--')) {
+            const newSection = `## ${sectionName}\n${newContent}\n\n`;
+            return content.substring(0, sectionStart) + newSection + content.substring(sectionEnd);
+        }
+        
+        // If there's existing content, merge it intelligently (avoid duplicates)
+        const existingLines = existingContent.split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.includes('<!--') && !line.includes('---'));
+        
+        const newLines = newContent.split('\n')
+            .map(line => line.trim())
+            .filter(line => line);
+        
+        // Smart deduplication - normalize content for comparison
+        const normalizeForComparison = (line: string): string => {
+            return line.replace(/\[\[([^\]]+)\]\]/g, '$1') // Remove wiki links
+                      .replace(/^- /, '') // Remove list markers
+                      .replace(/\s+/g, ' ') // Normalize whitespace
+                      .toLowerCase()
+                      .trim();
+        };
+        
+        // Create a comprehensive set of all content (existing + new)
+        const allLines = [...existingLines, ...newLines];
+        const seenNormalized = new Set<string>();
+        const uniqueLines: string[] = [];
+        
+        // Deduplicate while preserving order
+        for (const line of allLines) {
+            const normalized = normalizeForComparison(line);
+            if (normalized && !seenNormalized.has(normalized)) {
+                seenNormalized.add(normalized);
+                uniqueLines.push(line);
+            }
+        }
+        
+        const mergedContent = uniqueLines.join('\n');
+        
+        console.log(`[MOCIntelligence] Updated ${sectionName}: ${existingLines.length} existing + ${newLines.length} new = ${uniqueLines.length} total (deduplicated)`);
+        
+        // Replace the entire section with the merged content
+        const newSection = `## ${sectionName}\n${mergedContent}\n\n`;
+        return content.substring(0, sectionStart) + newSection + content.substring(sectionEnd);
     }
 
     /**

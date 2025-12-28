@@ -30,5 +30,15 @@ export const GEMINI_MODELS: GeminiModel[] = [
         id: 'gemini-2.0-flash',
         name: 'Gemini 2.0 Flash',
         description: 'Fast, next-gen multimodal model'
+    },
+    {
+        id: 'gemma-3-27b-it',
+        name: 'Gemma 3 27B IT',
+        description: 'High-performance open model for complex reasoning'
+    },
+    {
+        id: 'gemma-3-12b-it',
+        name: 'Gemma 3 12B IT',
+        description: 'Efficient open model for speed and capability'
     }
 ];
