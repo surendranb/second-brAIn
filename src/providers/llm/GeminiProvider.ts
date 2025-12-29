@@ -162,7 +162,6 @@ export class GeminiProvider implements LLMProvider {
       
       return !!result.response.text();
     } catch (error) {
-      console.error('Gemini config validation failed:', error);
       return false;
     }
   }

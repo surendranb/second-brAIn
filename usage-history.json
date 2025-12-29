@@ -198,5 +198,69 @@
     "outputTokens": 16061,
     "cost": 0.010239700000000001,
     "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "eb4fcb77-4a80-4edc-bd43-e0413fad2ca7",
+    "timestamp": "2025-12-28T14:56:20.389Z",
+    "inputTokens": 23487,
+    "outputTokens": 12691,
+    "cost": 0.0086587,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "8eae776c-0a7b-4530-8a82-92015790120b",
+    "timestamp": "2025-12-28T15:01:19.412Z",
+    "inputTokens": 49430,
+    "outputTokens": 16002,
+    "cost": 0.012584000000000001,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "ab43f49d-dcbb-4af2-b841-8d203c92e59b",
+    "timestamp": "2025-12-28T15:15:06.389Z",
+    "inputTokens": 23560,
+    "outputTokens": 3915,
+    "cost": 0.0050777,
+    "model": "gemini-2.5-flash-lite"
+  },
+  {
+    "noteId": "9beac158-e942-42a3-bd9c-85ff5a7cf850",
+    "timestamp": "2025-12-28T15:16:27.390Z",
+    "inputTokens": 956,
+    "outputTokens": 458,
+    "cost": 0.0014318,
+    "model": "gemini-2.5-flash"
+  },
+  {
+    "noteId": "7b029107-cecb-4be8-b922-3b8a99ff63cf",
+    "timestamp": "2025-12-29T02:32:37.747Z",
+    "inputTokens": 30975,
+    "outputTokens": 6574,
+    "cost": 0.0257275,
+    "model": "gemini-2.5-flash"
+  },
+  {
+    "noteId": "a7eab5c8-39a9-480a-a8dd-4986fb616c24",
+    "timestamp": "2025-12-29T02:48:23.641Z",
+    "inputTokens": 64116,
+    "outputTokens": 6743,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "97fe29c3-a874-4d7f-819c-f74547af0f19",
+    "timestamp": "2025-12-29T02:59:44.238Z",
+    "inputTokens": 65298,
+    "outputTokens": 4738,
+    "cost": 0,
+    "model": "google/gemma-3-27b-it:free"
+  },
+  {
+    "noteId": "512b65db-2ff7-4123-b7bb-28e2b216fa70",
+    "timestamp": "2025-12-29T03:05:00.402Z",
+    "inputTokens": 47594,
+    "outputTokens": 4457,
+    "cost": 0,
+    "model": "google/gemma-3-27b-it:free"
   }
 ]

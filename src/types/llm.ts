@@ -39,7 +39,7 @@ export interface LLMProvider {
 }
 
 export interface LLMConfig {
-  provider: 'gemini' | 'openai' | 'claude' | 'local';
+  provider: 'gemini' | 'openai' | 'claude' | 'local' | 'openrouter';
   apiKey?: string;
   baseUrl?: string;
   model?: string;

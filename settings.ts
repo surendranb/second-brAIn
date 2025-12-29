@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import AISummarizerPlugin from './main';
-import { Provider, GeminiModel, GEMINI_MODELS, ProcessingIntent } from './src/config';
-import { IntentPrompts, PromptLoader } from './prompt-loader';
+import { Provider, GeminiModel, GEMINI_MODELS, OPENROUTER_MODELS, ProcessingIntent } from './src/config';
+import { IntentPrompts, PromptLoader } from './src/services/prompt-loader';
 
 export class AISummarizerSettingsTab extends PluginSettingTab {
     plugin: AISummarizerPlugin;
@@ -23,6 +23,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
             .setDesc('Select the AI provider to use for summarization')
             .addDropdown(dropdown => dropdown
                 .addOption('gemini', 'Google Gemini')
+                .addOption('openrouter', 'OpenRouter')
                 .setValue(this.plugin.settings.provider)
                 .onChange(async (value) => {
                     this.plugin.settings.provider = value as Provider;
@@ -49,7 +50,6 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                 .setName('Gemini Model')
                 .setDesc('Select the Gemini model to use')
                 .addDropdown(dropdown => {
-                    // Clear and repopulate dropdown
                     dropdown.selectEl.innerHTML = '';
                     GEMINI_MODELS.forEach((model: GeminiModel) => {
                         dropdown.addOption(model.id, `${model.name} - ${model.description}`);
@@ -58,6 +58,35 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                         .setValue(this.plugin.settings.gemini.model)
                         .onChange(async (value) => {
                             this.plugin.settings.gemini.model = value;
+                            await this.plugin.saveSettings();
+                        });
+                });
+        } else if (this.plugin.settings.provider === 'openrouter') {
+            // OpenRouter API Key
+            new Setting(containerEl)
+                .setName('OpenRouter API Key')
+                .setDesc('Your OpenRouter API key')
+                .addText(text => text
+                    .setPlaceholder('sk-or-...')
+                    .setValue(this.plugin.settings.openrouter.apiKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.openrouter.apiKey = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            // OpenRouter Model Selection
+            new Setting(containerEl)
+                .setName('OpenRouter Model')
+                .setDesc('Select the OpenRouter model to use')
+                .addDropdown(dropdown => {
+                    dropdown.selectEl.innerHTML = '';
+                    OPENROUTER_MODELS.forEach((model: GeminiModel) => {
+                        dropdown.addOption(model.id, `${model.name} - ${model.description}`);
+                    });
+                    return dropdown
+                        .setValue(this.plugin.settings.openrouter.model)
+                        .onChange(async (value) => {
+                            this.plugin.settings.openrouter.model = value;
                             await this.plugin.saveSettings();
                         });
                 });

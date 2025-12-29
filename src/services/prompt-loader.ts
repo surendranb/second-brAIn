@@ -1,4 +1,4 @@
-import { ProcessingIntent } from './src/config';
+import { ProcessingIntent } from '../config';
 
 export interface PromptTemplate {
     role: string;
@@ -35,18 +35,14 @@ export class PromptLoader {
     }
 
     async loadPromptsForIntent(intent: ProcessingIntent): Promise<IntentPrompts> {
-        console.log('📝 [TRACE] PromptLoader.loadPromptsForIntent() called for:', intent);
         // Check cache first
         if (this.promptCache.has(intent)) {
-            console.log('💾 [TRACE] Using cached prompts for:', intent);
             return this.promptCache.get(intent)!;
         }
 
         try {
-            console.log('🔄 [TRACE] Loading embedded prompts for:', intent);
             const prompts = this.getEmbeddedPrompts(intent);
             this.promptCache.set(intent, prompts);
-            console.log('✅ [TRACE] Prompts loaded and cached for:', intent);
             return prompts;
         } catch (error) {
             console.error(`[PromptLoader] Failed to load prompts for intent ${intent}:`, error);
@@ -143,7 +139,8 @@ const EMBEDDED_PROMPTS: Record<ProcessingIntent, {
             role: "You are an expert content analyst specializing in knowledge extraction for deep learning.",
             instructions: [
                 "Extract educational insights, core principles, and conceptual frameworks",
-                "Focus on comprehensive understanding"
+                "Focus on comprehensive understanding",
+                "For Core Concepts: Identify fundamental building blocks of the content. Provide a clear name, its significance, and a concise explanation of how it functions within the larger context."
             ],
             template: "CONTEXT: {TITLE} | Domain: {DOMAIN} | Topic: {TOPIC}\n\nFOCUS: Extract educational insights, core principles, and conceptual frameworks for comprehensive understanding.\n\n{ADDITIONAL_INSTRUCTIONS}\n\nContent: {CONTENT}",
             output_schema: {
@@ -159,9 +156,9 @@ const EMBEDDED_PROMPTS: Record<ProcessingIntent, {
                     "Insight 3: Underlying principles and mental models"
                 ],
                 core_concepts: [
-                    "Concept 1: #concept Core principle with clear explanation",
-                    "Framework 2: #framework Key theory with learning applications",
-                    "Model 3: #theory Important mental model with practical use"
+                    "Concept Name: #tag Detailed explanation of the concept, its mechanism, and why it is critical to this subject matter.",
+                    "Framework/Theory Name: #tag How this framework organizes information and its primary application in this context.",
+                    "Mental Model/Principle: #tag The underlying logic or rule and how it changes one's perspective on the topic."
                 ],
                 detailed_summary: "Comprehensive summary emphasizing key learning outcomes and knowledge integration"
             }

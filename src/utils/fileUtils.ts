@@ -37,7 +37,6 @@ export async function findUniqueFileName(app: App, folderPath: string, fileName:
         const conflictFile = app.vault.getAbstractFileByPath(numberedPath);
 
         if (!conflictFile) {
-            console.log('[CreateNote] Found unique filename:', numberedName);
             return numberedName;
         }
 
@@ -47,6 +46,5 @@ export async function findUniqueFileName(app: App, folderPath: string, fileName:
     // If we get here, fall back to timestamp-based naming
     const timestamp = new Date().getTime();
     const timestampName = `${baseName}_${timestamp}.${extension}`;
-    console.log('[CreateNote] Using timestamp-based filename:', timestampName);
     return timestampName;
 }

@@ -42,3 +42,22 @@ export const GEMINI_MODELS: GeminiModel[] = [
         description: 'Efficient open model for speed and capability'
     }
 ];
+
+// Available OpenRouter Models
+export const OPENROUTER_MODELS: GeminiModel[] = [
+    {
+        id: 'openai/gpt-oss-120b:free',
+        name: 'GPT-OSS 120B (Free)',
+        description: 'Large open-source model via OpenRouter'
+    },
+    {
+        id: 'google/gemma-3-27b-it:free',
+        name: 'Gemma 3 27B IT (Free)',
+        description: 'High-performance Gemma 3 via OpenRouter'
+    },
+    {
+        id: 'google/gemini-2.0-flash-exp:free',
+        name: 'Gemini 2.0 Flash Exp (Free)',
+        description: 'Next-gen fast model via OpenRouter'
+    }
+];

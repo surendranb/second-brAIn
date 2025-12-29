@@ -43,6 +43,18 @@ export function calculateCost(inputTokens: number, outputTokens: number, model: 
         'gemma-3-12b-it': {
             input: { small: 0.10, large: 0.10, threshold: Infinity },
             output: { small: 0.10, large: 0.10, threshold: Infinity }
+        },
+        'openai/gpt-oss-120b:free': {
+            input: { small: 0, large: 0, threshold: Infinity },
+            output: { small: 0, large: 0, threshold: Infinity }
+        },
+        'google/gemma-3-27b-it:free': {
+            input: { small: 0, large: 0, threshold: Infinity },
+            output: { small: 0, large: 0, threshold: Infinity }
+        },
+        'google/gemini-2.0-flash-exp:free': {
+            input: { small: 0, large: 0, threshold: Infinity },
+            output: { small: 0, large: 0, threshold: Infinity }
         }
     };
 
