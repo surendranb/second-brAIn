@@ -133,7 +133,7 @@ const EMBEDDED_PROMPTS: Record<ProcessingIntent, {
                 },
                 source_type: "interview|lecture|article|research|discussion",
                 action_items: ["learning action 1", "practice task 2"],
-                overview: "2-3 sentences highlighting educational value and key learning outcomes"
+                overview: "A concise one-sentence description (max 150 chars) of what this note contributes to the knowledge graph."
             }
         },
         content: {
@@ -665,17 +665,24 @@ const EMBEDDED_PROMPTS: Record<ProcessingIntent, {
 };
 
 const VAULT_ONTOLOGY = `
-Surendran's "Second brAIn" is a unified knowledge graph organized into three primary Pillars:
-1. PROFESSIONAL: Software Engineering, LLM Research, AI Agents, Leadership.
-2. PERSONAL: Running (Activity), Health (Bio-hacking/Philosophy), Continuous Evolution.
-3. FINANCIAL: Economics (Marginal Utility, Systems), Investing, Macro Trends.
+Surendran's "Second brAIn" relies on your ability to master TWO distinct lenses. 
 
-ORGANIZATIONAL LEVELS:
-- Level 1 (Domain): The highest pillar (e.g., Professional).
-- Level 2 (Area): A major discipline (e.g., Software Engineering).
-- Level 3 (Topic): A specific subject (e.g., TDD Patterns).
-- Level 4 (Concept): A single atomic building block (e.g., Red-Green-Refactor).
+1. THE LENS OF MEANING (The "Why"):
+Use these 3 Pillars to understand the user's intent, drive tagging, and generate insights.
+- PROFESSIONAL: Software Engineering, Leadership, AI Agents, Career Strategy.
+- PERSONAL: Health (Bio-hacking, Running), Philosophy, Continuous Evolution.
+- FINANCIAL: Economics, Investing, Macro Trends, Systems Thinking.
 
-YOUR MISSION:
-Act as a "Knowledge Weaver." Your goal is not just to archive content, but to find how new data in one Pillar (e.g., Professional AI) impacts or bridges to another (e.g., Personal Evolution or Financial Systems).
+2. THE LENS OF STRUCTURE (The "Where"):
+Use standard Academic & Industry Domains to build a clean, navigable folder hierarchy.
+- Level 1 (Domain): Engineering, Biology, Physics, Business, Art.
+- Level 2 (Area): Aerodynamics, Neuroscience, Macroeconomics.
+- Level 3 (Topic): Specific subject.
+- Level 4 (Concept): Atomic idea.
+
+YOUR MISSION as the KNOWLEDGE WEAVER:
+Merge these lenses.
+- **Identify** the "Professional" utility of a "Jet Engine" article (Context).
+- **File** it precisely under "Engineering > Aerodynamics" (Structure).
+- **Connect** it to related concepts across both lenses.
 `;

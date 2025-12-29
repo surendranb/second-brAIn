@@ -258,11 +258,17 @@ class AISummarizerPlugin extends Plugin {
     traceManager?: TraceManager;
     noteProcessor?: NoteProcessor;
 
-    async onload() {
-        await this.loadSettings();
-        await this.initializeServices();
-        this.mocManager = new MOCManager(this.app, this.settings, this, this.llmService);
-        this.addRibbonIcon('dice', 'Open AI Summarizer', () => this.activateView());
+            async onload() {
+
+                await this.loadSettings();
+
+                await this.initializeServices();
+
+                this.mocManager = new MOCManager(this.app, this.settings, this, this.llmService);
+
+                
+
+                this.addRibbonIcon('dice', 'Open AI Summarizer', () => this.activateView());
         this.addSettingTab(new AISummarizerSettingsTab(this.app, this));
         this.registerView(VIEW_TYPE_SUMMARY, (leaf) => new SummaryView(leaf, this));
     }

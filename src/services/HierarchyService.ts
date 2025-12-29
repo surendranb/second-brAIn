@@ -63,18 +63,23 @@ export class HierarchyService {
     }
 
     private buildHierarchyPrompt(title: string, content: string, metadata: any): string {
-        return `You are an expert knowledge architect. Analyze content and determine the optimal 4-level knowledge hierarchy placement.
+        return `You are an expert knowledge architect building a permanent library. Your goal is to place this content in its "Truest Semantic Home".
 
-CRITICAL INSTRUCTION:
-Check the EXISTING_VAULT_MAP below. It contains existing concepts and their short descriptions. 
-- If the new content semantically overlaps (>80%) with an existing concept description, you MUST reuse that existing Node (Level 1-4) even if the wording is slightly different.
-- Only create a new branch if the concept is truly distinct.
+GUIDING PRINCIPLES:
+1. **SEEK SEMANTIC PRECISION:** Place content where a university librarian would file it. (e.g., "Jet Engines" belongs in "Engineering", not "Business", even if the article mentions costs).
+2. **CONSULT & VERIFY:** Look at the EXISTING_VAULT_MAP.
+   - **Reuse** existing paths ONLY if the ENTIRE hierarchy makes sense.
+   - **SANITY CHECK:** If you find "Theoretical Physics" nested under "Computer Science" in the map, **CORRECT IT**. Do not propagate structural errors.
+   - **Refactor on the Fly:** If the map has "Jet Engines" under "AI", ignore it and create the correct "Engineering" path.
+3. **DISTINGUISH FORM FROM FUNCTION:**
+   - The *Folder Structure* must reflect the **Subject Matter** (The "What").
+   - The *Metadata/Tags* will capture the **Context** (The "Why").
 
 STRUCTURE:
-- Level 1 (Domain): Broad field (e.g., \"Computer Science\")
-- Level 2 (Area): Major subdivision (e.g., \"Artificial Intelligence\")  
-- Level 3 (Topic): Specific subject (e.g., \"Machine Learning\")
-- Level 4 (Concept): Particular technique (e.g., \"Neural Networks\")
+- Level 1 (Domain): Broad academic/industry field (e.g., "Physics", "Health").
+- Level 2 (Area): Major discipline (e.g., "Thermodynamics", "Metabolic Health").
+- Level 3 (Topic): Specific subject.
+- Level 4 (Concept): Atomic idea.
 
 CONTENT:
 Title: ${title}
@@ -90,7 +95,7 @@ Return ONLY valid JSON in this exact format:
     "level4": "Concept"
   },
   "confidence": 0.85,
-  "reasoning": "Explanation of semantic matching decision...",
+  "reasoning": "Explain your architectural decision. Why is this the truest home for this concept?",
   "alternatives": []
 }`;
     }

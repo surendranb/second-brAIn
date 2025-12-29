@@ -132,7 +132,7 @@ Return ONLY valid JSON with these keys: overview, keyThemes, conceptualRelations
                 const noteFile = allFiles.find(f => f.basename === title);
                 if (noteFile) {
                     const content = await this.app.vault.read(noteFile);
-                    notes.push({ title, content, hierarchy: {level1:'', level2:'' } });
+                    notes.push({ title, content, hierarchy: { level1:'', level2:'' } });
                 }
             }
         }

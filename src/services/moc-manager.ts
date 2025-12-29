@@ -47,7 +47,8 @@ export class MOCManager {
 
     private async updatePersistedHierarchy(hierarchy: MOCHierarchy, description?: string): Promise<void> {
         const map = await this.loadHierarchy();
-        const cleanDesc = description ? description.substring(0, 200).replace(/\n/g, ' ').trim() : "";
+        // Truncate to 50 chars to keep the map as a 'index' not a 'database'
+        const cleanDesc = description ? description.substring(0, 50).replace(/\n/g, ' ').trim() + "..." : "Concept";
         
         if (!map[hierarchy.level1]) map[hierarchy.level1] = {};
         let current = map[hierarchy.level1];
@@ -63,8 +64,10 @@ export class MOCManager {
         }
 
         if (hierarchy.level4) {
-            // Store the concept with its description (Semantic Indexing)
-            current[hierarchy.level4] = cleanDesc || "Concept";
+            // Only update if not already set or if explicitly updating
+            if (!current[hierarchy.level4] || current[hierarchy.level4] === "Concept") {
+                current[hierarchy.level4] = cleanDesc;
+            }
         }
 
         await this.saveHierarchy(map);
@@ -80,36 +83,53 @@ export class MOCManager {
         }
     }
 
-    async backfillHierarchy(): Promise<void> {
-        const mocFolder = this.settings.mocFolder || 'MOCs';
-        const root = this.app.vault.getAbstractFileByPath(mocFolder);
-        if (!(root instanceof TFolder)) return;
-
-        const map: any = {};
-        for (const domain of root.children) {
-            if (domain instanceof TFolder) {
-                map[domain.name] = {};
-                for (const area of domain.children) {
-                    if (area instanceof TFolder) {
-                        map[domain.name][area.name] = {};
-                        for (const topic of area.children) {
-                            if (topic instanceof TFolder) {
-                                map[domain.name][area.name][topic.name] = {};
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        await this.saveHierarchy(map);
-    }
-
     public createHierarchicalStructure(hierarchy: MOCHierarchy): any[] {
         const mocFolder = this.settings.mocFolder || 'MOCs';
         const levels = [];
-        levels.push({ level: 1, title: hierarchy.level1, path: `${mocFolder}/00-${hierarchy.level1} MOC.md`, directory: mocFolder });
+
+        // Level 1: Domain
+        const lvl1 = { 
+            level: 1, 
+            title: hierarchy.level1, 
+            path: `${mocFolder}/00-${hierarchy.level1} MOC.md`, 
+            directory: mocFolder 
+        };
+        levels.push(lvl1);
+
+        // Level 2: Area
         const domainDir = `${mocFolder}/${hierarchy.level1}`;
-        levels.push({ level: 2, title: hierarchy.level2, path: `${domainDir}/00-${hierarchy.level2} MOC.md`, directory: domainDir });
+        const lvl2 = { 
+            level: 2, 
+            title: hierarchy.level2, 
+            path: `${domainDir}/00-${hierarchy.level2} MOC.md`, 
+            directory: domainDir 
+        };
+        levels.push(lvl2);
+
+        // Level 3: Topic
+        if (hierarchy.level3) {
+            const areaDir = `${domainDir}/${hierarchy.level2}`;
+            const lvl3 = {
+                level: 3,
+                title: hierarchy.level3,
+                path: `${areaDir}/00-${hierarchy.level3} MOC.md`,
+                directory: areaDir
+            };
+            levels.push(lvl3);
+
+            // Level 4: Concept
+            if (hierarchy.level4) {
+                const topicDir = `${areaDir}/${hierarchy.level3}`;
+                const lvl4 = {
+                    level: 4,
+                    title: hierarchy.level4,
+                    path: `${topicDir}/00-${hierarchy.level4} MOC.md`,
+                    directory: topicDir
+                };
+                levels.push(lvl4);
+            }
+        }
+
         return levels;
     }
 
@@ -133,8 +153,15 @@ export class MOCManager {
         await this.app.vault.modify(parentFile, content + link + '\n');
     }
 
-    async getMostSpecificMOCPath(hierarchy: MOCHierarchy): Promise<string> { return this.ensureMOCExists(hierarchy); }
-    getMostSpecificMOCDirectory(hierarchy: MOCHierarchy): string { return `${this.settings.mocFolder || 'MOCs'}/${hierarchy.level1}`}
+    async getMostSpecificMOCPath(hierarchy: MOCHierarchy): Promise<string> { 
+        const structure = this.createHierarchicalStructure(hierarchy);
+        return structure[structure.length - 1].path;
+    }
+
+    getMostSpecificMOCDirectory(hierarchy: MOCHierarchy): string {
+        const structure = this.createHierarchicalStructure(hierarchy);
+        return structure[structure.length - 1].directory;
+    }
 
     async updateMOC(mocPath: string, notePath: string, noteTitle: string, context?: LearningContext): Promise<void> {
         const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
