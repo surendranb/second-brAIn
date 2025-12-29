@@ -66,7 +66,8 @@ export class PromptLoader {
     }
 
     private buildPrompt(template: PromptTemplate): string {
-        let prompt = `${template.role}\n\n`;
+        let prompt = `VAULT_ONTOLOGY:\n${VAULT_ONTOLOGY}\n\n`;
+        prompt += `${template.role}\n\n`;
         
         if (template.instructions && template.instructions.length > 0) {
             prompt += `INSTRUCTIONS:\n`;
@@ -662,3 +663,19 @@ const EMBEDDED_PROMPTS: Record<ProcessingIntent, {
         }
     }
 };
+
+const VAULT_ONTOLOGY = `
+Surendran's "Second brAIn" is a unified knowledge graph organized into three primary Pillars:
+1. PROFESSIONAL: Software Engineering, LLM Research, AI Agents, Leadership.
+2. PERSONAL: Running (Activity), Health (Bio-hacking/Philosophy), Continuous Evolution.
+3. FINANCIAL: Economics (Marginal Utility, Systems), Investing, Macro Trends.
+
+ORGANIZATIONAL LEVELS:
+- Level 1 (Domain): The highest pillar (e.g., Professional).
+- Level 2 (Area): A major discipline (e.g., Software Engineering).
+- Level 3 (Topic): A specific subject (e.g., TDD Patterns).
+- Level 4 (Concept): A single atomic building block (e.g., Red-Green-Refactor).
+
+YOUR MISSION:
+Act as a "Knowledge Weaver." Your goal is not just to archive content, but to find how new data in one Pillar (e.g., Professional AI) impacts or bridges to another (e.g., Personal Evolution or Financial Systems).
+`;

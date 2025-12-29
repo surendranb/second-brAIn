@@ -86,7 +86,7 @@ export class MOCIntelligence {
         }
         
         const aiResponse = JSON.parse(cleanedText);
-        const templateSections = fullNotes ? this.extractTemplateSections(fullNotes) : this.createEmptyAnalysis();
+        const templateSections = this.extractTemplateSections(fullNotes || []);
 
         return {
             overview: aiResponse.overview || '',
@@ -105,8 +105,16 @@ export class MOCIntelligence {
     }
 
     private createUpdatePrompt(noteSummaries: any[], existingMOCContent?: string): string {
-        return `UPDATE the existing MOC intelligence by incorporating new notes while preserving valuable existing insights. Return as JSON.
-        NEW NOTES: ${JSON.stringify(noteSummaries)}`;
+        return `You are a Knowledge Weaver. Analyze these notes and update the MOC intelligence. 
+        
+RELATIONSHIP TYPES TO IDENTIFY:
+- requiresFoundation: [A] must be known to understand [B]
+- scalesTo: How [A] applies at a macro level
+- contradicts: New data that challenges existing notes
+
+NEW NOTES: ${JSON.stringify(noteSummaries)}
+
+Return ONLY valid JSON with these keys: overview, keyThemes, conceptualRelationships, learningProgress, knowledgeGaps, crossDomainConnections, synthesizedInsights`;
     }
 
     private async extractNotesFromMOC(mocPath: string): Promise<MOCNote[]> {
@@ -117,10 +125,11 @@ export class MOCIntelligence {
         
         const noteLinks = mocContent.match(/- \[ \[ ([^\]]+) \] \]/g);
         if (noteLinks) {
+            const allFiles = this.app.vault.getMarkdownFiles();
             for (const link of noteLinks) {
                 const title = link.match(/ \[ \[ ([^\]]+) \] \] /)?.[1];
                 if (!title) continue;
-                const noteFile = this.app.vault.getMarkdownFiles().find(f => f.basename === title);
+                const noteFile = allFiles.find(f => f.basename === title);
                 if (noteFile) {
                     const content = await this.app.vault.read(noteFile);
                     notes.push({ title, content, hierarchy: {level1:'', level2:'' } });
@@ -167,7 +176,33 @@ export class MOCIntelligence {
 
     private extractSummaryFromNote(content: string): string { return content.substring(0, 200); }
     private extractTopicsFromNote(content: string): string[] { return []; }
-    private extractTemplateSections(notes: MOCNote[]): any { return this.createEmptyAnalysis(); }
-    private generateAccurateAnalysisFromNotes(notes: MOCNote[], summaries: any[]): any { return this.createEmptyAnalysis(); }
-    private createEmptyAnalysis(): any { return { learningPaths: [], coreConcepts: [], relatedTopics: [], prerequisites: [], noteReferences: [] }; }
+    
+    private extractTemplateSections(notes: MOCNote[]): any {
+        const res = { learningPaths: [] as string[], coreConcepts: [] as string[], relatedTopics: [] as string[], prerequisites: [] as string[], noteReferences: [] as NoteReference[] };
+        notes.forEach(n => {
+            res.noteReferences.push({ title: n.title, path: `[[${n.title}]]`, complexity: 'intermediate' });
+        });
+        return res;
+    }
+
+    private generateAccurateAnalysisFromNotes(notes: MOCNote[], summaries: any[]): MOCAnalysis {
+        return {
+            overview: `Knowledge area with ${notes.length} notes.`, 
+            keyThemes: [],
+            conceptualRelationships: 'Relationships emerging.',
+            learningProgress: 'Analysis in progress.',
+            knowledgeGaps: [],
+            crossDomainConnections: [],
+            synthesizedInsights: [],
+            learningPaths: [],
+            coreConcepts: [],
+            relatedTopics: [],
+            prerequisites: [],
+            noteReferences: notes.map(n => ({ title: n.title, path: `[[${n.title}]]`, complexity: 'intermediate' }))
+        };
+    }
+    
+    private createEmptyAnalysis(): any { 
+        return { learningPaths: [], coreConcepts: [], relatedTopics: [], prerequisites: [], noteReferences: [] }; 
+    }
 }

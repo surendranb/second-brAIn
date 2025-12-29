@@ -2,7 +2,7 @@ import { TraceManager } from './TraceManager';
 import { LLMService } from './LLMService';
 import { ContentExtractor, type ExtractedContent } from './ContentExtractor';
 import { HierarchyService } from './HierarchyService';
-import { TFile } from 'obsidian';
+import { TFile, TFolder } from 'obsidian';
 import { PromptLoader } from './prompt-loader';
 import { generateId } from '../utils';
 
@@ -68,12 +68,14 @@ export class NoteProcessor {
 
         try {
             this.updateStatus(2, 'Analyzing knowledge hierarchy...');
+            const vaultMap = await this.getVaultMap();
             const hierarchyResult = await this.hierarchyService.analyzeHierarchy(
                 extractedContent.metadata.title || 'Untitled',
                 extractedContent.content,
                 extractedContent.metadata,
                 traceId,
-                this.plugin.getCurrentModel()
+                this.plugin.getCurrentModel(),
+                vaultMap
             );
             console.log(`✓ Hierarchy determined: ${hierarchyResult.hierarchy.level1} > ${hierarchyResult.hierarchy.level2}`);
             
@@ -147,7 +149,8 @@ export class NoteProcessor {
             }
 
             const prompt = await this.getPromptForPass(i, input.intent);
-            const fullPrompt = `${prompt}\n\nContent to analyze:\n${extractedContent.content}`;
+            const vaultMap = await this.getVaultMap();
+            const fullPrompt = `EXISTING_VAULT_MAP:\n${vaultMap}\n\n${prompt}\n\nContent to analyze:\n${extractedContent.content}`;
 
             let response;
             let retryCount = 0;
@@ -305,7 +308,7 @@ export class NoteProcessor {
         
         if (this.plugin.settings.enableMOC && analysisResult.hierarchy?.level1) {
             try {
-                await this.plugin.mocManager.ensureMOCExists(analysisResult.hierarchy);
+                await this.plugin.mocManager.ensureMOCExists(analysisResult.hierarchy, analysisResult.overview);
                 folderPath = this.plugin.mocManager.getMostSpecificMOCDirectory(analysisResult.hierarchy);
                 mocPath = await this.plugin.mocManager.getMostSpecificMOCPath(analysisResult.hierarchy);
             } catch (e) {
@@ -361,9 +364,20 @@ export class NoteProcessor {
             
             try {
                 await this.plugin.mocManager.mocIntelligence.updateMOCWithIntelligence(levelInfo.path);
+                console.log(`Updated MOC: ${levelInfo.title}`);
             } catch (error) {
                 console.error(`Failed to update MOC: ${levelInfo.title}`);
             }
+        }
+    }
+
+    private async getVaultMap(): Promise<string> {
+        try {
+            const map = await this.plugin.mocManager.loadHierarchy();
+            if (Object.keys(map).length === 0) return "No existing MOCs found.";
+            return JSON.stringify(map, null, 2); 
+        } catch (e) {
+            return "Error retrieving vault map.";
         }
     }
 }

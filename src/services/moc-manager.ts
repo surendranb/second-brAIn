@@ -1,4 +1,4 @@
-import { App, TFile, TFolder } from 'obsidian';
+import { App, TFile, TFolder, parseYaml, stringifyYaml } from 'obsidian';
 import { MOCIntelligence } from './moc-intelligence';
 import { MOCHierarchy, LearningContext } from '../types';
 import { PluginSettings } from '../config';
@@ -8,14 +8,16 @@ export class MOCManager {
     private app: App;
     private settings: PluginSettings;
     public mocIntelligence: MOCIntelligence;
+    private hierarchyPath: string;
 
     constructor(app: App, settings: PluginSettings, plugin?: any, llmService?: LLMService) {
         this.app = app;
         this.settings = settings;
         this.mocIntelligence = new MOCIntelligence(app, llmService);
+        this.hierarchyPath = `${this.settings.mocFolder || 'MOCs'}/hierarchy.yaml`;
     }
 
-    async ensureMOCExists(hierarchy: MOCHierarchy): Promise<string> {
+    async ensureMOCExists(hierarchy: MOCHierarchy, description?: string): Promise<string> {
         if (!hierarchy.level1 || !hierarchy.level2) throw new Error('Invalid hierarchy');
         const mocStructure = this.createHierarchicalStructure(hierarchy);
 
@@ -27,7 +29,79 @@ export class MOCManager {
                 await this.updateParentMOCStructure(parentInfo.path, levelInfo);
             }
         }
+        
+        await this.updatePersistedHierarchy(hierarchy, description);
         return mocStructure[mocStructure.length - 1].path;
+    }
+
+    async loadHierarchy(): Promise<any> {
+        try {
+            const file = this.app.vault.getAbstractFileByPath(this.hierarchyPath);
+            if (file instanceof TFile) {
+                const content = await this.app.vault.read(file);
+                return parseYaml(content) || {};
+            }
+        } catch (e) {}
+        return {};
+    }
+
+    private async updatePersistedHierarchy(hierarchy: MOCHierarchy, description?: string): Promise<void> {
+        const map = await this.loadHierarchy();
+        const cleanDesc = description ? description.substring(0, 200).replace(/\n/g, ' ').trim() : "";
+        
+        if (!map[hierarchy.level1]) map[hierarchy.level1] = {};
+        let current = map[hierarchy.level1];
+
+        if (hierarchy.level2) {
+            if (!current[hierarchy.level2]) current[hierarchy.level2] = {};
+            current = current[hierarchy.level2];
+        }
+
+        if (hierarchy.level3) {
+            if (!current[hierarchy.level3]) current[hierarchy.level3] = {};
+            current = current[hierarchy.level3];
+        }
+
+        if (hierarchy.level4) {
+            // Store the concept with its description (Semantic Indexing)
+            current[hierarchy.level4] = cleanDesc || "Concept";
+        }
+
+        await this.saveHierarchy(map);
+    }
+
+    private async saveHierarchy(map: any): Promise<void> {
+        const content = stringifyYaml(map);
+        const file = this.app.vault.getAbstractFileByPath(this.hierarchyPath);
+        if (file instanceof TFile) {
+            await this.app.vault.modify(file, content);
+        } else {
+            await this.app.vault.create(this.hierarchyPath, content);
+        }
+    }
+
+    async backfillHierarchy(): Promise<void> {
+        const mocFolder = this.settings.mocFolder || 'MOCs';
+        const root = this.app.vault.getAbstractFileByPath(mocFolder);
+        if (!(root instanceof TFolder)) return;
+
+        const map: any = {};
+        for (const domain of root.children) {
+            if (domain instanceof TFolder) {
+                map[domain.name] = {};
+                for (const area of domain.children) {
+                    if (area instanceof TFolder) {
+                        map[domain.name][area.name] = {};
+                        for (const topic of area.children) {
+                            if (topic instanceof TFolder) {
+                                map[domain.name][area.name][topic.name] = {};
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        await this.saveHierarchy(map);
     }
 
     public createHierarchicalStructure(hierarchy: MOCHierarchy): any[] {

@@ -31,19 +31,20 @@ export class HierarchyService {
         content: string, 
         metadata: any = {},
         traceId?: string,
-        model?: string
+        model?: string,
+        vaultMap?: string
     ): Promise<HierarchyAnalysisResult> {
-        const prompt = this.buildHierarchyPrompt(title, content, metadata);
+        let prompt = this.buildHierarchyPrompt(title, content, metadata);
+        if (vaultMap) {
+            prompt = `EXISTING_VAULT_MAP:\n${vaultMap}\n\n${prompt}`;
+        }
         
         try {
             const response = await this.traceManager.generateText(
                 {
                     prompt,
                     model: model || 'gemini-2.5-flash',
-                    metadata: { 
-                        type: 'hierarchy-analysis',
-                        title: title.substring(0, 100)
-                    }
+                    metadata: { type: 'hierarchy-analysis', title: title.substring(0, 100) }
                 },
                 {
                     traceId,
@@ -63,6 +64,11 @@ export class HierarchyService {
 
     private buildHierarchyPrompt(title: string, content: string, metadata: any): string {
         return `You are an expert knowledge architect. Analyze content and determine the optimal 4-level knowledge hierarchy placement.
+
+CRITICAL INSTRUCTION:
+Check the EXISTING_VAULT_MAP below. It contains existing concepts and their short descriptions. 
+- If the new content semantically overlaps (>80%) with an existing concept description, you MUST reuse that existing Node (Level 1-4) even if the wording is slightly different.
+- Only create a new branch if the concept is truly distinct.
 
 STRUCTURE:
 - Level 1 (Domain): Broad field (e.g., \"Computer Science\")
@@ -84,7 +90,7 @@ Return ONLY valid JSON in this exact format:
     "level4": "Concept"
   },
   "confidence": 0.85,
-  "reasoning": "Explanation...",
+  "reasoning": "Explanation of semantic matching decision...",
   "alternatives": []
 }`;
     }
