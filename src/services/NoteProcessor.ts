@@ -10,6 +10,8 @@ export interface ProcessingInput {
     url: string;
     prompt: string;
     intent: string;
+    targetTopic?: string;
+    generateQA?: boolean;
 }
 
 export interface ProcessingResult {
@@ -55,11 +57,10 @@ export class NoteProcessor {
         this.updateStatus(0, 'Extracting content...');
         const extractedContent = await this.contentExtractor.extractContent(input.url);
         this.updateStatus(0, `Content extracted (${extractedContent.metadata.type})`);
-        console.log('✓ Content extracted');
         
         const traceId = await this.traceManager.startTrace({
             name: 'note-creation',
-            input: { url: input.url, intent: input.intent },
+            input: { url: input.url, intent: input.intent, targetTopic: input.targetTopic },
             metadata: { source: 'note-processor' }
         });
 
@@ -77,9 +78,9 @@ export class NoteProcessor {
                 this.plugin.getCurrentModel(),
                 vaultMap
             );
-            console.log(`✓ Hierarchy determined: ${hierarchyResult.hierarchy.level1} > ${hierarchyResult.hierarchy.level2}`);
+            this.updateStatus(2, `📍 Hierarchy: ${hierarchyResult.hierarchy.level1} > ${hierarchyResult.hierarchy.level2}`);
             
-            this.updateStatus(3, 'Running 5-pass AI analysis...');
+            this.updateStatus(3, 'Running AI analysis (5-pass)...');
             const analysisResult = await this.traceManager.withSpan(
                 'content-analysis',
                 async () => {
@@ -88,17 +89,65 @@ export class NoteProcessor {
                 traceId,
                 { input: { contentType: extractedContent.metadata.type } }
             );
-            console.log('✓ Analysis complete');
             
             analysisResult.hierarchy = hierarchyResult.hierarchy;
             analysisResult.hierarchy_confidence = hierarchyResult.confidence;
             analysisResult.hierarchy_reasoning = hierarchyResult.reasoning;
 
-            this.updateStatus(4, 'Creating note...');
-            const note = await this.createNote(analysisResult, input.url, input.intent);
-            console.log(`✓ Note created: ${note.path}`);
+            // --- Robust Author Extraction ---
+            this.updateStatus(3, '🔍 Identifying primary author...');
+            const author = await this.extractPrimaryAuthor(extractedContent, analysisResult, traceId);
+            analysisResult.primary_author = author;
 
-            this.updateStatus(5, 'Organizing knowledge...');
+            // --- Asset Path Calculation ---
+            let qaPath: string | null = null;
+            if (input.generateQA) {
+                const qaTitle = `${analysisResult.title} (Q&A)`;
+                const qaFileName = qaTitle.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + '.md';
+                const folderPath = this.getTargetFolderPath(analysisResult, input.intent, input.targetTopic);
+                qaPath = `${folderPath}/${qaFileName}`;
+            }
+
+            let archivePath: string | null = null;
+            if (this.plugin.settings.archive?.enabled) {
+                archivePath = this.getArchivePath(analysisResult);
+            }
+
+            this.updateStatus(4, '📄 Creating Summary Note...');
+            
+            // 1. Create Summary Note
+            const note = await this.createNote(analysisResult, input.url, input.intent, {
+                targetTopic: input.targetTopic,
+                archivePath,
+                qaPath
+            });
+            
+            // 2. Create Verbatim Q&A Note
+            if (input.generateQA) {
+                this.updateStatus(4, '💬 Starting verbatim Q&A extraction...');
+                try {
+                    const qaMarkdown = await this.performVerbatimQAExtraction(extractedContent, traceId);
+                    if (!qaMarkdown || qaMarkdown.trim().length < 50) {
+                        throw new Error('AI returned empty Q&A content');
+                    }
+                    await this.createQANote(analysisResult, qaMarkdown, note.path);
+                    this.updateStatus(4, '✅ Q&A Note created');
+                } catch (e) {
+                    this.updateStatus(4, `⚠️ Q&A Extraction failed: ${e.message}`, true);
+                }
+            }
+
+            // 3. Create Archive File
+            if (archivePath) {
+                try {
+                    await this.saveArchiveFile(extractedContent, analysisResult, note.path, noteId, archivePath);
+                    this.updateStatus(4, '📦 Transcript archived (Layer 0)');
+                } catch (e) {
+                    this.updateStatus(4, `⚠️ Archiving failed: ${e.message}`, true);
+                }
+            }
+
+            this.updateStatus(5, 'Organizing knowledge graph...');
             await this.traceManager.withSpan(
                 'moc-cascade',
                 async () => {
@@ -108,18 +157,18 @@ export class NoteProcessor {
                 traceId,
                 { input: { hierarchy: analysisResult.hierarchy } }
             );
-            console.log('✓ Knowledge organized');
+            this.updateStatus(5, '🔗 MOC Index updated');
 
             await this.traceManager.endTrace(traceId, {
                 output: { noteCreated: true, notePath: note.path }
             });
 
-            this.updateStatus(7, 'Complete!');
+            this.updateStatus(7, '🎉 All processes complete!');
             return { note, traceId };
 
         } catch (error) {
-            console.error('❌ Process failed:', error.message);
-            this.updateStatus(7, `Error: ${error.message}`, true);
+            console.error('❌ Error:', error.message);
+            this.updateStatus(7, `❌ Error: ${error.message}`, true);
             await this.traceManager.endTrace(traceId, { 
                 output: { error: error.message, processStopped: true } 
             });
@@ -129,68 +178,104 @@ export class NoteProcessor {
         }
     }
 
-    private async performAIAnalysis(extractedContent: ExtractedContent, input: ProcessingInput, traceId: string): Promise<any> {
-        const passes = [
-            'Structure & Metadata',
-            'Content & Concepts', 
-            'Perspectives & Examples',
-            'Connections & Applications',
-            'Learning Paths & Actions'
-        ];
+    private getTargetFolderPath(analysisResult: any, intent: string, targetTopic?: string): string {
+        let folderPath = this.plugin.settings.mocFolder || 'MOCs';
+        if (targetTopic) {
+            folderPath = `${this.plugin.settings.topicFolders?.rootFolder || 'Research Topics'}/${targetTopic}`;
+        } else if (intent === 'research_collection' && this.plugin.settings.topicFolders?.enabled) {
+            const h = analysisResult.hierarchy;
+            const match = this.plugin.settings.topicFolders.topics.find((t: string) => 
+                [h?.level1, h?.level2, h?.level3].some(l => l && t.toLowerCase() === l.toLowerCase())
+            );
+            if (match) {
+                folderPath = `${this.plugin.settings.topicFolders.rootFolder}/${match}`;
+            } else {
+                folderPath = this.plugin.settings.topicFolders.rootFolder || 'Research Topics';
+            }
+        }
 
+        if (this.plugin.settings.enableMOC && analysisResult.hierarchy?.level1) {
+            const researchRoot = this.plugin.settings.topicFolders?.rootFolder || 'Research Topics';
+            if (!folderPath.startsWith(researchRoot)) {
+                folderPath = this.plugin.mocManager.getMostSpecificMOCDirectory(analysisResult.hierarchy);
+            }
+        }
+        return folderPath;
+    }
+
+    private getArchivePath(analysisResult: any): string {
+        const now = new Date();
+        const year = now.getFullYear().toString();
+        const month = (now.getMonth() + 1).toString().padStart(2, '0') + '-' + now.toLocaleString('en-US', { month: 'long' });
+        const root = this.plugin.settings.archive.rootFolder || 'Archive/Transcripts';
+        const monthDir = `${root}/${year}/${month}`;
+        
+        const dateStr = now.toISOString().split('T')[0];
+        const author = analysisResult.primary_author || 'Unknown';
+        const authorSlug = author.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '') + '-';
+        const safeTitle = (analysisResult.title || 'Untitled').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+        
+        return `${monthDir}/${dateStr}-${authorSlug}${safeTitle}-Transcript.md`;
+    }
+
+    private async extractPrimaryAuthor(content: ExtractedContent, analysisResult: any, traceId: string): Promise<string> {
+        const sample = content.content.substring(0, 5000);
+        const metadata = JSON.stringify(analysisResult.metadata || {});
+        const promptText = `Identify the single primary author or main guest speaker from this content. Look for host introductions or self-identifications. 
+
+Metadata: ${metadata}
+Transcript Preview: ${sample}
+
+Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
+
+        try {
+            const response = await this.traceManager.generateText({
+                prompt: promptText,
+                model: this.plugin.getCurrentModel(),
+                metadata: { type: 'author-extraction' }
+            }, { traceId, generationName: 'author-extraction' });
+            
+            const name = response.text.trim().replace(/['"]/g, '');
+            if (name && name !== "Unknown") {
+                this.updateStatus(3, `👤 Author identified: ${name}`);
+                return name;
+            }
+            return analysisResult.metadata?.speakers?.[0] || analysisResult.metadata?.author || 'Unknown';
+        } catch (e) {
+            return analysisResult.metadata?.speakers?.[0] || analysisResult.metadata?.author || 'Unknown';
+        }
+    }
+
+    private async performAIAnalysis(extractedContent: ExtractedContent, input: ProcessingInput, traceId: string): Promise<any> {
+        const passes = ['Structure & Metadata', 'Content & Concepts', 'Perspectives & Examples', 'Connections & Applications', 'Learning Paths & Actions'];
         let fullResult: any = {};
 
         for (let i = 0; i < passes.length; i++) {
             const passName = passes[i];
-            this.updateStatus(3, `Analysis: ${passName} (${i + 1}/${passes.length})...`);
-
-            if (i > 0) {
-                await new Promise(resolve => setTimeout(resolve, 10000));
-            }
+            this.updateStatus(3, `Analysis Pass ${i + 1}/${passes.length}: ${passName}...`);
+            if (i > 0) await new Promise(resolve => setTimeout(resolve, 5000));
 
             const prompt = await this.getPromptForPass(i, input.intent);
             const vaultMap = await this.getVaultMap();
             const fullPrompt = `EXISTING_VAULT_MAP:\n${vaultMap}\n\n${prompt}\n\nContent to analyze:\n${extractedContent.content}`;
 
-            let response;
-            let retryCount = 0;
-            const maxRetries = 2;
-            
-            while (retryCount <= maxRetries) {
-                try {
-                    response = await this.traceManager.generateText(
-                        {
-                            prompt: fullPrompt,
-                            model: this.plugin.getCurrentModel(),
-                            metadata: { pass: passName }
-                        },
-                        {
-                            traceId,
-                            generationName: `ai-pass-${i + 1}`,
-                            pass: passName,
-                            intent: input.intent
-                        }
-                    );
-                    break;
-                } catch (error) {
-                    if (error.message.includes('503') && retryCount < maxRetries) {
-                        retryCount++;
-                        await new Promise(resolve => setTimeout(resolve, retryCount * 10000));
-                    } else {
-                        throw error;
-                    }
-                }
-            }
+            const response = await this.traceManager.generateText({
+                prompt: fullPrompt,
+                model: this.plugin.getCurrentModel(),
+                metadata: { pass: passName }
+            }, {
+                traceId,
+                generationName: `ai-pass-${i + 1}`,
+                pass: passName,
+                intent: input.intent
+            });
 
             if (!response) continue;
             
             try {
                 let cleanedText = response.text.trim();
-                if (cleanedText.startsWith('```json')) {
-                    cleanedText = cleanedText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-                } else if (cleanedText.startsWith('```')) {
-                    cleanedText = cleanedText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-                }
+                if (cleanedText.startsWith('```json')) cleanedText = cleanedText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                else if (cleanedText.startsWith('```')) cleanedText = cleanedText.replace(/^```\s*/, '').replace(/\s*```$/, '');
                 const passResult = JSON.parse(cleanedText);
                 fullResult = { ...fullResult, ...passResult };
             } catch (error) {
@@ -203,10 +288,7 @@ export class NoteProcessor {
             fullResult.title = urlTitle || 'Extracted Content';
         }
         
-        if (!fullResult.summary) {
-            fullResult.summary = this.createSummaryFromAnalysis(fullResult, input.url);
-        }
-        
+        if (!fullResult.summary) fullResult.summary = this.createSummaryFromAnalysis(fullResult, input.url);
         return fullResult;
     }
 
@@ -216,34 +298,24 @@ export class NoteProcessor {
         if (result.context) content += `## Context & Background\n${result.context}\n\n`;
         if (result.detailed_summary) content += `## Comprehensive Summary\n${result.detailed_summary}\n\n`;
 
-        if (result.key_facts?.length) {
-            content += `## Key Facts\n`;
-            result.key_facts.forEach((fact: string) => content += `- ${fact}\n`);
-            content += '\n';
-        }
+        const listSections = [
+            { key: 'key_facts', title: 'Key Facts' },
+            { key: 'deep_insights', title: 'Deep Insights', isInsights: true },
+            { key: 'core_concepts', title: 'Core Concepts', isInsights: true }
+        ];
 
-        if (result.deep_insights?.length) {
-            content += `## Deep Insights\n`;
-            result.deep_insights.forEach((insight: string, index: number) => {
-                const colonIndex = insight.indexOf(':');
-                if (colonIndex > 0 && colonIndex < 100) {
-                    content += `### ${index + 1}. ${insight.substring(0, colonIndex).trim()}\n${insight.substring(colonIndex + 1).trim()}\n\n`;
-                } else {
-                    content += `### Insight ${index + 1}\n${insight}\n\n`;
-                }
-            });
-        }
-
-        if (result.core_concepts?.length) {
-            content += `## Core Concepts\n`;
-            result.core_concepts.forEach((concept: string) => {
-                const colonIndex = concept.indexOf(':');
-                if (colonIndex > 0 && colonIndex < 100) {
-                    content += `### ${concept.substring(0, colonIndex).trim()}\n${concept.substring(colonIndex + 1).trim()}\n\n`;
-                } else {
-                    content += `### ${concept}\n\n`;
-                }
-            });
+        for (const sec of listSections) {
+            if (result[sec.key]?.length) {
+                content += `## ${sec.title}\n`;
+                result[sec.key].forEach((item: string, index: number) => {
+                    if (sec.isInsights) {
+                        const colonIndex = item.indexOf(':');
+                        if (colonIndex > 0 && colonIndex < 100) content += `### ${index + 1}. ${item.substring(0, colonIndex).trim()}\n${item.substring(colonIndex + 1).trim()}\n\n`;
+                        else content += `### Insight ${index + 1}\n${item}\n\n`;
+                    } else content += `- ${item}\n`;
+                });
+                content += '\n';
+            }
         }
 
         if (result.multiple_perspectives?.length) {
@@ -289,95 +361,160 @@ export class NoteProcessor {
 
     private async getPromptForPass(passIndex: number, intent: string): Promise<string> {
         const prompts = await this.promptLoader.loadPromptsForIntent(intent as any);
-        switch (passIndex) {
-            case 0: return prompts.structure;
-            case 1: return prompts.content;
-            case 2: return prompts.perspectives;
-            case 3: return prompts.connections;
-            case 4: return prompts.learning;
-            default: throw new Error('Invalid pass');
-        }
+        const map = [prompts.structure, prompts.content, prompts.perspectives, prompts.connections, prompts.learning];
+        return map[passIndex];
     }
 
-    private async createNote(analysisResult: any, url: string, intent: string): Promise<TFile> {
+    private async createNote(analysisResult: any, url: string, intent: string, assets: { targetTopic?: string, archivePath?: string | null, qaPath?: string | null }): Promise<TFile> {
         const title = analysisResult.title || 'Untitled Note';
         const fileName = title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + '.md';
-        
-        let folderPath = this.plugin.settings.mocFolder || 'MOCs';
+        const folderPath = this.getTargetFolderPath(analysisResult, intent, assets.targetTopic);
         let mocPath: string | null = null;
-        
+
         if (this.plugin.settings.enableMOC && analysisResult.hierarchy?.level1) {
             try {
                 await this.plugin.mocManager.ensureMOCExists(analysisResult.hierarchy, analysisResult.overview);
-                folderPath = this.plugin.mocManager.getMostSpecificMOCDirectory(analysisResult.hierarchy);
                 mocPath = await this.plugin.mocManager.getMostSpecificMOCPath(analysisResult.hierarchy);
-            } catch (e) {
-                folderPath = this.plugin.settings.mocFolder || 'MOCs';
-            }
+            } catch (e) { console.error('MOC check failed', e); }
         }
         
-        const folder = this.plugin.app.vault.getAbstractFileByPath(folderPath);
-        if (!folder) await this.plugin.app.vault.createFolder(folderPath);
+        if (!(this.plugin.app.vault.getAbstractFileByPath(folderPath))) await this.plugin.app.vault.createFolder(folderPath);
         
-        const now = new Date();
-        const frontmatter: any = {
+        const author = analysisResult.primary_author || 'Unknown';
+        const frontmatter = {
             title,
-            date: now.toISOString().split('T')[0],
+            date: new Date().toISOString().split('T')[0],
             type: "summary",
             intent,
+            author,
             source: { url, type: url.includes('youtube.com') ? 'youtube' : 'web' },
+            archive_source: assets.archivePath ? `[[${assets.archivePath}]]` : null,
+            qna_note: assets.qaPath ? `[[${assets.qaPath}]]` : null,
             status: "draft",
-            created: now.toISOString(),
-            modified: now.toISOString(),
+            created: new Date().toISOString(),
+            modified: new Date().toISOString(),
             hierarchy: analysisResult.hierarchy,
-            moc: mocPath,
+            moc: mocPath ? `[[${mocPath}]]` : null,
             learning_context: analysisResult.learning_context,
             tags: analysisResult.metadata?.tags
         };
         
-        let noteContent = '---\n';
-        for (const [key, value] of Object.entries(frontmatter)) {
-            if (value) noteContent += `${key}: ${JSON.stringify(value)}\n`;
+        return await this.plugin.app.vault.create(`${folderPath}/${fileName}`, this.buildFrontmatter(frontmatter) + '\n' + analysisResult.summary);
+    }
+
+    private async performVerbatimQAExtraction(content: ExtractedContent, traceId: string): Promise<string> {
+        const promptLoader = new PromptLoader();
+        const promptData = await promptLoader.loadPromptsForIntent('verbatim_qa' as any);
+        const promptTemplate = (promptData as any).structure;
+        
+        const CHUNK_SIZE = 15000; // Resolution Fix
+        const text = content.content;
+        const chunks: string[] = [];
+        for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+            chunks.push(text.substring(i, i + CHUNK_SIZE));
         }
-        noteContent += '---\n\n' + analysisResult.summary;
-        
-        const filePath = `${folderPath}/${fileName}`;
-        const createdFile = await this.plugin.app.vault.create(filePath, noteContent);
-        
-        if (mocPath) {
-            await this.plugin.mocManager.updateMOC(mocPath, createdFile.path, title, analysisResult.learning_context);
+
+        let fullMarkdown = "";
+        for (let i = 0; i < chunks.length; i++) {
+            this.updateStatus(4, `💬 Extracting Q&A Part ${i + 1}/${chunks.length}...`);
+            const fullPrompt = promptTemplate.replace('{CONTENT}', chunks[i]);
+            try {
+                const response = await this.traceManager.generateText({
+                    prompt: fullPrompt,
+                    model: this.plugin.getCurrentModel(),
+                    metadata: { type: 'verbatim-qa-extraction', part: i + 1 }
+                }, { traceId, generationName: `verbatim-qa-p${i+1}`, pass: `Verbatim Q&A ${i+1}`, intent: 'verbatim_qa' });
+                
+                if (response.text && response.text.trim().length > 10) {
+                    const pairCount = (response.text.match(/\*\*Question:\*\*/g) || []).length;
+                    this.updateStatus(4, `✅ Part ${i+1}/${chunks.length}: Found ${pairCount} pairs`);
+                    fullMarkdown += response.text + "\n\n";
+                }
+            } catch (e) {
+                this.updateStatus(4, `❌ Part ${i + 1} failed: ${e.message}`, true);
+                fullMarkdown += `\n\n> [!error] Error extracting Part ${i + 1}\n\n`;
+            }
         }
+        return fullMarkdown.trim();
+    }
+
+    private async createQANote(analysisResult: any, markdown: string, summaryPath: string): Promise<TFile> {
+        const title = `${analysisResult.title} (Q&A)`;
+        const fileName = title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + '.md';
+        const folderPath = this.plugin.app.vault.getAbstractFileByPath(summaryPath).parent.path;
+        const author = analysisResult.primary_author || 'Unknown';
         
-        return createdFile;
+        const frontmatter = {
+            title,
+            date: new Date().toISOString().split('T')[0],
+            type: "qna",
+            author,
+            summary_note: `[[${summaryPath}]]`,
+            created: new Date().toISOString()
+        };
+
+        return await this.plugin.app.vault.create(`${folderPath}/${fileName}`, this.buildFrontmatter(frontmatter) + '\n' + markdown);
+    }
+
+    private async saveArchiveFile(content: ExtractedContent, analysisResult: any, summaryNotePath: string, noteId: string, filePath: string): Promise<void> {
+        const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
+        const parts = folderPath.split('/');
+        let currentPath = '';
+        for (const part of parts) {
+            currentPath = currentPath ? `${currentPath}/${part}` : part;
+            if (!(this.plugin.app.vault.getAbstractFileByPath(currentPath))) await this.plugin.app.vault.createFolder(currentPath);
+        }
+
+        const frontmatter = {
+            title: analysisResult.title,
+            date: new Date().toISOString().split('T')[0],
+            type: "transcript",
+            author: analysisResult.primary_author || 'Unknown',
+            source_url: content.metadata.url,
+            summary_note: `[[${summaryNotePath}]]`,
+            note_id: noteId,
+            hierarchy: analysisResult.hierarchy,
+            created: new Date().toISOString()
+        };
+
+        await this.plugin.app.vault.create(filePath, this.buildFrontmatter(frontmatter) + '\n\n# Full Transcript\n\n' + content.content);
+    }
+
+    private buildFrontmatter(data: Record<string, any>, indent = 0): string {
+        let content = indent === 0 ? '---\n' : '';
+        const spaces = '  '.repeat(indent);
+        for (const [key, value] of Object.entries(data)) {
+            if (value === null || value === undefined) continue;
+            if (typeof value === 'string' && value.startsWith('[[')) content += `${spaces}${key}: "${value}"
+`;
+            else if (Array.isArray(value)) {
+                if (value.length === 0) continue;
+                content += `${spaces}${key}:\n`;
+                value.forEach(v => content += `${spaces}  - ${JSON.stringify(v)}\n`);
+            } else if (typeof value === 'object' && !Array.isArray(value)) {
+                content += `${spaces}${key}:\n${this.buildFrontmatter(value, indent + 1)}`;
+            } else content += `${spaces}${key}: ${JSON.stringify(value)}\n`;
+        }
+        if (indent === 0) content += '---';
+        return content;
     }
 
     private async performMOCCascade(analysisResult: any, traceId: string): Promise<void> {
         if (!this.plugin.settings.enableMOC || !analysisResult.hierarchy) return;
-
         const mocStructure = this.plugin.mocManager.createHierarchicalStructure(analysisResult.hierarchy);
-        
         for (let i = mocStructure.length - 1; i >= 0; i--) {
             const levelInfo = mocStructure[i];
-            if (i < mocStructure.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 10000));
-            }
-            
+            if (i < mocStructure.length - 1) await new Promise(resolve => setTimeout(resolve, 5000));
             try {
                 await this.plugin.mocManager.mocIntelligence.updateMOCWithIntelligence(levelInfo.path);
-                console.log(`Updated MOC: ${levelInfo.title}`);
-            } catch (error) {
-                console.error(`Failed to update MOC: ${levelInfo.title}`);
-            }
+            } catch (error) { console.error(`Failed to update MOC: ${levelInfo.title}`); }
         }
     }
 
     private async getVaultMap(): Promise<string> {
         try {
             const map = await this.plugin.mocManager.loadHierarchy();
-            if (Object.keys(map).length === 0) return "No existing MOCs found.";
-            return JSON.stringify(map, null, 2); 
-        } catch (e) {
-            return "Error retrieving vault map.";
-        }
+            return Object.keys(map).length === 0 ? "No existing MOCs found." : JSON.stringify(map, null, 2);
+        } catch (e) { return "Error retrieving vault map."; }
     }
 }

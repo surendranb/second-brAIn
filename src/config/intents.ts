@@ -3,7 +3,7 @@
  * Extracted from main.ts for better modularity
  */
 
-export type ProcessingIntent = 'knowledge_building' | 'event_documentation' | 'quick_reference' | 'research_collection' | 'professional_intelligence' | 'personal_development' | 'news_events' | 'inspiration_capture' | 'how_to';
+export type ProcessingIntent = 'knowledge_building' | 'event_documentation' | 'quick_reference' | 'research_collection' | 'professional_intelligence' | 'personal_development' | 'news_events' | 'inspiration_capture' | 'how_to' | 'verbatim_qa';
 
 export interface ProcessingIntentOption {
     id: ProcessingIntent;

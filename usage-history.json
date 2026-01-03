@@ -454,5 +454,117 @@
     "outputTokens": 4155,
     "cost": 0,
     "model": "google/gemma-3-27b-it:free"
+  },
+  {
+    "noteId": "f984a6c0-dfb0-41d4-8995-54c5eed7b719",
+    "timestamp": "2026-01-02T03:49:52.707Z",
+    "inputTokens": 178562,
+    "outputTokens": 6950,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "7a39965a-31ca-44bb-8192-e42212b45d19",
+    "timestamp": "2026-01-02T08:40:32.939Z",
+    "inputTokens": 141371,
+    "outputTokens": 6340,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "c68c7ab3-df77-4c58-bf45-17bf2eb537b8",
+    "timestamp": "2026-01-02T12:27:30.364Z",
+    "inputTokens": 58601,
+    "outputTokens": 9983,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "ce1d3d90-f3b0-440e-a9ba-202bcc050c1f",
+    "timestamp": "2026-01-02T12:39:50.842Z",
+    "inputTokens": 126237,
+    "outputTokens": 9217,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "f176373e-d8a9-4323-929d-ebfc6ab52c1b",
+    "timestamp": "2026-01-02T15:20:34.619Z",
+    "inputTokens": 52477,
+    "outputTokens": 10345,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "f04e5491-93ef-4cfb-83a3-c9bcf70e0f4d",
+    "timestamp": "2026-01-03T02:34:30.356Z",
+    "inputTokens": 31990,
+    "outputTokens": 9237,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "a3feb48a-ad5f-433c-a3a5-13878854a762",
+    "timestamp": "2026-01-03T02:51:25.541Z",
+    "inputTokens": 89981,
+    "outputTokens": 10731,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "afb86880-0b12-4135-9c3c-456cbd95846e",
+    "timestamp": "2026-01-03T03:02:29.048Z",
+    "inputTokens": 88032,
+    "outputTokens": 10073,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "56d90020-7210-4200-a0b5-2f39c4a87ba3",
+    "timestamp": "2026-01-03T03:40:01.421Z",
+    "inputTokens": 57281,
+    "outputTokens": 6164,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "043f0c57-8b1c-4a9d-942e-2f1947271d74",
+    "timestamp": "2026-01-03T04:12:59.618Z",
+    "inputTokens": 100258,
+    "outputTokens": 17796,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "7da37387-2248-4910-a16d-8f4d49ecfd0d",
+    "timestamp": "2026-01-03T04:42:48.606Z",
+    "inputTokens": 134913,
+    "outputTokens": 19806,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "804def69-6543-46a6-9c36-739ca46c0054",
+    "timestamp": "2026-01-03T05:07:11.028Z",
+    "inputTokens": 84274,
+    "outputTokens": 20871,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "87b7fc34-820e-44d3-894f-4d5bb1e8dd18",
+    "timestamp": "2026-01-03T05:20:08.487Z",
+    "inputTokens": 118257,
+    "outputTokens": 24507,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
+  },
+  {
+    "noteId": "980a7ded-7c9c-4b6c-88cd-5725ab07d577",
+    "timestamp": "2026-01-03T05:34:31.540Z",
+    "inputTokens": 53081,
+    "outputTokens": 14439,
+    "cost": 0,
+    "model": "openai/gpt-oss-120b:free"
   }
 ]

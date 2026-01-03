@@ -1,0 +1,17 @@
+{
+  "intent": "verbatim_qa",
+  "version": "1.0.0",
+  "prompts": {
+    "extraction": {
+      "role": "You are a precise transcription editor.",
+      "instructions": [
+        "Extract every major Question and its corresponding Answer verbatim from the transcript.",
+        "Clean filler words (ums, ahs, repeats) but preserve the exact meaning and tone.",
+        "Do not summarize or paraphrase.",
+        "Use Shane Parrish and James Clear as speaker names if detectable, otherwise use Person A / Person B."
+      ],
+      "template": "CONTENT: {CONTENT}\n\nTASK: Extract all Q&A pairs verbatim.\n\nFORMAT:\n**Question:** [Verbatim Question]\n**Answer:** [Verbatim Answer]\n\n---",
+      "output_schema": {}
+    }
+  }
+}

@@ -36,6 +36,11 @@ export interface TopicFolderSettings {
     topics: string[];
 }
 
+export interface ArchiveSettings {
+    enabled: boolean;
+    rootFolder: string;
+}
+
 export interface DebugSettings {
     enabled: boolean;
     saveRawContent: boolean;
@@ -56,9 +61,11 @@ export interface PluginSettings {
     enableMOC: boolean;
     defaultIntent: ProcessingIntent;
     topicFolders: TopicFolderSettings;
+    archive: ArchiveSettings;
     debug: DebugSettings;
     langfuse: LangfuseSettings;
     trackUsage: boolean;
+    generateQANote: boolean;
 }
 
 // Default Settings
@@ -83,6 +90,11 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         rootFolder: 'Research Topics',
         topics: ['LLM Evals', 'AI Safety', 'Machine Learning', 'Data Science', 'Software Engineering']
     },
+    archive: {
+        enabled: true,
+        rootFolder: 'Archive/Transcripts'
+    },
+    generateQANote: false,
     debug: {
         enabled: false,
         saveRawContent: true,

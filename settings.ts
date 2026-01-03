@@ -229,6 +229,33 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
                 });
         }
 
+        // Transcript Archiving Section
+        containerEl.createEl('h3', { text: 'Transcript Archiving' });
+
+        new Setting(containerEl)
+            .setName('Enable Transcript Archiving')
+            .setDesc('Save the full raw transcript as a separate file in a hierarchical archive folder')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.archive.enabled)
+                .onChange(async (value) => {
+                    this.plugin.settings.archive.enabled = value;
+                    await this.plugin.saveSettings();
+                    this.display();
+                }));
+
+        if (this.plugin.settings.archive.enabled) {
+            new Setting(containerEl)
+                .setName('Archive Root Folder')
+                .setDesc('Root folder for hierarchical archiving (Year/Month)')
+                .addText(text => text
+                    .setPlaceholder('Archive/Transcripts')
+                    .setValue(this.plugin.settings.archive.rootFolder)
+                    .onChange(async (value) => {
+                        this.plugin.settings.archive.rootFolder = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
+
         // Debug Settings Section
         containerEl.createEl('h3', { text: 'Debug & Analysis Settings' });
 
@@ -444,7 +471,8 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
             'personal_development': 'Personal Development',
             'news_events': 'News & Events',
             'inspiration_capture': 'Inspiration Capture',
-            'how_to': 'How-To Guides'
+            'how_to': 'How-To Guides',
+            'verbatim_qa': 'Verbatim Q&A'
         };
         return displayNames[intent] || intent;
     }

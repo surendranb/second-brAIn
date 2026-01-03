@@ -79,7 +79,7 @@ export class PromptLoader {
 
         prompt += template.template;
         
-        if (template.output_schema) {
+        if (template.output_schema && Object.keys(template.output_schema).length > 0) {
             prompt += `\n\nReturn ONLY valid JSON:\n${JSON.stringify(template.output_schema, null, 2)}`;
         }
 
@@ -661,6 +661,30 @@ const EMBEDDED_PROMPTS: Record<ProcessingIntent, {
             template: "TASK: Create mastery plan.\n\nContent: {CONTENT}",
             output_schema: { progression: [{ level: "Level", focus: "Focus" }] }
         }
+    },
+    verbatim_qa: {
+        structure: {
+            role: "You are a high-fidelity transcription editor.",
+            instructions: [
+                "Extract every meaningful Question and its corresponding Answer verbatim from the transcript.",
+                "STRICT FILTER: Do NOT extract trivial questions like 'right?', 'what number?', 'ready?', 'can you hear me?', or simple affirmations.",
+                "ONLY extract questions that seek substantive information or drive the narrative forward.",
+                "FORMAT: Use bold headers for Question and Answer.",
+                "STRICT: Do not add any introduction, conclusion, or JSON formatting.",
+                "STRICT: Do not summarize. Preserve the raw spoken words."
+            ],
+            template: "TASK: Extract meaningful Q&A pairs verbatim.\n\nFORMAT:\n**Question:** [Verbatim Question]\n**Answer:** [Verbatim Answer]\n\n---\n\nContent to extract from:\n{CONTENT}",
+            output_schema: {}
+        },
+        content: {
+            role: "Verbatim Q&A Extractor",
+            instructions: ["Return the text exactly as requested in structure."],
+            template: "{CONTENT}",
+            output_schema: {}
+        },
+        perspectives: { role: "", instructions: [], template: "{CONTENT}", output_schema: {} },
+        connections: { role: "", instructions: [], template: "{CONTENT}", output_schema: {} },
+        learning: { role: "", instructions: [], template: "{CONTENT}", output_schema: {} }
     }
 };
 

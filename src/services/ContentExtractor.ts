@@ -157,11 +157,23 @@ export class ContentExtractor {
             });
 
             pythonProcess.on('close', (code: number) => {
-                const resultMarker = "[INFO] Script finished. Outputting result.";
-                const markerIndex = fullOutput.lastIndexOf(resultMarker);
-                let processedResult = markerIndex !== -1 
-                    ? fullOutput.substring(markerIndex + resultMarker.length).trim()
-                    : fullOutput.trim();
+                const startMarker = "--- TRANSCRIPT_START ---";
+                const endMarker = "--- TRANSCRIPT_END ---";
+                
+                const startIndex = fullOutput.indexOf(startMarker);
+                const endIndex = fullOutput.indexOf(endMarker);
+                
+                let processedResult = "";
+                if (startIndex !== -1 && endIndex !== -1) {
+                    processedResult = fullOutput.substring(startIndex + startMarker.length, endIndex).trim();
+                } else {
+                    // Fallback to old marker or full trim if new markers missing
+                    const oldMarker = "[INFO] Script finished. Outputting result.";
+                    const oldIndex = fullOutput.lastIndexOf(oldMarker);
+                    processedResult = oldIndex !== -1 
+                        ? fullOutput.substring(oldIndex + oldMarker.length).trim()
+                        : fullOutput.trim();
+                }
 
                 if (processedResult.startsWith('Error: Failed to fetch transcript')) {
                     reject(new Error(`Transcript fetch failed: ${processedResult}`));

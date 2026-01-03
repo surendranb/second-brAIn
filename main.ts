@@ -17,8 +17,12 @@ class SummaryView extends ItemView {
     private promptInput: HTMLTextAreaElement;
     private modelDropdown: HTMLSelectElement;
     private intentDropdown: HTMLSelectElement;
+    private targetTopicInput: HTMLInputElement; // Changed from Select to Input
+    private targetTopicContainer: HTMLDivElement;
+    private qaCheckbox: HTMLInputElement; // New Checkbox
     private progressFill: HTMLDivElement;
     private statusMessage: HTMLDivElement;
+    private logContainer: HTMLDivElement; // New Log Area
     private usageHistoryManager: UsageHistoryManager;
     private retryButton: HTMLButtonElement;
 
@@ -93,7 +97,40 @@ class SummaryView extends ItemView {
         this.intentDropdown.addEventListener('change', async () => {
             this.plugin.settings.defaultIntent = this.intentDropdown.value as ProcessingIntent;
             await this.plugin.saveSettings();
+            this.toggleTargetTopicVisibility(); // Check if we need to show topic selector
         });
+
+        // --- DYNAMIC TARGET TOPIC ROW (Hidden by default) ---
+        this.targetTopicContainer = configSection.createEl('div', { cls: 'brain-form-group' });
+        this.targetTopicContainer.style.display = 'none';
+        this.targetTopicContainer.createEl('label', { text: '📂 Target Collection', cls: 'brain-form-label' });
+        
+        // Create DataList for autocomplete
+        const dataListId = 'brain-topic-list';
+        const dataList = this.targetTopicContainer.createEl('datalist', { attr: { id: dataListId } });
+        this.updateTopicDataList(dataList);
+
+        // Create Input linked to DataList
+        this.targetTopicInput = this.targetTopicContainer.createEl('input', { 
+            type: 'text', 
+            cls: 'brain-input',
+            attr: { list: dataListId },
+            placeholder: 'Select or type a new topic...'
+        });
+
+        // --- Q&A CHECKBOX ---
+        const qaGroup = configSection.createEl('div', { 
+            cls: 'brain-form-group', 
+            attr: { style: 'flex-direction: row; align-items: center; gap: 10px; margin-top: 8px;' } 
+        });
+        this.qaCheckbox = qaGroup.createEl('input', { type: 'checkbox' });
+        this.qaCheckbox.id = 'brain-qa-checkbox';
+        const qaLabel = qaGroup.createEl('label', { text: '💬 Generate Verbatim Q&A Note', attr: { for: 'brain-qa-checkbox' } });
+        qaLabel.style.fontSize = '0.9em';
+        qaLabel.style.cursor = 'pointer';
+
+        // Initial check
+        this.toggleTargetTopicVisibility();
 
         const urlGroup = configSection.createEl('div', { cls: 'brain-form-group' });
         urlGroup.createEl('label', { text: '🌐 Content URL', cls: 'brain-form-label' });
@@ -120,11 +157,44 @@ class SummaryView extends ItemView {
         progressLabels.createEl('span', { text: 'Create' });
         progressLabels.createEl('span', { text: 'Done' });
 
+        // --- CHRONOLOGICAL LOG AREA ---
+        const logHeader = progressCard.createEl('div', { cls: 'brain-log-header' });
+        logHeader.createEl('span', { text: '📜 Activity Log' });
+        const copyLogBtn = logHeader.createEl('button', { text: '📋 Copy', cls: 'brain-copy-log-btn' });
+        copyLogBtn.onclick = () => {
+            const logs = Array.from(this.logContainer.querySelectorAll('.brain-log-entry'))
+                .map(el => el.textContent)
+                .join('\n');
+            navigator.clipboard.writeText(logs);
+            new Notice('Logs copied to clipboard');
+        };
+
+        this.logContainer = progressCard.createEl('div', { cls: 'brain-log-container' });
+
         this.retryButton = progressCard.createEl('button', { text: '🔄 Retry', cls: 'brain-retry-button' });
         this.retryButton.style.display = 'none';
         this.retryButton.onclick = () => this.startNoteGenerationClean();
 
         this.createStatsFooter();
+    }
+
+    private updateTopicDataList(dataList: HTMLElement) {
+        dataList.empty();
+        const topics = this.plugin.settings.topicFolders.topics || [];
+        topics.sort().forEach(topic => {
+            dataList.createEl('option', { attr: { value: topic } });
+        });
+    }
+
+    private toggleTargetTopicVisibility() {
+        if (this.intentDropdown.value === 'research_collection') {
+            this.targetTopicContainer.style.display = 'flex';
+            // Refresh datalist in case settings changed externally
+            const dataList = this.containerEl.querySelector('#brain-topic-list') as HTMLElement;
+            if (dataList) this.updateTopicDataList(dataList);
+        } else {
+            this.targetTopicContainer.style.display = 'none';
+        }
     }
 
     private async startNoteGenerationClean() {
@@ -134,7 +204,31 @@ class SummaryView extends ItemView {
 
         try {
             this.plugin.noteProcessor.setStatusCallback((step, msg, err) => this.updateStatusSteps(step, msg, err));
-            const result = await this.plugin.noteProcessor.processURL({ url, prompt: this.promptInput.value, intent: this.intentDropdown.value });
+            
+            // Get optional target topic
+            let targetTopic = undefined;
+            if (this.intentDropdown.value === 'research_collection' && this.targetTopicInput.value.trim()) {
+                targetTopic = this.targetTopicInput.value.trim();
+                
+                // Auto-save new topic to settings if it doesn't exist
+                if (!this.plugin.settings.topicFolders.topics.includes(targetTopic)) {
+                    this.plugin.settings.topicFolders.topics.push(targetTopic);
+                    await this.plugin.saveSettings();
+                    // Update datalist for next time
+                    const dataList = this.containerEl.querySelector('#brain-topic-list') as HTMLElement;
+                    if (dataList) this.updateTopicDataList(dataList);
+                    new Notice(`New topic '${targetTopic}' added to settings.`);
+                }
+            }
+
+            const result = await this.plugin.noteProcessor.processURL({ 
+                url, 
+                prompt: this.promptInput.value, 
+                intent: this.intentDropdown.value,
+                targetTopic,
+                generateQA: this.qaCheckbox.checked // Pass checkbox state
+            });
+            
             await this.app.workspace.getLeaf().openFile(result.note);
             new Notice('Success!');
             await this.updateStatsFooter();
@@ -145,6 +239,19 @@ class SummaryView extends ItemView {
     }
 
     private updateStatusSteps(step: number, status: string, error: boolean = false) {
+        // Log entry with timestamp
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const logEntry = this.logContainer.createEl('div', { cls: 'brain-log-entry' });
+        logEntry.innerHTML = `<span class="brain-log-time">[${timeStr}]</span> ${status}`;
+        if (error) logEntry.addClass('brain-log-error');
+        
+        // Keep only last 50 logs
+        while (this.logContainer.childNodes.length > 50) {
+            this.logContainer.removeChild(this.logContainer.firstChild!);
+        }
+        this.logContainer.scrollTop = this.logContainer.scrollHeight;
+
         // Map 8 internal steps to 0-100%
         // Step 0: Extract (15%), 2: Hierarchy (30%), 3: Analysis (30-80%), 4: Note (90%), 7: Done (100%)
         let percent = 0;
@@ -243,8 +350,49 @@ class SummaryView extends ItemView {
             .brain-progress-labels { display: flex; justify-content: space-between; padding: 0 4px; }
             .brain-progress-labels span { font-size: 0.7em; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
             
-            .brain-retry-button { width: 100%; margin-top: 12px; padding: 8px; border-radius: 6px; border: 1px solid var(--color-red); color: var(--color-red); background: transparent; font-weight: 600; cursor: pointer; }
-            .brain-stats-footer { margin-top: 20px; text-align: center; font-size: 0.8em; color: var(--text-muted); padding: 8px; border-top: 1px solid var(--background-modifier-border); }
+                                    .brain-retry-button { width: 100%; margin-top: 12px; padding: 8px; border-radius: 6px; border: 1px solid var(--color-red); color: var(--color-red); background: transparent; font-weight: 600; cursor: pointer; }
+            
+                                    
+            
+                                    .brain-log-header { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; margin-bottom: 6px; font-size: 0.8em; font-weight: 600; color: var(--text-muted); }
+            
+                                    .brain-copy-log-btn { padding: 2px 8px; font-size: 0.9em; background: var(--background-modifier-border); border: none; border-radius: 4px; cursor: pointer; }
+            
+                                    .brain-copy-log-btn:hover { background: var(--background-modifier-border-hover); }
+            
+                        
+            
+                                    .brain-log-container { 
+            
+                                        padding: 10px; 
+            
+                                        background: var(--background-secondary-alt); 
+            
+                                        border-radius: 6px; 
+            
+                                        max-height: 120px; 
+            
+                                        overflow-y: auto; 
+            
+                                        font-family: var(--font-monospace); 
+            
+                                        font-size: 0.75em;
+            
+                                        border: 1px solid var(--background-modifier-border);
+            
+                                        user-select: text; /* Enable selection */
+            
+                                    }
+            
+                        .brain-log-entry { margin-bottom: 4px; line-height: 1.4; color: var(--text-muted); }
+            
+                        .brain-log-time { color: var(--interactive-accent); font-weight: 600; margin-right: 6px; }
+            
+                        .brain-log-error { color: var(--color-red); }
+            
+            
+            
+                        .brain-stats-footer { margin-top: 20px; text-align: center; font-size: 0.8em; color: var(--text-muted); padding: 8px; border-top: 1px solid var(--background-modifier-border); }
         `;
         document.head.appendChild(styleEl);
     }
