@@ -46,27 +46,27 @@ class SummaryView extends ItemView {
     }
 
     getViewType() { return VIEW_TYPE_SUMMARY; }
-    getDisplayText() { return 'AI Summarizer'; }
+    getDisplayText() { return 'Axiom'; }
 
     async onOpen() {
         const { contentEl } = this;
         contentEl.empty();
 
-        const mainContainer = contentEl.createEl('div', { cls: 'brain-main-container' });
+        const mainContainer = contentEl.createEl('div', { cls: 'axiom-main-container' });
         
         // --- INPUT CARD ---
-        const inputCard = mainContainer.createEl('div', { cls: 'brain-card' });
-        inputCard.createEl('div', { cls: 'brain-card-header' }).createEl('h3', { text: '📝 Input', cls: 'brain-card-title' });
+        const inputCard = mainContainer.createEl('div', { cls: 'axiom-card' });
+        inputCard.createEl('div', { cls: 'axiom-card-header' }).createEl('h3', { text: '📝 Input', cls: 'axiom-card-title' });
 
-        const configSection = inputCard.createEl('div', { cls: 'brain-config-section' });
+        const configSection = inputCard.createEl('div', { cls: 'axiom-config-section' });
         
         // --- SELECTION ROW ---
-        const dropdownRow = configSection.createEl('div', { cls: 'brain-dropdown-row' });
+        const dropdownRow = configSection.createEl('div', { cls: 'axiom-dropdown-row' });
         
         // Provider Group
-        const providerGroup = dropdownRow.createEl('div', { cls: 'brain-form-group brain-form-group-third' });
-        providerGroup.createEl('label', { text: '🔌 Provider', cls: 'brain-form-label' });
-        const providerDropdown = providerGroup.createEl('select', { cls: 'brain-select' }) as HTMLSelectElement;
+        const providerGroup = dropdownRow.createEl('div', { cls: 'axiom-form-group axiom-form-group-third' });
+        providerGroup.createEl('label', { text: '🔌 Provider', cls: 'axiom-form-label' });
+        const providerDropdown = providerGroup.createEl('select', { cls: 'axiom-select' }) as HTMLSelectElement;
         providerDropdown.add(new Option('Gemini', 'gemini'));
         providerDropdown.add(new Option('OpenRouter', 'openrouter'));
         providerDropdown.value = this.plugin.settings.provider;
@@ -77,9 +77,9 @@ class SummaryView extends ItemView {
         });
 
         // Model Group
-        const modelGroup = dropdownRow.createEl('div', { cls: 'brain-form-group brain-form-group-third' });
-        modelGroup.createEl('label', { text: '🤖 AI Model', cls: 'brain-form-label' });
-        this.modelDropdown = modelGroup.createEl('select', { cls: 'brain-select' }) as HTMLSelectElement;
+        const modelGroup = dropdownRow.createEl('div', { cls: 'axiom-form-group axiom-form-group-third' });
+        modelGroup.createEl('label', { text: '🤖 AI Model', cls: 'axiom-form-label' });
+        this.modelDropdown = modelGroup.createEl('select', { cls: 'axiom-select' }) as HTMLSelectElement;
         this.populateModelDropdown();
         this.registerDomEvent(this.modelDropdown, 'change', async () => {
             const val = this.modelDropdown.value;
@@ -89,9 +89,9 @@ class SummaryView extends ItemView {
         });
 
         // Intent Group
-        const intentGroup = dropdownRow.createEl('div', { cls: 'brain-form-group brain-form-group-third' });
-        intentGroup.createEl('label', { text: '🎯 Intent', cls: 'brain-form-label' });
-        this.intentDropdown = intentGroup.createEl('select', { cls: 'brain-select' }) as HTMLSelectElement;
+        const intentGroup = dropdownRow.createEl('div', { cls: 'axiom-form-group axiom-form-group-third' });
+        intentGroup.createEl('label', { text: '🎯 Intent', cls: 'axiom-form-label' });
+        this.intentDropdown = intentGroup.createEl('select', { cls: 'axiom-select' }) as HTMLSelectElement;
         this.populateIntentDropdown();
         this.registerDomEvent(this.intentDropdown, 'change', async () => {
             this.plugin.settings.defaultIntent = this.intentDropdown.value as ProcessingIntent;
@@ -100,77 +100,77 @@ class SummaryView extends ItemView {
         });
 
         // --- DYNAMIC TARGET TOPIC ROW (Hidden by default) ---
-        this.targetTopicContainer = configSection.createEl('div', { cls: 'brain-form-group' });
+        this.targetTopicContainer = configSection.createEl('div', { cls: 'axiom-form-group' });
         this.targetTopicContainer.style.display = 'none';
-        this.targetTopicContainer.createEl('label', { text: '📂 Target Collection', cls: 'brain-form-label' });
+        this.targetTopicContainer.createEl('label', { text: '📂 Target Collection', cls: 'axiom-form-label' });
         
         // Create DataList for autocomplete
-        const dataListId = 'brain-topic-list';
+        const dataListId = 'axiom-topic-list';
         const dataList = this.targetTopicContainer.createEl('datalist', { attr: { id: dataListId } });
         this.updateTopicDataList(dataList);
 
         // Create Input linked to DataList
         this.targetTopicInput = this.targetTopicContainer.createEl('input', { 
             type: 'text', 
-            cls: 'brain-input',
+            cls: 'axiom-input',
             attr: { list: dataListId },
             placeholder: 'Select or type a new topic...'
         });
 
         // --- Q&A CHECKBOX ---
         const qaGroup = configSection.createEl('div', { 
-            cls: 'brain-form-group', 
+            cls: 'axiom-form-group', 
             attr: { style: 'flex-direction: row; align-items: center; gap: 10px; margin-top: 8px;' } 
         });
         this.qaCheckbox = qaGroup.createEl('input', { type: 'checkbox' });
-        this.qaCheckbox.id = 'brain-qa-checkbox';
-        const qaLabel = qaGroup.createEl('label', { text: '💬 Generate Verbatim Q&A Note', attr: { for: 'brain-qa-checkbox' } });
+        this.qaCheckbox.id = 'axiom-qa-checkbox';
+        const qaLabel = qaGroup.createEl('label', { text: '💬 Generate Verbatim Q&A Note', attr: { for: 'axiom-qa-checkbox' } });
         qaLabel.style.fontSize = '0.9em';
         qaLabel.style.cursor = 'pointer';
 
         // Initial check
         this.toggleTargetTopicVisibility();
 
-        const urlGroup = configSection.createEl('div', { cls: 'brain-form-group' });
-        urlGroup.createEl('label', { text: '🌐 Content URL', cls: 'brain-form-label' });
-        this.urlInput = urlGroup.createEl('input', { type: 'text', placeholder: 'YouTube or Article URL...', cls: 'brain-input' });
+        const urlGroup = configSection.createEl('div', { cls: 'axiom-form-group' });
+        urlGroup.createEl('label', { text: '🌐 Content URL', cls: 'axiom-form-label' });
+        this.urlInput = urlGroup.createEl('input', { type: 'text', placeholder: 'YouTube or Article URL...', cls: 'axiom-input' });
 
-        const instructionsGroup = configSection.createEl('div', { cls: 'brain-form-group' });
-        instructionsGroup.createEl('label', { text: '💡 Instructions', cls: 'brain-form-label' });
-        this.promptInput = instructionsGroup.createEl('textarea', { placeholder: 'Extra focus areas...', cls: 'brain-textarea' });
+        const instructionsGroup = configSection.createEl('div', { cls: 'axiom-form-group' });
+        instructionsGroup.createEl('label', { text: '💡 Instructions', cls: 'axiom-form-label' });
+        this.promptInput = instructionsGroup.createEl('textarea', { placeholder: 'Extra focus areas...', cls: 'axiom-textarea' });
 
-        const cleanButton = inputCard.createEl('button', { text: '✨ Summarize & Organize', cls: 'brain-clean-button' });
+        const cleanButton = inputCard.createEl('button', { text: '✨ Summarize & Organize', cls: 'axiom-clean-button' });
         this.registerDomEvent(cleanButton, 'click', () => this.startNoteGenerationClean());
 
         // --- NEW SLEEK PROGRESS AREA ---
-        const progressCard = mainContainer.createEl('div', { cls: 'brain-card' });
-        this.statusMessage = progressCard.createEl('div', { cls: 'brain-progress-status-text', text: 'Ready to process' });
+        const progressCard = mainContainer.createEl('div', { cls: 'axiom-card' });
+        this.statusMessage = progressCard.createEl('div', { cls: 'axiom-progress-status-text', text: 'Ready to process' });
         
-        const progressBarContainer = progressCard.createEl('div', { cls: 'brain-progress-bar-container' });
-        this.progressFill = progressBarContainer.createEl('div', { cls: 'brain-progress-bar-fill' });
+        const progressBarContainer = progressCard.createEl('div', { cls: 'axiom-progress-bar-container' });
+        this.progressFill = progressBarContainer.createEl('div', { cls: 'axiom-progress-bar-fill' });
         this.progressFill.style.width = '0%';
 
-        const progressLabels = progressCard.createEl('div', { cls: 'brain-progress-labels' });
+        const progressLabels = progressCard.createEl('div', { cls: 'axiom-progress-labels' });
         progressLabels.createEl('span', { text: 'Extract' });
         progressLabels.createEl('span', { text: 'Analyze' });
         progressLabels.createEl('span', { text: 'Create' });
         progressLabels.createEl('span', { text: 'Done' });
 
         // --- CHRONOLOGICAL LOG AREA ---
-        const logHeader = progressCard.createEl('div', { cls: 'brain-log-header' });
+        const logHeader = progressCard.createEl('div', { cls: 'axiom-log-header' });
         logHeader.createEl('span', { text: '📜 Activity Log' });
-        const copyLogBtn = logHeader.createEl('button', { text: '📋 Copy', cls: 'brain-copy-log-btn' });
+        const copyLogBtn = logHeader.createEl('button', { text: '📋 Copy', cls: 'axiom-copy-log-btn' });
         this.registerDomEvent(copyLogBtn, 'click', () => {
-            const logs = Array.from(this.logContainer.querySelectorAll('.brain-log-entry'))
+            const logs = Array.from(this.logContainer.querySelectorAll('.axiom-log-entry'))
                 .map(el => el.textContent)
                 .join('\n');
             navigator.clipboard.writeText(logs);
             new Notice('Logs copied to clipboard');
         });
 
-        this.logContainer = progressCard.createEl('div', { cls: 'brain-log-container' });
+        this.logContainer = progressCard.createEl('div', { cls: 'axiom-log-container' });
 
-        this.retryButton = progressCard.createEl('button', { text: '🔄 Retry', cls: 'brain-retry-button' });
+        this.retryButton = progressCard.createEl('button', { text: '🔄 Retry', cls: 'axiom-retry-button' });
         this.retryButton.style.display = 'none';
         this.registerDomEvent(this.retryButton, 'click', () => this.startNoteGenerationClean());
 
@@ -189,7 +189,7 @@ class SummaryView extends ItemView {
         if (this.intentDropdown.value === 'research_collection') {
             this.targetTopicContainer.style.display = 'flex';
             // Refresh datalist in case settings changed externally
-            const dataList = this.containerEl.querySelector('#brain-topic-list') as HTMLElement;
+            const dataList = this.containerEl.querySelector('#axiom-topic-list') as HTMLElement;
             if (dataList) this.updateTopicDataList(dataList);
         } else {
             this.targetTopicContainer.style.display = 'none';
@@ -219,7 +219,7 @@ class SummaryView extends ItemView {
                     this.plugin.settings.topicFolders.topics.push(targetTopic);
                     await this.plugin.saveSettings();
                     // Update datalist for next time
-                    const dataList = this.containerEl.querySelector('#brain-topic-list') as HTMLElement;
+                    const dataList = this.containerEl.querySelector('#axiom-topic-list') as HTMLElement;
                     if (dataList) this.updateTopicDataList(dataList);
                     new Notice(`New topic '${targetTopic}' added to settings.`);
                 }
@@ -246,9 +246,9 @@ class SummaryView extends ItemView {
         // Log entry with timestamp
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const logEntry = this.logContainer.createEl('div', { cls: 'brain-log-entry' });
-        logEntry.innerHTML = `<span class="brain-log-time">[${timeStr}]</span> ${status}`;
-        if (error) logEntry.addClass('brain-log-error');
+        const logEntry = this.logContainer.createEl('div', { cls: 'axiom-log-entry' });
+        logEntry.innerHTML = `<span class="axiom-log-time">[${timeStr}]</span> ${status}`;
+        if (error) logEntry.addClass('axiom-log-error');
         
         // Keep only last 50 logs
         while (this.logContainer.childNodes.length > 50) {
@@ -310,7 +310,7 @@ class SummaryView extends ItemView {
 
     private statsFooter: HTMLElement;
     private createStatsFooter() {
-        this.statsFooter = this.containerEl.createEl('div', { cls: 'brain-stats-footer' });
+        this.statsFooter = this.containerEl.createEl('div', { cls: 'axiom-stats-footer' });
         this.updateStatsFooter();
     }
 
@@ -320,15 +320,15 @@ class SummaryView extends ItemView {
         
         this.statsFooter.empty();
         
-        const todayGroup = this.statsFooter.createEl('div', { cls: 'brain-stats-group' });
-        todayGroup.createEl('div', { cls: 'brain-stats-label', text: 'TODAY' });
-        todayGroup.createEl('div', { cls: 'brain-stats-value', text: `${metrics.today.notes} notes • $${metrics.today.cost.toFixed(3)}` });
+        const todayGroup = this.statsFooter.createEl('div', { cls: 'axiom-stats-group' });
+        todayGroup.createEl('div', { cls: 'axiom-stats-label', text: 'TODAY' });
+        todayGroup.createEl('div', { cls: 'axiom-stats-value', text: `${metrics.today.notes} notes • $${metrics.today.cost.toFixed(3)}` });
 
-        const separator = this.statsFooter.createEl('div', { cls: 'brain-stats-separator' });
+        const separator = this.statsFooter.createEl('div', { cls: 'axiom-stats-separator' });
 
-        const lifetimeGroup = this.statsFooter.createEl('div', { cls: 'brain-stats-group' });
-        lifetimeGroup.createEl('div', { cls: 'brain-stats-label', text: 'LIFETIME' });
-        lifetimeGroup.createEl('div', { cls: 'brain-stats-value', text: `${metrics.lifetime.notes} notes • $${metrics.lifetime.cost.toFixed(2)}` });
+        const lifetimeGroup = this.statsFooter.createEl('div', { cls: 'axiom-stats-group' });
+        lifetimeGroup.createEl('div', { cls: 'axiom-stats-label', text: 'LIFETIME' });
+        lifetimeGroup.createEl('div', { cls: 'axiom-stats-value', text: `${metrics.lifetime.notes} notes • $${metrics.lifetime.cost.toFixed(2)}` });
     }
 }
 
@@ -350,7 +350,7 @@ class AISummarizerPlugin extends Plugin {
 
                 
 
-                this.addRibbonIcon('dice', 'Open AI Summarizer', () => this.activateView());
+                this.addRibbonIcon('brain', 'Open Axiom', () => this.activateView());
         this.addSettingTab(new AISummarizerSettingsTab(this.app, this));
         this.registerView(VIEW_TYPE_SUMMARY, (leaf) => new SummaryView(leaf, this));
     }

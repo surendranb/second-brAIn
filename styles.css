@@ -3,12 +3,12 @@
   Standard Obsidian Compliance Styles
 */
 
-.brain-main-container { 
+.axiom-main-container { 
     padding: 16px; 
     font-family: var(--font-interface); 
 }
 
-.brain-card { 
+.axiom-card { 
     background: var(--background-primary); 
     border: 1px solid var(--background-modifier-border); 
     border-radius: 12px; 
@@ -17,48 +17,48 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
 }
 
-.brain-card-header { 
+.axiom-card-header { 
     margin-bottom: 16px; 
     padding-bottom: 12px; 
     border-bottom: 1px solid var(--background-modifier-border); 
 }
 
-.brain-card-title { 
+.axiom-card-title { 
     margin: 0; 
     font-size: 1em; 
     font-weight: 600; 
     color: var(--text-normal); 
 }
 
-.brain-config-section { 
+.axiom-config-section { 
     display: flex; 
     flex-direction: column; 
     gap: 12px; 
 }
 
-.brain-dropdown-row { 
+.axiom-dropdown-row { 
     display: flex; 
     gap: 10px; 
 }
 
-.brain-form-group { 
+.axiom-form-group { 
     display: flex; 
     flex-direction: column; 
     gap: 4px; 
 }
 
-.brain-form-group-third { 
+.axiom-form-group-third { 
     flex: 1; 
     min-width: 0; 
 }
 
-.brain-form-label { 
+.axiom-form-label { 
     font-weight: 600; 
     font-size: 0.85em; 
     color: var(--text-muted); 
 }
 
-.brain-select, .brain-input, .brain-textarea { 
+.axiom-select, .axiom-input, .axiom-textarea { 
     width: 100%; 
     padding: 12px 12px; 
     border-radius: 6px; 
@@ -70,12 +70,12 @@
     min-height: 42px;
 }
 
-.brain-textarea { 
+.axiom-textarea { 
     resize: vertical; 
     min-height: 80px; 
 }
 
-.brain-clean-button { 
+.axiom-clean-button { 
     width: 100%; 
     padding: 12px; 
     background: var(--interactive-accent); 
@@ -88,12 +88,12 @@
     transition: opacity 0.2s; 
 }
 
-.brain-clean-button:hover { 
+.axiom-clean-button:hover { 
     opacity: 0.9; 
 }
 
 /* SLEEK PROGRESS BAR */
-.brain-progress-status-text { 
+.axiom-progress-status-text { 
     text-align: center; 
     font-weight: 600; 
     font-size: 0.95em; 
@@ -101,7 +101,7 @@
     color: var(--text-normal); 
 }
 
-.brain-progress-bar-container { 
+.axiom-progress-bar-container { 
     width: 100%; 
     height: 8px; 
     background: var(--background-secondary); 
@@ -111,20 +111,20 @@
     border: 1px solid var(--background-modifier-border); 
 }
 
-.brain-progress-bar-fill { 
+.axiom-progress-bar-fill { 
     height: 100%; 
     background: var(--interactive-accent); 
     width: 0%; 
     transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s; 
 }
 
-.brain-progress-labels { 
+.axiom-progress-labels { 
     display: flex; 
     justify-content: space-between; 
     padding: 0 4px; 
 }
 
-.brain-progress-labels span { 
+.axiom-progress-labels span { 
     font-size: 0.7em; 
     color: var(--text-muted); 
     font-weight: 500; 
@@ -132,7 +132,7 @@
     letter-spacing: 0.05em; 
 }
 
-.brain-retry-button { 
+.axiom-retry-button { 
     width: 100%; 
     margin-top: 12px; 
     padding: 8px; 
@@ -144,7 +144,7 @@
     cursor: pointer; 
 }
 
-.brain-log-header { 
+.axiom-log-header { 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
@@ -155,7 +155,7 @@
     color: var(--text-muted); 
 }
 
-.brain-copy-log-btn { 
+.axiom-copy-log-btn { 
     padding: 2px 8px; 
     font-size: 0.9em; 
     background: var(--background-modifier-border); 
@@ -164,11 +164,11 @@
     cursor: pointer; 
 }
 
-.brain-copy-log-btn:hover { 
+.axiom-copy-log-btn:hover { 
     background: var(--background-modifier-border-hover); 
 }
 
-.brain-log-container { 
+.axiom-log-container { 
     padding: 10px; 
     background: var(--background-secondary-alt); 
     border-radius: 6px; 
@@ -180,14 +180,14 @@
     user-select: text;
 }
 
-.brain-log-entry { 
+.axiom-log-entry { 
     margin-bottom: 4px; 
     line-height: 1.4; 
     color: var(--text-muted); 
 }
 
 /* Stats Footer Dashboard */
-.brain-stats-footer {
+.axiom-stats-footer {
     display: flex;
     justify-content: space-around;
     align-items: center;
@@ -199,14 +199,14 @@
     gap: 8px;
 }
 
-.brain-stats-group {
+.axiom-stats-group {
     display: flex;
     flex-direction: column;
     align-items: center;
     flex: 1;
 }
 
-.brain-stats-label {
+.axiom-stats-label {
     font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -215,26 +215,26 @@
     margin-bottom: 2px;
 }
 
-.brain-stats-value {
+.axiom-stats-value {
     font-weight: 500;
     color: var(--text-normal);
 }
 
-.brain-stats-separator {
+.axiom-stats-separator {
     width: 1px;
     height: 24px;
     background: var(--background-modifier-border);
     opacity: 0.5;
 }
 
-.brain-log-time {
+.axiom-log-time {
     color: var(--text-faint);
     font-family: var(--font-monospace);
     font-size: 0.75rem;
     margin-right: 6px;
 }
 
-.brain-log-error {
+.axiom-log-error {
     color: var(--color-red);
     background: rgba(255, 0, 0, 0.05);
 }

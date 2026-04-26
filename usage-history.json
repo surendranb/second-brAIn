@@ -718,5 +718,61 @@
     "cost": 0.00011227499999999999,
     "model": "gemini-flash-lite-latest",
     "timestamp": "2026-04-26T06:59:23.751Z"
+  },
+  {
+    "noteId": "bb76216f-0b19-4502-8d87-f1825b721785",
+    "inputTokens": 2538,
+    "outputTokens": 200,
+    "cost": 0.0003338,
+    "model": "gemini-flash-lite-latest",
+    "timestamp": "2026-04-26T07:26:38.742Z"
+  },
+  {
+    "noteId": "bb76216f-0b19-4502-8d87-f1825b721785",
+    "inputTokens": 29889,
+    "outputTokens": 593,
+    "cost": 0.0032261,
+    "model": "gemini-flash-lite-latest",
+    "timestamp": "2026-04-26T07:27:02.110Z"
+  },
+  {
+    "noteId": "bb76216f-0b19-4502-8d87-f1825b721785",
+    "inputTokens": 29736,
+    "outputTokens": 805,
+    "cost": 0.0032956,
+    "model": "gemini-flash-lite-latest",
+    "timestamp": "2026-04-26T07:27:12.530Z"
+  },
+  {
+    "noteId": "bb76216f-0b19-4502-8d87-f1825b721785",
+    "inputTokens": 29662,
+    "outputTokens": 585,
+    "cost": 0.0032002000000000003,
+    "model": "gemini-flash-lite-latest",
+    "timestamp": "2026-04-26T07:27:21.235Z"
+  },
+  {
+    "noteId": "bb76216f-0b19-4502-8d87-f1825b721785",
+    "inputTokens": 29642,
+    "outputTokens": 587,
+    "cost": 0.003199,
+    "model": "gemini-flash-lite-latest",
+    "timestamp": "2026-04-26T07:27:29.935Z"
+  },
+  {
+    "noteId": "bb76216f-0b19-4502-8d87-f1825b721785",
+    "inputTokens": 29718,
+    "outputTokens": 478,
+    "cost": 0.003163,
+    "model": "gemini-flash-lite-latest",
+    "timestamp": "2026-04-26T07:28:14.042Z"
+  },
+  {
+    "noteId": "bb76216f-0b19-4502-8d87-f1825b721785",
+    "inputTokens": 1190,
+    "outputTokens": 3,
+    "cost": 0.00012020000000000002,
+    "model": "gemini-flash-lite-latest",
+    "timestamp": "2026-04-26T07:28:18.025Z"
   }
 ]

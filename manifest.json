@@ -1,8 +1,7 @@
 {
-	"id": "brAIn",
-	"name": "brAIn",
+	"id": "axiom",
+	"name": "Axiom",
 	"version": "0.1.0",
-	"main": "main.js",
 	"description": "Multi-pass AI agent for autonomous knowledge synthesis from YouTube and Web articles.",
 	"author": "Surendran",
 	"minAppVersion": "1.4.0",
