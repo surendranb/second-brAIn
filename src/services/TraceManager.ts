@@ -107,10 +107,10 @@ export class TraceManager {
       return response;
     } catch (error) {
       await this.provider.endGeneration(generationId, {
-        metadata: { error: error.message }
+        metadata: { error: (error as Error).message }
       });
       await this.endTrace(traceId, { 
-        metadata: { error: error.message, status: 'error' }
+        metadata: { error: (error as Error).message, status: 'error' }
       });
       throw error;
     }
@@ -173,7 +173,7 @@ export class TraceManager {
       const duration = Date.now() - startTime;
       await this.provider.endGeneration(generationId, {
         metadata: { 
-          error: error.message,
+          error: (error as Error).message,
           duration_ms: duration,
           pass: traceContext.pass,
           intent: traceContext.intent,
@@ -213,8 +213,8 @@ export class TraceManager {
       if (!traceId) await this.endTrace(actualTraceId);
       return result;
     } catch (error) {
-      await this.provider.endSpan(spanId, { metadata: { error: error.message, status: 'error' } });
-      if (!traceId) await this.endTrace(actualTraceId, { metadata: { error: error.message, status: 'error' } });
+      await this.provider.endSpan(spanId, { metadata: { error: (error as Error).message, status: 'error' } });
+      if (!traceId) await this.endTrace(actualTraceId, { metadata: { error: (error as Error).message, status: 'error' } });
       throw error;
     }
   }
@@ -245,14 +245,14 @@ export class TraceManager {
     // --- ATOMIC PERSISTENCE ---
     // Record this individual event immediately to history so it's "Fool Proof"
     if (this.usageHistoryManager && this.currentNoteUsage.noteId) {
-        this.usageHistoryManager.addRecord({
+        void this.usageHistoryManager.addRecord({
             noteId: this.currentNoteUsage.noteId,
             inputTokens: event.promptTokens,
             outputTokens: event.completionTokens,
             cost: event.cost,
             model: event.model,
             intent: event.intent
-        }).catch(err => console.error('[TraceManager] Atomic record failed:', err));
+        }).catch(err => console.error('[TraceManager] Atomic record failed:', (err as Error).message));
     }
 
     this.usageCallbacks.forEach(callback => {

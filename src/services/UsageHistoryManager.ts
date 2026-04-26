@@ -31,7 +31,7 @@ export class UsageHistoryManager {
     constructor(app: App) {
         this.app = app;
         // Use plugin data directory for the usage history file
-        this.historyFile = app.vault.configDir + '/plugins/second-brAIn/usage-history.json';
+        this.historyFile = app.vault.configDir + '/plugins/axiom/usage-history.json';
     }
 
     /**
@@ -56,7 +56,7 @@ export class UsageHistoryManager {
             // Update cache
             this.cache = records;
         } catch (error) {
-            console.error('[UsageHistoryManager] Failed to add record:', error);
+            console.error('[UsageHistoryManager] Failed to add record:', (error as Error).message);
         }
     }
 
@@ -101,7 +101,7 @@ export class UsageHistoryManager {
             this.cache = records;
             return records;
         } catch (error) {
-            console.error('[UsageHistoryManager] Failed to load records:', error);
+            console.error('[UsageHistoryManager] Failed to load records:', (error as Error).message);
             return [];
         }
     }
@@ -114,7 +114,7 @@ export class UsageHistoryManager {
             const content = JSON.stringify(records, null, 2);
             await this.app.vault.adapter.write(this.historyFile, content);
         } catch (error) {
-            console.error('[UsageHistoryManager] Failed to save records:', error);
+            console.error('[UsageHistoryManager] Failed to save records:', (error as Error).message);
         }
     }
 

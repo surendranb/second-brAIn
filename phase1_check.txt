@@ -1,0 +1,145 @@
+
+/Users/surendran/Projects/second-brAIn/main.ts
+    1:51  warning  'TFile' is defined but never used                                                                                                                                   @typescript-eslint/no-unused-vars
+    7:10  warning  'findUniqueFileName' is defined but never used                                                                                                                      @typescript-eslint/no-unused-vars
+    7:30  warning  'generateId' is defined but never used                                                                                                                              @typescript-eslint/no-unused-vars
+    7:42  warning  'estimateTokens' is defined but never used                                                                                                                          @typescript-eslint/no-unused-vars
+    7:58  warning  'calculateCost' is defined but never used                                                                                                                           @typescript-eslint/no-unused-vars
+    7:73  warning  'formatTokens' is defined but never used                                                                                                                            @typescript-eslint/no-unused-vars
+   29:9   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   42:13  error    Use 'activeWindow.setTimeout()' instead of 'setTimeout()' for popout window compatibility                                                                           obsidianmd/prefer-active-window-timers
+   67:34  error    This assertion is unnecessary since it does not change the type of the expression                                                                                   @typescript-eslint/no-unnecessary-type-assertion
+   79:46  error    Use sentence case for UI text. Expected: '🤖 AI model'                                                                                                              obsidianmd/ui/sentence-case
+   80:30  error    This assertion is unnecessary since it does not change the type of the expression                                                                                   @typescript-eslint/no-unnecessary-type-assertion
+   92:31  error    This assertion is unnecessary since it does not change the type of the expression                                                                                   @typescript-eslint/no-unnecessary-type-assertion
+  123:15  warning  'qaLabel' is assigned a value but never used                                                                                                                        @typescript-eslint/no-unused-vars
+  123:59  error    Use sentence case for UI text. Expected: '💬 Generate verbatim q&a note'                                                                                            obsidianmd/ui/sentence-case
+  136:66  error    Use sentence case for UI text. Expected: '✨ Summarize & organize'                                                                                                   obsidianmd/ui/sentence-case
+  160:13  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  231:53  error    Unsafe member access .message on an `any` value                                                                                                                     @typescript-eslint/no-unsafe-member-access
+  301:9   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  340:45  error    Use sentence case for UI text. Expected: 'Open axiom'                                                                                                               obsidianmd/ui/sentence-case
+  345:5   error    Promise-returning method provided where a void return was expected by extended/implemented type 'Plugin'                                                            @typescript-eslint/no-misused-promises
+  355:80  error    This assertion is unnecessary since it does not change the type of the expression                                                                                   @typescript-eslint/no-unnecessary-type-assertion
+  359:28  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  366:80  error    This assertion is unnecessary since it does not change the type of the expression                                                                                   @typescript-eslint/no-unnecessary-type-assertion
+  368:76  error    Unsafe return of a value of type `any`                                                                                                                              @typescript-eslint/no-unsafe-return
+  368:76  error    Unsafe call of an `any` typed value                                                                                                                                 @typescript-eslint/no-unsafe-call
+  368:87  warning  Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+  368:92  error    Unsafe member access .populateModelDropdown on an `any` value                                                                                                       @typescript-eslint/no-unsafe-member-access
+  385:19  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/Users/surendran/Projects/second-brAIn/settings.ts
+   22:22  error    Use sentence case for UI text. Expected: 'AI provider'                                                                                                                                    obsidianmd/ui/sentence-case
+   26:42  error    Use sentence case for UI text. Expected: 'Openrouter'                                                                                                                                     obsidianmd/ui/sentence-case
+   38:26  error    Use sentence case for UI text. Expected: 'Gemini API key'                                                                                                                                 obsidianmd/ui/sentence-case
+   50:26  error    Use sentence case for UI text. Expected: 'Gemini model'                                                                                                                                   obsidianmd/ui/sentence-case
+   67:26  error    Use sentence case for UI text. Expected: 'Openrouter API key'                                                                                                                             obsidianmd/ui/sentence-case
+   68:26  error    Use sentence case for UI text. Expected: 'Your openrouter API key'                                                                                                                        obsidianmd/ui/sentence-case
+   70:37  error    Use sentence case for UI text. Expected: 'Sk-or-...'                                                                                                                                      obsidianmd/ui/sentence-case
+   79:26  error    Use sentence case for UI text. Expected: 'Openrouter model'                                                                                                                               obsidianmd/ui/sentence-case
+   80:26  error    Use sentence case for UI text. Expected: 'Select the openrouter model to use'                                                                                                             obsidianmd/ui/sentence-case
+   97:22  error    Use sentence case for UI text. Expected: 'Default prompt'                                                                                                                                 obsidianmd/ui/sentence-case
+  110:9   error    Avoid using "settings" in settings headings                                                                                                                                               obsidianmd/settings-tab/no-problematic-settings-headings
+  113:22  error    Use sentence case for UI text. Expected: 'Enable langfuse tracing'                                                                                                                        obsidianmd/ui/sentence-case
+  125:26  error    Use sentence case for UI text. Expected: 'Langfuse public key'                                                                                                                            obsidianmd/ui/sentence-case
+  126:26  error    Use sentence case for UI text. Expected: 'Your langfuse public key (pk-lf-...)'                                                                                                           obsidianmd/ui/sentence-case
+  128:37  error    Use sentence case for UI text. Expected: 'Pk-lf-...'                                                                                                                                      obsidianmd/ui/sentence-case
+  136:26  error    Use sentence case for UI text. Expected: 'Langfuse secret key'                                                                                                                            obsidianmd/ui/sentence-case
+  137:26  error    Use sentence case for UI text. Expected: 'Your langfuse secret key (sk-lf-...)'                                                                                                           obsidianmd/ui/sentence-case
+  141:41  error    Use sentence case for UI text. Expected: 'Sk-lf-...'                                                                                                                                      obsidianmd/ui/sentence-case
+  150:26  error    Use sentence case for UI text. Expected: 'Langfuse base URL'                                                                                                                              obsidianmd/ui/sentence-case
+  162:9   error    Avoid using "settings" in settings headings                                                                                                                                               obsidianmd/settings-tab/no-problematic-settings-headings
+  162:42  error    Use sentence case for UI text. Expected: 'Moc (map of content) settings'                                                                                                                  obsidianmd/ui/sentence-case
+  165:22  error    Use sentence case for UI text. Expected: 'Enable moc organization'                                                                                                                        obsidianmd/ui/sentence-case
+  166:22  error    Use sentence case for UI text. Expected: 'Automatically organize notes into knowledge hierarchies (maps of content). Notes will be saved alongside mocs in organized folder structures.'  obsidianmd/ui/sentence-case
+  177:26  error    Use sentence case for UI text. Expected: 'Knowledge base folder'                                                                                                                          obsidianmd/ui/sentence-case
+  178:26  error    Use sentence case for UI text. Expected: 'Root folder for knowledge organization. Both notes and mocs will be saved in hierarchical subfolders within this directory.'                    obsidianmd/ui/sentence-case
+  180:37  error    Use sentence case for UI text. Expected: 'Mocs'                                                                                                                                           obsidianmd/ui/sentence-case
+  189:9   error    Avoid using "settings" in settings headings                                                                                                                                               obsidianmd/settings-tab/no-problematic-settings-headings
+  192:22  error    Use sentence case for UI text. Expected: 'Enable topic folders'                                                                                                                           obsidianmd/ui/sentence-case
+  193:22  error    Use sentence case for UI text. Expected: 'Organize "how to / tutorial" content into topic-specific folders for focused research collections'                                              obsidianmd/ui/sentence-case
+  204:26  error    Use sentence case for UI text. Expected: 'Topic folders root'                                                                                                                             obsidianmd/ui/sentence-case
+  205:26  error    Use sentence case for UI text. Expected: 'Root folder for topic-based organization (e.g., "research topics")'                                                                             obsidianmd/ui/sentence-case
+  207:37  error    Use sentence case for UI text. Expected: 'Research topics'                                                                                                                                obsidianmd/ui/sentence-case
+  215:26  error    Use sentence case for UI text. Expected: 'Predefined topics'                                                                                                                              obsidianmd/ui/sentence-case
+  220:41  error    Use sentence case for UI text. Expected: 'LLM evals, AI safety, machine learning, data science'                                                                                           obsidianmd/ui/sentence-case
+  236:22  error    Use sentence case for UI text. Expected: 'Enable transcript archiving'                                                                                                                    obsidianmd/ui/sentence-case
+  248:26  error    Use sentence case for UI text. Expected: 'Archive root folder'                                                                                                                            obsidianmd/ui/sentence-case
+  249:26  error    Use sentence case for UI text. Expected: 'Root folder for hierarchical archiving (year/month)'                                                                                            obsidianmd/ui/sentence-case
+  251:37  error    Use sentence case for UI text. Expected: 'Archive/transcripts'                                                                                                                            obsidianmd/ui/sentence-case
+  260:9   error    Avoid using "settings" in settings headings                                                                                                                                               obsidianmd/settings-tab/no-problematic-settings-headings
+  263:22  error    Use sentence case for UI text. Expected: 'Enable debug mode'                                                                                                                              obsidianmd/ui/sentence-case
+  275:26  error    Use sentence case for UI text. Expected: 'Debug folder'                                                                                                                                   obsidianmd/ui/sentence-case
+  286:26  error    Use sentence case for UI text. Expected: 'Save raw content'                                                                                                                               obsidianmd/ui/sentence-case
+  296:26  error    Use sentence case for UI text. Expected: 'Save AI prompts'                                                                                                                                obsidianmd/ui/sentence-case
+  306:26  error    Use sentence case for UI text. Expected: 'Save AI responses'                                                                                                                              obsidianmd/ui/sentence-case
+  320:22  error    Use sentence case for UI text. Expected: 'Default processing intent'                                                                                                                      obsidianmd/ui/sentence-case
+  323:50  error    Use sentence case for UI text. Expected: 'Knowledge building - deep learning and understanding'                                                                                           obsidianmd/ui/sentence-case
+  324:47  error    Use sentence case for UI text. Expected: 'Quick reference - actionable guides and how-tos'                                                                                                obsidianmd/ui/sentence-case
+  325:51  error    Use sentence case for UI text. Expected: 'Research collection - academic and research content'                                                                                            obsidianmd/ui/sentence-case
+  326:51  error    Use sentence case for UI text. Expected: 'Event documentation - meeting notes and events'                                                                                                 obsidianmd/ui/sentence-case
+  327:57  error    Use sentence case for UI text. Expected: 'Professional intelligence - business insights'                                                                                                  obsidianmd/ui/sentence-case
+  328:52  error    Use sentence case for UI text. Expected: 'Personal development - growth and learning'                                                                                                     obsidianmd/ui/sentence-case
+  329:43  error    Use sentence case for UI text. Expected: 'News & events - current events and news'                                                                                                        obsidianmd/ui/sentence-case
+  330:51  error    Use sentence case for UI text. Expected: 'Inspiration capture - creative and inspirational content'                                                                                       obsidianmd/ui/sentence-case
+  331:38  error    Use sentence case for UI text. Expected: 'How-to guides - step-by-step tutorials'                                                                                                         obsidianmd/ui/sentence-case
+  339:9   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator                        @typescript-eslint/no-floating-promises
+  347:22  error    Use sentence case for UI text. Expected: 'Edit prompts for intent'                                                                                                                        obsidianmd/ui/sentence-case
+  352:54  error    Use sentence case for UI text. Expected: 'Knowledge building'                                                                                                                             obsidianmd/ui/sentence-case
+  353:51  error    Use sentence case for UI text. Expected: 'Quick reference'                                                                                                                                obsidianmd/ui/sentence-case
+  354:55  error    Use sentence case for UI text. Expected: 'Research collection'                                                                                                                            obsidianmd/ui/sentence-case
+  355:55  error    Use sentence case for UI text. Expected: 'Event documentation'                                                                                                                            obsidianmd/ui/sentence-case
+  356:61  error    Use sentence case for UI text. Expected: 'Professional intelligence'                                                                                                                      obsidianmd/ui/sentence-case
+  357:56  error    Use sentence case for UI text. Expected: 'Personal development'                                                                                                                           obsidianmd/ui/sentence-case
+  358:47  error    Use sentence case for UI text. Expected: 'News & events'                                                                                                                                  obsidianmd/ui/sentence-case
+  359:55  error    Use sentence case for UI text. Expected: 'Inspiration capture'                                                                                                                            obsidianmd/ui/sentence-case
+  360:42  error    Use sentence case for UI text. Expected: 'How-to guides'                                                                                                                                  obsidianmd/ui/sentence-case
+  373:15  warning  'statusText' is assigned a value but never used                                                                                                                                           @typescript-eslint/no-unused-vars
+  385:15  warning  'titleEl' is assigned a value but never used                                                                                                                                              @typescript-eslint/no-unused-vars
+  385:25  error    For a consistent UI use `new Setting(containerEl).setName(...).setHeading()` instead of creating HTML heading elements directly                                                           obsidianmd/settings-tab/no-manual-html-headings
+  406:23  warning  'promptHeader' is assigned a value but never used                                                                                                                                         @typescript-eslint/no-unused-vars
+  406:38  error    For a consistent UI use `new Setting(containerEl).setName(...).setHeading()` instead of creating HTML heading elements directly                                                           obsidianmd/settings-tab/no-manual-html-headings
+  408:23  warning  'promptDesc' is assigned a value but never used                                                                                                                                           @typescript-eslint/no-unused-vars
+  416:19  warning  'editInfo' is assigned a value but never used                                                                                                                                             @typescript-eslint/no-unused-vars
+  422:19  warning  'errorEl' is assigned a value but never used                                                                                                                                              @typescript-eslint/no-unused-vars
+  423:55  error    Unsafe member access .message on an `any` value                                                                                                                                           @typescript-eslint/no-unsafe-member-access
+
+/Users/surendran/Projects/second-brAIn/src/components/modals/HierarchyChoiceModal.ts
+   12:29   warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   17:43   warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   19:9    error    Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+   25:42   error    Use sentence case for UI text. Expected: '🎯 Choose hierarchy placement'           obsidianmd/ui/sentence-case
+   34:33   error    Unsafe member access .confidence_score on an `any` value                           @typescript-eslint/no-unsafe-member-access
+   36:72   error    Unsafe member access .confidence_score on an `any` value                           @typescript-eslint/no-unsafe-member-access
+   42:67   error    Unsafe member access .primary_hierarchy on an `any` value                          @typescript-eslint/no-unsafe-member-access
+   45:33   error    Unsafe member access .alternative_hierarchies on an `any` value                    @typescript-eslint/no-unsafe-member-access
+   47:13   error    Unsafe call of an `any` typed value                                                @typescript-eslint/no-unsafe-call
+   47:33   error    Unsafe member access .alternative_hierarchies on an `any` value                    @typescript-eslint/no-unsafe-member-access
+   47:71   warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   48:111  error    Unsafe member access .strength on an `any` value                                   @typescript-eslint/no-unsafe-member-access
+   55:34   error    This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+   74:72   warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   79:15   warning  'titleEl' is assigned a value but never used                                       @typescript-eslint/no-unused-vars
+   86:13   error    Unsafe assignment of an error typed value                                          @typescript-eslint/no-unsafe-assignment
+   86:19   error    Unsafe call of a type that could not be resolved                                   @typescript-eslint/no-unsafe-call
+   86:19   error    'pathParts' is not defined                                                         no-undef
+   86:29   error    Unsafe member access .join on a type that cannot be resolved                       @typescript-eslint/no-unsafe-member-access
+   91:23   error    Unsafe member access .reasoning on an `any` value                                  @typescript-eslint/no-unsafe-member-access
+   93:17   error    Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+   93:33   error    Unsafe member access .reasoning on an `any` value                                  @typescript-eslint/no-unsafe-member-access
+   99:23   error    This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+  107:17   error    Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  107:55   error    Unsafe member access .learning_context on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  116:21   error    Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  116:59   error    Unsafe member access .learning_context on an `any` value                           @typescript-eslint/no-unsafe-member-access
+
+/Users/surendran/Projects/second-brAIn/src/components/modals/SettingModal.ts
+  31:22  error  Use sentence case for UI text. Expected: 'AI provider'     obsidianmd/ui/sentence-case
+  44:26  error  Use sentence case for UI text. Expected: 'Gemini API key'  obsidianmd/ui/sentence-case
+  54:26  error  Use sentence case for UI text. Expected: 'Gemini model'    obsidianmd/ui/sentence-case
+  69:26  error  Use sentence case for UI text. Expected: 'Default prompt'  obsidianmd/ui/sentence-case
+
+✖ 133 problems (114 errors, 19 warnings)
+  10 errors and 5 warnings potentially fixable with the `--fix` option.
+

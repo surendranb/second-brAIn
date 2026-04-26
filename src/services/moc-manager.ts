@@ -1,8 +1,23 @@
+/**
+ * MOCManager - Manages the creation and organization of Maps of Content
+ */
+
 import { App, TFile, TFolder, parseYaml, stringifyYaml } from 'obsidian';
 import { MOCIntelligence } from './moc-intelligence';
 import { MOCHierarchy, LearningContext } from '../types';
 import { PluginSettings } from '../config';
 import { LLMService } from './LLMService';
+
+export interface LevelInfo {
+    level: number;
+    title: string;
+    path: string;
+    directory: string;
+}
+
+export interface HierarchyMap {
+    [key: string]: any; // Recursive structure
+}
 
 export class MOCManager {
     private app: App;
@@ -10,7 +25,7 @@ export class MOCManager {
     public mocIntelligence: MOCIntelligence;
     private hierarchyPath: string;
 
-    constructor(app: App, settings: PluginSettings, plugin?: any, llmService?: LLMService) {
+    constructor(app: App, settings: PluginSettings, _plugin?: any, llmService?: LLMService) {
         this.app = app;
         this.settings = settings;
         this.mocIntelligence = new MOCIntelligence(app, llmService);
@@ -34,14 +49,16 @@ export class MOCManager {
         return mocStructure[mocStructure.length - 1].path;
     }
 
-    async loadHierarchy(): Promise<any> {
+    async loadHierarchy(): Promise<HierarchyMap> {
         try {
             const file = this.app.vault.getAbstractFileByPath(this.hierarchyPath);
             if (file instanceof TFile) {
                 const content = await this.app.vault.read(file);
-                return parseYaml(content) || {};
+                return (parseYaml(content) as HierarchyMap) || {};
             }
-        } catch (e) {}
+        } catch (e) {
+            // Ignore missing file errors
+        }
         return {};
     }
 
@@ -73,22 +90,27 @@ export class MOCManager {
         await this.saveHierarchy(map);
     }
 
-    private async saveHierarchy(map: any): Promise<void> {
+    private async saveHierarchy(map: HierarchyMap): Promise<void> {
         const content = stringifyYaml(map);
         const file = this.app.vault.getAbstractFileByPath(this.hierarchyPath);
         if (file instanceof TFile) {
             await this.app.vault.modify(file, content);
         } else {
+            // Ensure folder exists before creating file
+            const folderPath = this.hierarchyPath.substring(0, this.hierarchyPath.lastIndexOf('/'));
+            if (folderPath && !(this.app.vault.getAbstractFileByPath(folderPath))) {
+                await this.app.vault.createFolder(folderPath);
+            }
             await this.app.vault.create(this.hierarchyPath, content);
         }
     }
 
-    public createHierarchicalStructure(hierarchy: MOCHierarchy): any[] {
+    public createHierarchicalStructure(hierarchy: MOCHierarchy): LevelInfo[] {
         const mocFolder = this.settings.mocFolder || 'MOCs';
-        const levels = [];
+        const levels: LevelInfo[] = [];
 
         // Level 1: Domain
-        const lvl1 = { 
+        const lvl1: LevelInfo = { 
             level: 1, 
             title: hierarchy.level1, 
             path: `${mocFolder}/00-${hierarchy.level1} MOC.md`, 
@@ -98,7 +120,7 @@ export class MOCManager {
 
         // Level 2: Area
         const domainDir = `${mocFolder}/${hierarchy.level1}`;
-        const lvl2 = { 
+        const lvl2: LevelInfo = { 
             level: 2, 
             title: hierarchy.level2, 
             path: `${domainDir}/00-${hierarchy.level2} MOC.md`, 
@@ -109,7 +131,7 @@ export class MOCManager {
         // Level 3: Topic
         if (hierarchy.level3) {
             const areaDir = `${domainDir}/${hierarchy.level2}`;
-            const lvl3 = {
+            const lvl3: LevelInfo = {
                 level: 3,
                 title: hierarchy.level3,
                 path: `${areaDir}/00-${hierarchy.level3} MOC.md`,
@@ -120,7 +142,7 @@ export class MOCManager {
             // Level 4: Concept
             if (hierarchy.level4) {
                 const topicDir = `${areaDir}/${hierarchy.level3}`;
-                const lvl4 = {
+                const lvl4: LevelInfo = {
                     level: 4,
                     title: hierarchy.level4,
                     path: `${topicDir}/00-${hierarchy.level4} MOC.md`,
@@ -133,7 +155,7 @@ export class MOCManager {
         return levels;
     }
 
-    private async ensureSingleMOCExists(levelInfo: any): Promise<void> {
+    private async ensureSingleMOCExists(levelInfo: LevelInfo): Promise<void> {
         const existingFile = this.app.vault.getAbstractFileByPath(levelInfo.path);
         if (existingFile) return;
 
@@ -144,9 +166,10 @@ export class MOCManager {
         await this.app.vault.create(levelInfo.path, content);
     }
 
-    private async updateParentMOCStructure(parentPath: string, childInfo: any): Promise<void> {
-        const parentFile = this.app.vault.getAbstractFileByPath(parentPath) as TFile;
-        if (!parentFile) return;
+    private async updateParentMOCStructure(parentPath: string, childInfo: LevelInfo): Promise<void> {
+        const parentFile = this.app.vault.getAbstractFileByPath(parentPath);
+        if (!(parentFile instanceof TFile)) return;
+        
         let content = await this.app.vault.read(parentFile);
         const link = `- [[00-${childInfo.title} MOC]]`;
         if (content.includes(link)) return;
@@ -163,9 +186,10 @@ export class MOCManager {
         return structure[structure.length - 1].directory;
     }
 
-    async updateMOC(mocPath: string, notePath: string, noteTitle: string, context?: LearningContext): Promise<void> {
-        const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
-        if (!mocFile) return;
+    async updateMOC(mocPath: string, notePath: string, noteTitle: string, _context?: LearningContext): Promise<void> {
+        const mocFile = this.app.vault.getAbstractFileByPath(mocPath);
+        if (!(mocFile instanceof TFile)) return;
+        
         let content = await this.app.vault.read(mocFile);
         const link = `- [[${noteTitle}]]`;
         if (!content.includes(link)) await this.app.vault.modify(mocFile, content + link + '\n');

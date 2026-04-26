@@ -29,11 +29,22 @@ export type {
   ServiceConfig
 } from './config';
 
+// Re-export ProcessingIntent from config
+export type { ProcessingIntent } from '../config/intents';
+
 // Plugin-specific types
 export type {
   MOCHierarchy,
   LearningContext,
   MOCMetadata,
   MOC,
-  NoteHierarchyAnalysis
+  NoteHierarchyAnalysis,
+  FullAnalysisResult,
+  HierarchyAnalysisResult,
+  Perspective,
+  Analogy,
+  CaseStudy,
+  KnowledgeConnection,
+  PracticalApplication,
+  LearningPathway
 } from './plugin';

@@ -1,0 +1,440 @@
+
+/Users/surendran/Projects/second-brAIn/src/services/ContentExtractor.ts
+  86:74  error  Unsafe member access .message on an `any` value                         @typescript-eslint/no-unsafe-member-access
+  99:17  error  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  99:23  error  Unsafe member access .message on an `any` value                         @typescript-eslint/no-unsafe-member-access
+
+/Users/surendran/Projects/second-brAIn/src/services/HierarchyService.ts
+    5:10  warning  'MOCHierarchy' is defined but never used                                    @typescript-eslint/no-unused-vars
+   20:19  warning  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+   53:76  warning  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  106:19  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  107:25  error    Unsafe member access .hierarchy on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  107:46  error    Unsafe member access .hierarchy on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  107:74  error    Unsafe member access .hierarchy on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  113:21  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  113:29  error    Unsafe call of an `any` typed value                                         @typescript-eslint/no-unsafe-call
+  113:36  error    Unsafe member access .hierarchy on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  114:21  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  114:29  error    Unsafe call of an `any` typed value                                         @typescript-eslint/no-unsafe-call
+  114:36  error    Unsafe member access .hierarchy on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  115:21  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  115:29  error    Unsafe call of an `any` typed value                                         @typescript-eslint/no-unsafe-call
+  115:36  error    Unsafe member access .hierarchy on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  116:21  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  116:29  error    Unsafe call of an `any` typed value                                         @typescript-eslint/no-unsafe-call
+  116:36  error    Unsafe member access .hierarchy on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  118:59  error    Unsafe argument of type `any` assigned to a parameter of type `number`      @typescript-eslint/no-unsafe-argument
+  118:66  error    Unsafe member access .confidence on an `any` value                          @typescript-eslint/no-unsafe-member-access
+  119:17  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  119:35  error    Unsafe member access .reasoning on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  120:17  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  120:42  error    Unsafe call of an `any` typed value                                         @typescript-eslint/no-unsafe-call
+  120:50  error    Unsafe member access .alternatives on an `any` value                        @typescript-eslint/no-unsafe-member-access
+  120:70  error    Unsafe member access .map on an `any` value                                 @typescript-eslint/no-unsafe-member-access
+  120:80  warning  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  122:25  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  122:37  error    Unsafe member access .hierarchy on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  123:25  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  123:37  error    Unsafe member access .hierarchy on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  124:25  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  124:37  error    Unsafe member access .hierarchy on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  125:25  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  125:37  error    Unsafe member access .hierarchy on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  127:21  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  127:35  error    Unsafe member access .strength on an `any` value                            @typescript-eslint/no-unsafe-member-access
+  128:21  error    Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  128:36  error    Unsafe member access .reasoning on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  131:18  warning  'error' is defined but never used                                           @typescript-eslint/no-unused-vars
+  150:66  warning  'metadata' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  150:76  warning  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/services/NoteProcessor.ts
+    5:17   warning  'TFolder' is defined but never used                                                           @typescript-eslint/no-unused-vars
+    8:10   warning  'MOCHierarchy' is defined but never used                                                      @typescript-eslint/no-unused-vars
+    8:44   warning  'ProcessingIntent' is defined but never used                                                  @typescript-eslint/no-unused-vars
+   11:10   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+   12:15   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+   15:17   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+   41:26   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+   45:107  warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+   49:9    error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+   52:46   error    Unsafe argument of type `any` assigned to a parameter of type `App`                           @typescript-eslint/no-unsafe-argument
+   84:38   error    Use 'activeWindow.setTimeout()' instead of 'setTimeout()' for popout window compatibility     obsidianmd/prefer-active-window-timers
+   98:19   error    Unsafe assignment of an error typed value                                                     @typescript-eslint/no-unsafe-assignment
+  106:67   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  106:105  error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  109:19   error    Unsafe assignment of an error typed value                                                     @typescript-eslint/no-unsafe-assignment
+  112:21   error    Unsafe return of a value of type error                                                        @typescript-eslint/no-unsafe-return
+  118:13   error    Unsafe assignment of an error typed value                                                     @typescript-eslint/no-unsafe-assignment
+  118:28   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  118:56   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  119:13   error    Unsafe assignment of an error typed value                                                     @typescript-eslint/no-unsafe-assignment
+  119:28   error    Unsafe member access .hierarchy_confidence on a type that cannot be resolved                  @typescript-eslint/no-unsafe-member-access
+  119:67   error    Unsafe member access .confidence on a type that cannot be resolved                            @typescript-eslint/no-unsafe-member-access
+  120:13   error    Unsafe assignment of an error typed value                                                     @typescript-eslint/no-unsafe-assignment
+  120:28   error    Unsafe member access .hierarchy_reasoning on a type that cannot be resolved                   @typescript-eslint/no-unsafe-member-access
+  120:66   error    Unsafe member access .reasoning on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  125:28   error    Unsafe member access .primary_author on a type that cannot be resolved                        @typescript-eslint/no-unsafe-member-access
+  130:51   error    Unsafe member access .title on a type that cannot be resolved                                 @typescript-eslint/no-unsafe-member-access
+  137:38   error    Unsafe member access .archive on an `any` value                                               @typescript-eslint/no-unsafe-member-access
+  183:28   error    Unsafe assignment of an error typed value                                                     @typescript-eslint/no-unsafe-assignment
+  183:54   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  207:13   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  207:47   error    Unsafe member access .mocFolder on an `any` value                                             @typescript-eslint/no-unsafe-member-access
+  209:50   error    Unsafe member access .topicFolders on an `any` value                                          @typescript-eslint/no-unsafe-member-access
+  210:77   error    Unsafe member access .topicFolders on an `any` value                                          @typescript-eslint/no-unsafe-member-access
+  211:19   error    Unsafe assignment of an error typed value                                                     @typescript-eslint/no-unsafe-assignment
+  211:38   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  212:19   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  212:27   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  212:48   error    Unsafe member access .topicFolders on an `any` value                                          @typescript-eslint/no-unsafe-member-access
+  213:21   error    Unsafe member access .level1 on a type that cannot be resolved                                @typescript-eslint/no-unsafe-member-access
+  213:32   error    Unsafe member access .level2 on a type that cannot be resolved                                @typescript-eslint/no-unsafe-member-access
+  213:43   error    Unsafe member access .level3 on a type that cannot be resolved                                @typescript-eslint/no-unsafe-member-access
+  213:86   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  213:88   error    Unsafe member access .toLowerCase on an `any` value                                           @typescript-eslint/no-unsafe-member-access
+  216:54   error    Unsafe member access .topicFolders on an `any` value                                          @typescript-eslint/no-unsafe-member-access
+  218:17   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  218:51   error    Unsafe member access .topicFolders on an `any` value                                          @typescript-eslint/no-unsafe-member-access
+  222:34   error    Unsafe member access .enableMOC on an `any` value                                             @typescript-eslint/no-unsafe-member-access
+  222:62   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  223:19   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  223:55   error    Unsafe member access .topicFolders on an `any` value                                          @typescript-eslint/no-unsafe-member-access
+  224:18   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  224:29   error    Unsafe member access .startsWith on an `any` value                                            @typescript-eslint/no-unsafe-member-access
+  225:17   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  225:30   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  225:53   error    Unsafe member access .getMostSpecificMOCDirectory on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  225:96   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  228:9    error    Unsafe return of a value of type `any`                                                        @typescript-eslint/no-unsafe-return
+  235:15   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  235:43   error    Unsafe member access .archive on an `any` value                                               @typescript-eslint/no-unsafe-member-access
+  239:15   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  239:39   error    Unsafe member access .primary_author on a type that cannot be resolved                        @typescript-eslint/no-unsafe-member-access
+  240:28   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  240:28   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  240:35   error    Unsafe member access .split on an `any` value                                                 @typescript-eslint/no-unsafe-member-access
+  240:46   error    Unsafe member access [0] on an `any` value                                                    @typescript-eslint/no-unsafe-member-access
+  241:15   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  241:27   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  241:27   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  241:27   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  241:43   error    Unsafe member access .title on a type that cannot be resolved                                 @typescript-eslint/no-unsafe-member-access
+  241:64   error    Unsafe member access .replace on an `any` value                                               @typescript-eslint/no-unsafe-member-access
+  241:94   error    Unsafe member access .replace on an `any` value                                               @typescript-eslint/no-unsafe-member-access
+  241:115  error    Unsafe member access .trim on an `any` value                                                  @typescript-eslint/no-unsafe-member-access
+  248:56   error    Unsafe member access .metadata on a type that cannot be resolved                              @typescript-eslint/no-unsafe-member-access
+  268:13   error    Unsafe return of a value of type `any`                                                        @typescript-eslint/no-unsafe-return
+  268:35   error    Unsafe member access .metadata on a type that cannot be resolved                              @typescript-eslint/no-unsafe-member-access
+  268:77   error    Unsafe member access .metadata on a type that cannot be resolved                              @typescript-eslint/no-unsafe-member-access
+  269:18   warning  'e' is defined but never used                                                                 @typescript-eslint/no-unused-vars
+  270:13   error    Unsafe return of a value of type `any`                                                        @typescript-eslint/no-unsafe-return
+  270:35   error    Unsafe member access .metadata on a type that cannot be resolved                              @typescript-eslint/no-unsafe-member-access
+  270:77   error    Unsafe member access .metadata on a type that cannot be resolved                              @typescript-eslint/no-unsafe-member-access
+  281:53   error    Use 'activeWindow.setTimeout()' instead of 'setTimeout()' for popout window compatibility     obsidianmd/prefer-active-window-timers
+  313:23   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  314:17   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  315:22   warning  'error' is defined but never used                                                             @typescript-eslint/no-unused-vars
+  320:25   error    Unsafe member access .title on a type that cannot be resolved                                 @typescript-eslint/no-unsafe-member-access
+  322:24   error    Unsafe member access .title on a type that cannot be resolved                                 @typescript-eslint/no-unsafe-member-access
+  325:25   error    Unsafe member access .summary on a type that cannot be resolved                               @typescript-eslint/no-unsafe-member-access
+  325:45   error    Unsafe member access .summary on a type that cannot be resolved                               @typescript-eslint/no-unsafe-member-access
+  325:86   error    This assertion is unnecessary since it does not change the type of the expression             @typescript-eslint/no-unnecessary-type-assertion
+  326:16   error    This assertion is unnecessary since it does not change the type of the expression             @typescript-eslint/no-unnecessary-type-assertion
+  330:35   error    Unsafe member access .title on a type that cannot be resolved                                 @typescript-eslint/no-unsafe-member-access
+  331:20   error    Unsafe member access .overview on a type that cannot be resolved                              @typescript-eslint/no-unsafe-member-access
+  331:64   error    Unsafe member access .overview on a type that cannot be resolved                              @typescript-eslint/no-unsafe-member-access
+  332:20   error    Unsafe member access .context on a type that cannot be resolved                               @typescript-eslint/no-unsafe-member-access
+  332:75   error    Unsafe member access .context on a type that cannot be resolved                               @typescript-eslint/no-unsafe-member-access
+  333:20   error    Unsafe member access .detailed_summary on a type that cannot be resolved                      @typescript-eslint/no-unsafe-member-access
+  333:85   error    Unsafe member access .detailed_summary on a type that cannot be resolved                      @typescript-eslint/no-unsafe-member-access
+  342:24   error    Unsafe member access [sec.key] on a type that cannot be resolved                              @typescript-eslint/no-unsafe-member-access
+  344:17   error    Unsafe call of a type that could not be resolved                                              @typescript-eslint/no-unsafe-call
+  344:24   error    Unsafe member access [sec.key] on a type that cannot be resolved                              @typescript-eslint/no-unsafe-member-access
+  355:20   error    Unsafe member access .multiple_perspectives on a type that cannot be resolved                 @typescript-eslint/no-unsafe-member-access
+  357:13   error    Unsafe call of a type that could not be resolved                                              @typescript-eslint/no-unsafe-call
+  357:20   error    Unsafe member access .multiple_perspectives on a type that cannot be resolved                 @typescript-eslint/no-unsafe-member-access
+  357:54   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  357:82   error    Unsafe member access .viewpoint on an `any` value                                             @typescript-eslint/no-unsafe-member-access
+  357:98   error    Unsafe member access .analysis on an `any` value                                              @typescript-eslint/no-unsafe-member-access
+  360:20   error    Unsafe member access .analogies_examples on a type that cannot be resolved                    @typescript-eslint/no-unsafe-member-access
+  362:13   error    Unsafe call of a type that could not be resolved                                              @typescript-eslint/no-unsafe-call
+  362:20   error    Unsafe member access .analogies_examples on a type that cannot be resolved                    @typescript-eslint/no-unsafe-member-access
+  362:51   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  362:79   error    Unsafe member access .concept on an `any` value                                               @typescript-eslint/no-unsafe-member-access
+  362:106  error    Unsafe member access .analogy on an `any` value                                               @typescript-eslint/no-unsafe-member-access
+  362:146  error    Unsafe member access .real_world_example on an `any` value                                    @typescript-eslint/no-unsafe-member-access
+  365:20   error    Unsafe member access .case_studies on a type that cannot be resolved                          @typescript-eslint/no-unsafe-member-access
+  367:13   error    Unsafe call of a type that could not be resolved                                              @typescript-eslint/no-unsafe-call
+  367:20   error    Unsafe member access .case_studies on a type that cannot be resolved                          @typescript-eslint/no-unsafe-member-access
+  367:49   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  368:23   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  368:37   error    Unsafe member access .case_study_name on an `any` value                                       @typescript-eslint/no-unsafe-member-access
+  369:51   error    Unsafe member access .description on an `any` value                                           @typescript-eslint/no-unsafe-member-access
+  373:20   error    Unsafe member access .knowledge_connections on a type that cannot be resolved                 @typescript-eslint/no-unsafe-member-access
+  375:13   error    Unsafe call of a type that could not be resolved                                              @typescript-eslint/no-unsafe-call
+  375:20   error    Unsafe member access .knowledge_connections on a type that cannot be resolved                 @typescript-eslint/no-unsafe-member-access
+  375:54   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  375:82   error    Unsafe member access .related_field on an `any` value                                         @typescript-eslint/no-unsafe-member-access
+  375:123  error    Unsafe member access .connection_type on an `any` value                                       @typescript-eslint/no-unsafe-member-access
+  375:147  error    Unsafe member access .detailed_explanation on an `any` value                                  @typescript-eslint/no-unsafe-member-access
+  378:20   error    Unsafe member access .practical_applications on a type that cannot be resolved                @typescript-eslint/no-unsafe-member-access
+  380:13   error    Unsafe call of a type that could not be resolved                                              @typescript-eslint/no-unsafe-call
+  380:20   error    Unsafe member access .practical_applications on a type that cannot be resolved                @typescript-eslint/no-unsafe-member-access
+  380:55   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  380:83   error    Unsafe member access .domain on an `any` value                                                @typescript-eslint/no-unsafe-member-access
+  380:96   error    Unsafe member access .application on an `any` value                                           @typescript-eslint/no-unsafe-member-access
+  380:134  error    Unsafe member access .implementation on an `any` value                                        @typescript-eslint/no-unsafe-member-access
+  380:171  error    Unsafe member access .benefits on an `any` value                                              @typescript-eslint/no-unsafe-member-access
+  383:20   error    Unsafe member access .learning_pathways on a type that cannot be resolved                     @typescript-eslint/no-unsafe-member-access
+  385:13   error    Unsafe call of a type that could not be resolved                                              @typescript-eslint/no-unsafe-call
+  385:20   error    Unsafe member access .learning_pathways on a type that cannot be resolved                     @typescript-eslint/no-unsafe-member-access
+  385:50   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  386:37   error    Unsafe member access .pathway_name on an `any` value                                          @typescript-eslint/no-unsafe-member-access
+  386:72   error    Unsafe member access .difficulty on an `any` value                                            @typescript-eslint/no-unsafe-member-access
+  387:17   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  387:19   error    Unsafe member access .steps on an `any` value                                                 @typescript-eslint/no-unsafe-member-access
+  397:70   error    Unsafe argument of type `any` assigned to a parameter of type `ProcessingIntent`              @typescript-eslint/no-unsafe-argument
+  397:80   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  403:15   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  403:38   error    Unsafe member access .title on a type that cannot be resolved                                 @typescript-eslint/no-unsafe-member-access
+  404:26   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  404:26   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  404:26   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  404:32   error    Unsafe member access .replace on an `any` value                                               @typescript-eslint/no-unsafe-member-access
+  404:62   error    Unsafe member access .replace on an `any` value                                               @typescript-eslint/no-unsafe-member-access
+  404:83   error    Unsafe member access .trim on an `any` value                                                  @typescript-eslint/no-unsafe-member-access
+  408:34   error    Unsafe member access .enableMOC on an `any` value                                             @typescript-eslint/no-unsafe-member-access
+  408:62   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  410:23   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  410:46   error    Unsafe member access .ensureMOCExists on an `any` value                                       @typescript-eslint/no-unsafe-member-access
+  410:77   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  410:103  error    Unsafe member access .overview on a type that cannot be resolved                              @typescript-eslint/no-unsafe-member-access
+  411:17   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  411:33   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  411:56   error    Unsafe member access .getMostSpecificMOCPath on an `any` value                                @typescript-eslint/no-unsafe-member-access
+  411:94   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  415:15   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  415:31   error    Unsafe member access .vault on an `any` value                                                 @typescript-eslint/no-unsafe-member-access
+  415:79   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  415:95   error    Unsafe member access .vault on an `any` value                                                 @typescript-eslint/no-unsafe-member-access
+  417:15   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  417:39   error    Unsafe member access .primary_author on a type that cannot be resolved                        @typescript-eslint/no-unsafe-member-access
+  419:13   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  423:13   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  430:13   error    Unsafe assignment of an error typed value                                                     @typescript-eslint/no-unsafe-assignment
+  430:39   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  432:13   error    Unsafe assignment of an error typed value                                                     @typescript-eslint/no-unsafe-assignment
+  432:46   error    Unsafe member access .learning_context on a type that cannot be resolved                      @typescript-eslint/no-unsafe-member-access
+  433:13   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  433:34   error    Unsafe member access .metadata on a type that cannot be resolved                              @typescript-eslint/no-unsafe-member-access
+  436:9    error    Unsafe return of a value of type `any`                                                        @typescript-eslint/no-unsafe-return
+  436:22   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  436:38   error    Unsafe member access .vault on an `any` value                                                 @typescript-eslint/no-unsafe-member-access
+  436:139  error    Unsafe member access .summary on a type that cannot be resolved                               @typescript-eslint/no-unsafe-member-access
+  440:47   error    Unsafe argument of type `any` assigned to a parameter of type `App`                           @typescript-eslint/no-unsafe-argument
+  441:68   error    Unsafe argument of type `any` assigned to a parameter of type `ProcessingIntent`              @typescript-eslint/no-unsafe-argument
+  441:68   error    This assertion is unnecessary since the receiver accepts the original type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+  441:85   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  442:15   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  442:47   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  442:52   error    Unsafe member access .structure on an `any` value                                             @typescript-eslint/no-unsafe-member-access
+  454:19   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  454:32   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  454:47   error    Unsafe member access .replace on an `any` value                                               @typescript-eslint/no-unsafe-member-access
+  457:21   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  468:67   error    Unsafe member access .message on an `any` value                                               @typescript-eslint/no-unsafe-member-access
+  476:41   error    Unsafe member access .title on a type that cannot be resolved                                 @typescript-eslint/no-unsafe-member-access
+  478:15   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  478:28   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  478:44   error    Unsafe member access .vault on an `any` value                                                 @typescript-eslint/no-unsafe-member-access
+  478:85   error    Unsafe member access .parent on an `any` value                                                @typescript-eslint/no-unsafe-member-access
+  479:15   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  479:39   error    Unsafe member access .primary_author on a type that cannot be resolved                        @typescript-eslint/no-unsafe-member-access
+  485:13   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  490:9    error    Unsafe return of a value of type `any`                                                        @typescript-eslint/no-unsafe-return
+  490:22   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  490:38   error    Unsafe member access .vault on an `any` value                                                 @typescript-eslint/no-unsafe-member-access
+  499:19   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  499:35   error    Unsafe member access .vault on an `any` value                                                 @typescript-eslint/no-unsafe-member-access
+  499:84   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  499:100  error    Unsafe member access .vault on an `any` value                                                 @typescript-eslint/no-unsafe-member-access
+  503:13   error    Unsafe assignment of an error typed value                                                     @typescript-eslint/no-unsafe-assignment
+  503:35   error    Unsafe member access .title on a type that cannot be resolved                                 @typescript-eslint/no-unsafe-member-access
+  506:13   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  506:36   error    Unsafe member access .primary_author on a type that cannot be resolved                        @typescript-eslint/no-unsafe-member-access
+  510:13   error    Unsafe assignment of an error typed value                                                     @typescript-eslint/no-unsafe-assignment
+  510:39   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  514:15   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  514:31   error    Unsafe member access .vault on an `any` value                                                 @typescript-eslint/no-unsafe-member-access
+  517:51   warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  529:71   error    Unsafe argument of type `any` assigned to a parameter of type `Record<string, any>`           @typescript-eslint/no-unsafe-argument
+  536:73   warning  'traceId' is defined but never used. Allowed unused args must match /^_/u                     @typescript-eslint/no-unused-vars
+  537:35   error    Unsafe member access .enableMOC on an `any` value                                             @typescript-eslint/no-unsafe-member-access
+  537:64   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  538:15   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  538:30   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  538:53   error    Unsafe member access .createHierarchicalStructure on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  538:96   error    Unsafe member access .hierarchy on a type that cannot be resolved                             @typescript-eslint/no-unsafe-member-access
+  539:35   error    Unsafe member access .length on an `any` value                                                @typescript-eslint/no-unsafe-member-access
+  540:19   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  540:44   error    Unsafe member access [i] on an `any` value                                                    @typescript-eslint/no-unsafe-member-access
+  541:34   error    Unsafe member access .length on an `any` value                                                @typescript-eslint/no-unsafe-member-access
+  541:75   error    Use 'activeWindow.setTimeout()' instead of 'setTimeout()' for popout window compatibility     obsidianmd/prefer-active-window-timers
+  543:23   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  543:46   error    Unsafe member access .mocIntelligence on an `any` value                                       @typescript-eslint/no-unsafe-member-access
+  543:98   error    Unsafe member access .path on an `any` value                                                  @typescript-eslint/no-unsafe-member-access
+  544:22   warning  'error' is defined but never used                                                             @typescript-eslint/no-unused-vars
+  544:80   error    Unsafe member access .title on an `any` value                                                 @typescript-eslint/no-unsafe-member-access
+  550:19   error    Unsafe assignment of an `any` value                                                           @typescript-eslint/no-unsafe-assignment
+  550:31   error    Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  550:54   error    Unsafe member access .loadHierarchy on an `any` value                                         @typescript-eslint/no-unsafe-member-access
+  551:32   error    Unsafe argument of type `any` assigned to a parameter of type `{}`                            @typescript-eslint/no-unsafe-argument
+  552:18   warning  'e' is defined but never used                                                                 @typescript-eslint/no-unused-vars
+
+/Users/surendran/Projects/second-brAIn/src/services/PluginIntegration.ts
+  17:36  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  19:13  error    Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  42:38  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  60:36  error    Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  60:49  error    Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+/Users/surendran/Projects/second-brAIn/src/services/ServiceFactory.ts
+   17:50  warning  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   54:60  warning  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   55:11  error    Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+   55:35  error    Unsafe member access .provider on an `any` value    @typescript-eslint/no-unsafe-member-access
+   60:7   error    Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+   60:29  error    Unsafe member access .gemini on an `any` value      @typescript-eslint/no-unsafe-member-access
+   61:7   error    Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+   61:28  error    Unsafe member access .gemini on an `any` value      @typescript-eslint/no-unsafe-member-access
+   63:7   error    Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+   63:29  error    Unsafe member access .openrouter on an `any` value  @typescript-eslint/no-unsafe-member-access
+   64:7   error    Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+   64:28  error    Unsafe member access .openrouter on an `any` value  @typescript-eslint/no-unsafe-member-access
+   69:9   error    Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+   76:32  error    Unsafe member access .langfuse on an `any` value    @typescript-eslint/no-unsafe-member-access
+   77:9   error    Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+   77:31  error    Unsafe member access .langfuse on an `any` value    @typescript-eslint/no-unsafe-member-access
+   78:32  error    Unsafe member access .langfuse on an `any` value    @typescript-eslint/no-unsafe-member-access
+   79:11  error    Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+   79:35  error    Unsafe member access .langfuse on an `any` value    @typescript-eslint/no-unsafe-member-access
+   80:11  error    Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+   80:35  error    Unsafe member access .langfuse on an `any` value    @typescript-eslint/no-unsafe-member-access
+   81:11  error    Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+   81:33  error    Unsafe member access .langfuse on an `any` value    @typescript-eslint/no-unsafe-member-access
+  109:42  warning  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  109:48  warning  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/services/TraceManager.ts
+  103:9   error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  104:9   error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  110:21  error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  110:34  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  113:21  error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  113:34  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  166:9   error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  176:11  error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  176:24  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  216:57  error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  216:70  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  217:70  error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  217:83  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+/Users/surendran/Projects/second-brAIn/src/services/moc-intelligence.ts
+   67:78  error    Avoid casting to 'TFile'. Use an 'instanceof TFile' check to safely narrow the type   obsidianmd/no-tfile-tfolder-cast
+   70:18  warning  'error' is defined but never used                                                     @typescript-eslint/no-unused-vars
+   75:54  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+   88:15  error    Unsafe assignment of an `any` value                                                   @typescript-eslint/no-unsafe-assignment
+   89:15  error    Unsafe assignment of an `any` value                                                   @typescript-eslint/no-unsafe-assignment
+   92:13  error    Unsafe assignment of an `any` value                                                   @typescript-eslint/no-unsafe-assignment
+   92:34  error    Unsafe member access .overview on an `any` value                                      @typescript-eslint/no-unsafe-member-access
+   93:58  error    Unsafe member access .keyThemes on an `any` value                                     @typescript-eslint/no-unsafe-member-access
+   94:13  error    Unsafe assignment of an `any` value                                                   @typescript-eslint/no-unsafe-assignment
+   94:49  error    Unsafe member access .conceptualRelationships on an `any` value                       @typescript-eslint/no-unsafe-member-access
+   95:13  error    Unsafe assignment of an `any` value                                                   @typescript-eslint/no-unsafe-assignment
+   95:42  error    Unsafe member access .learningProgress on an `any` value                              @typescript-eslint/no-unsafe-member-access
+   96:62  error    Unsafe member access .knowledgeGaps on an `any` value                                 @typescript-eslint/no-unsafe-member-access
+   97:71  error    Unsafe member access .crossDomainConnections on an `any` value                        @typescript-eslint/no-unsafe-member-access
+   98:68  error    Unsafe member access .synthesizedInsights on an `any` value                           @typescript-eslint/no-unsafe-member-access
+   99:13  error    Unsafe assignment of an `any` value                                                   @typescript-eslint/no-unsafe-assignment
+   99:45  error    Unsafe member access .learningPaths on an `any` value                                 @typescript-eslint/no-unsafe-member-access
+  100:13  error    Unsafe assignment of an `any` value                                                   @typescript-eslint/no-unsafe-assignment
+  100:44  error    Unsafe member access .coreConcepts on an `any` value                                  @typescript-eslint/no-unsafe-member-access
+  101:13  error    Unsafe assignment of an `any` value                                                   @typescript-eslint/no-unsafe-assignment
+  101:45  error    Unsafe member access .relatedTopics on an `any` value                                 @typescript-eslint/no-unsafe-member-access
+  102:13  error    Unsafe assignment of an `any` value                                                   @typescript-eslint/no-unsafe-assignment
+  102:45  error    Unsafe member access .prerequisites on an `any` value                                 @typescript-eslint/no-unsafe-member-access
+  103:13  error    Unsafe assignment of an `any` value                                                   @typescript-eslint/no-unsafe-assignment
+  103:46  error    Unsafe member access .noteReferences on an `any` value                                @typescript-eslint/no-unsafe-member-access
+  107:47  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  107:54  warning  'existingMOCContent' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  121:74  error    Avoid casting to 'TFile'. Use an 'instanceof TFile' check to safely narrow the type   obsidianmd/no-tfile-tfolder-cast
+  143:74  error    Avoid casting to 'TFile'. Use an 'instanceof TFile' check to safely narrow the type   obsidianmd/no-tfile-tfolder-cast
+  173:36  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  178:35  warning  'content' is defined but never used. Allowed unused args must match /^_/u             @typescript-eslint/no-unused-vars
+  180:56  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  188:65  warning  'summaries' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+  188:76  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  205:36  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/services/moc-manager.ts
+    1:22  warning  'TFolder' is defined but never used                                                  @typescript-eslint/no-unused-vars
+   13:62  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   25:19  error    Unsafe assignment of an `any` value                                                  @typescript-eslint/no-unsafe-assignment
+   28:23  error    Unsafe assignment of an `any` value                                                  @typescript-eslint/no-unsafe-assignment
+   29:53  error    Unsafe argument of type `any` assigned to a parameter of type `string`               @typescript-eslint/no-unsafe-argument
+   29:64  error    Unsafe member access .path on an `any` value                                         @typescript-eslint/no-unsafe-member-access
+   34:9   error    Unsafe return of a value of type `any`                                               @typescript-eslint/no-unsafe-return
+   34:54  error    Unsafe member access .path on an `any` value                                         @typescript-eslint/no-unsafe-member-access
+   37:36  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   44:18  warning  'e' is defined but never used                                                        @typescript-eslint/no-unused-vars
+   44:21  error    Empty block statement                                                                no-empty
+   49:15  error    Unsafe assignment of an `any` value                                                  @typescript-eslint/no-unsafe-assignment
+   53:18  error    Unsafe member access [hierarchy.level1] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   53:41  error    Unsafe member access [hierarchy.level1] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   54:13  error    Unsafe assignment of an `any` value                                                  @typescript-eslint/no-unsafe-assignment
+   54:27  error    Unsafe member access [hierarchy.level1] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   57:26  error    Unsafe member access [hierarchy.level2] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   57:53  error    Unsafe member access [hierarchy.level2] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   58:13  error    Unsafe assignment of an `any` value                                                  @typescript-eslint/no-unsafe-assignment
+   58:31  error    Unsafe member access [hierarchy.level2] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   62:26  error    Unsafe member access [hierarchy.level3] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   62:53  error    Unsafe member access [hierarchy.level3] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   63:13  error    Unsafe assignment of an `any` value                                                  @typescript-eslint/no-unsafe-assignment
+   63:31  error    Unsafe member access [hierarchy.level3] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   68:26  error    Unsafe member access [hierarchy.level4] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   68:55  error    Unsafe member access [hierarchy.level4] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   69:25  error    Unsafe member access [hierarchy.level4] on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   76:38  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   86:66  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  136:52  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  137:67  error    Unsafe argument of type `any` assigned to a parameter of type `string`               @typescript-eslint/no-unsafe-argument
+  137:77  error    Unsafe member access .path on an `any` value                                         @typescript-eslint/no-unsafe-member-access
+  140:61  error    Unsafe argument of type `any` assigned to a parameter of type `string`               @typescript-eslint/no-unsafe-argument
+  140:71  error    Unsafe member access .directory on an `any` value                                    @typescript-eslint/no-unsafe-member-access
+  141:56  error    Unsafe argument of type `any` assigned to a parameter of type `string`               @typescript-eslint/no-unsafe-argument
+  141:66  error    Unsafe member access .directory on an `any` value                                    @typescript-eslint/no-unsafe-member-access
+  143:40  error    Unsafe member access .title on an `any` value                                        @typescript-eslint/no-unsafe-member-access
+  144:37  error    Unsafe argument of type `any` assigned to a parameter of type `string`               @typescript-eslint/no-unsafe-argument
+  144:47  error    Unsafe member access .path on an `any` value                                         @typescript-eslint/no-unsafe-member-access
+  147:75  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  148:80  error    Avoid casting to 'TFile'. Use an 'instanceof TFile' check to safely narrow the type  obsidianmd/no-tfile-tfolder-cast
+  151:42  error    Unsafe member access .title on an `any` value                                        @typescript-eslint/no-unsafe-member-access
+  158:9   error    Unsafe return of a value of type `any`                                               @typescript-eslint/no-unsafe-return
+  158:48  error    Unsafe member access .path on an `any` value                                         @typescript-eslint/no-unsafe-member-access
+  163:9   error    Unsafe return of a value of type `any`                                               @typescript-eslint/no-unsafe-return
+  163:48  error    Unsafe member access .directory on an `any` value                                    @typescript-eslint/no-unsafe-member-access
+  166:75  warning  'context' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  167:74  error    Avoid casting to 'TFile'. Use an 'instanceof TFile' check to safely narrow the type  obsidianmd/no-tfile-tfolder-cast
+
+/Users/surendran/Projects/second-brAIn/src/services/prompt-loader.ts
+   8:35  warning  Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  19:11  warning  'IntentPromptsJSON' is defined but never used                                                                                                             @typescript-eslint/no-unused-vars
+  46:17  error    [no-console] Avoid unnecessary logging to console. See https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines#Avoid+unnecessary+logging+to+console  obsidianmd/rule-custom-message
+  56:85  error    Unsafe member access .message on an `any` value                                                                                                           @typescript-eslint/no-unsafe-member-access
+
+✖ 418 problems (361 errors, 57 warnings)
+  6 errors and 38 warnings potentially fixable with the `--fix` option.
+

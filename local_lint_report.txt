@@ -1,0 +1,571 @@
+
+/Users/surendran/Projects/second-brAIn/main.ts
+    1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found                                                                                 obsidianmd/settings-tab/no-manual-html-headings
+    1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                                                                                                        obsidianmd/vault/iterate
+    1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                                                                                                        obsidianmd/detach-leaves
+    1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                                                                                                obsidianmd/no-forbidden-elements
+    1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                                                                                                obsidianmd/no-tfile-tfolder-cast
+    1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                                                                                                     obsidianmd/ui/sentence-case
+    1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found                                                                                          obsidianmd/no-static-styles-assignment
+    1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                                                                                                     obsidianmd/prefer-create-el
+    1:51  warning  'TFile' is defined but never used                                                                                                                                   @typescript-eslint/no-unused-vars
+    7:10  warning  'findUniqueFileName' is defined but never used                                                                                                                      @typescript-eslint/no-unused-vars
+    7:30  warning  'generateId' is defined but never used                                                                                                                              @typescript-eslint/no-unused-vars
+    7:42  warning  'estimateTokens' is defined but never used                                                                                                                          @typescript-eslint/no-unused-vars
+    7:58  warning  'calculateCost' is defined but never used                                                                                                                           @typescript-eslint/no-unused-vars
+    7:73  warning  'formatTokens' is defined but never used                                                                                                                            @typescript-eslint/no-unused-vars
+   29:9   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  124:15  warning  'qaLabel' is assigned a value but never used                                                                                                                        @typescript-eslint/no-unused-vars
+  161:13  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  302:9   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  369:87  warning  Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+  386:19  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/Users/surendran/Projects/second-brAIn/settings.ts
+    1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found                                                                                 obsidianmd/settings-tab/no-manual-html-headings
+    1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                                                                                                        obsidianmd/vault/iterate
+    1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                                                                                                        obsidianmd/detach-leaves
+    1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                                                                                                obsidianmd/no-forbidden-elements
+    1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                                                                                                obsidianmd/no-tfile-tfolder-cast
+    1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                                                                                                     obsidianmd/ui/sentence-case
+    1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found                                                                                          obsidianmd/no-static-styles-assignment
+    1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                                                                                                     obsidianmd/prefer-create-el
+  339:9  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/Users/surendran/Projects/second-brAIn/src/components/index.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/components/modals/HierarchyChoiceModal.ts
+   1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+   1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+   1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+   1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+   1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+   1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+   1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+   1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+  12:29  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  17:43  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  55:71  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  94:72  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/components/modals/SettingModal.ts
+   1:1   error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+   1:1   error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+   1:1   error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+   1:1   error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+   1:1   error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+   1:1   error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+   1:1   error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+   1:1   error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+  92:15  error  'contentEl' is never reassigned. Use 'const' instead                                 prefer-const
+
+/Users/surendran/Projects/second-brAIn/src/components/modals/index.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/config/defaults.ts
+   1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+   1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+   1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+   1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+   1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+   1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+   1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+   1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+  17:13  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  23:13  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/config/index.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/config/intents.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/config/models.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/index.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/providers/llm/GeminiProvider.ts
+    1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+    1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+    1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+    1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+    1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+    1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+    1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+    1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+   56:20  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   65:47  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   66:51  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   67:55  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   68:50  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  196:14  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+
+/Users/surendran/Projects/second-brAIn/src/providers/llm/OpenRouterProvider.ts
+    1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+    1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+    1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+    1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+    1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+    1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+    1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+    1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+  119:14  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+
+/Users/surendran/Projects/second-brAIn/src/providers/llm/index.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/providers/tracing/ConsoleProvider.ts
+   1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+   1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+   1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+   1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+   1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+   1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+   1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+   1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+  20:20  warning  'metadata' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+  24:18  warning  'traceId' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  24:35  warning  'metadata' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+  26:21  warning  'traceId' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  26:38  warning  'metadata' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+  28:25  warning  'traceId' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  28:42  warning  'metadata' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+  32:23  warning  'generationId' is defined but never used. Allowed unused args must match /^_/u       @typescript-eslint/no-unused-vars
+  32:45  warning  'metadata' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+  34:26  warning  'generationId' is defined but never used. Allowed unused args must match /^_/u       @typescript-eslint/no-unused-vars
+  34:48  warning  'metadata' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+  36:19  warning  'traceId' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  36:36  warning  'name' is defined but never used. Allowed unused args must match /^_/u               @typescript-eslint/no-unused-vars
+  36:50  warning  'metadata' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+  40:17  warning  'spanId' is defined but never used. Allowed unused args must match /^_/u             @typescript-eslint/no-unused-vars
+  40:33  warning  'metadata' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+
+/Users/surendran/Projects/second-brAIn/src/providers/tracing/LangfuseProvider.ts
+    1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+    1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+    1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+    1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+    1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+    1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+    1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+    1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+   18:9   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   19:14  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   54:14  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+   74:14  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+   74:21  error    Empty block statement                                                                no-empty
+   97:14  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+   97:21  error    Empty block statement                                                                no-empty
+  122:14  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+  149:14  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+  149:21  error    Empty block statement                                                                no-empty
+  177:14  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+  177:21  error    Empty block statement                                                                no-empty
+  200:14  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+  221:14  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+  221:21  error    Empty block statement                                                                no-empty
+  245:14  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+  245:21  error    Empty block statement                                                                no-empty
+
+/Users/surendran/Projects/second-brAIn/src/providers/tracing/index.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/services/ContentExtractor.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/services/HierarchyService.ts
+    1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+    1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+    1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+    1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+    1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+    1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+    1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+    1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+   21:25  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   22:27  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   24:29  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   24:48  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   32:19  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   65:76  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  128:18  warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+  146:66  warning  'metadata' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+  146:76  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/services/LLMService.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/services/NoteProcessor.ts
+    1:1    error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+    1:1    error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+    1:1    error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+    1:1    error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+    1:1    error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+    1:1    error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+    1:1    error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+    1:1    error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+    5:17   warning  'TFolder' is defined but never used                                                  @typescript-eslint/no-unused-vars
+   31:21   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   32:26   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   36:77   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   36:95   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  197:49   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  222:44   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  237:83   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  260:18   warning  'e' is defined but never used                                                        @typescript-eslint/no-unused-vars
+  265:123  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  267:25   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  306:22   warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+  320:47   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  348:54   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  353:51   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  358:49   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  366:54   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  371:55   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  376:50   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  388:80   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  393:46   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  432:85   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  433:47   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  466:48   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  484:78   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  508:51   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  527:53   warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  527:58   warning  'traceId' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  535:22   warning  'error' is defined but never used                                                    @typescript-eslint/no-unused-vars
+  543:18   warning  'e' is defined but never used                                                        @typescript-eslint/no-unused-vars
+
+/Users/surendran/Projects/second-brAIn/src/services/PluginIntegration.ts
+   1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+   1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+   1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+   1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+   1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+   1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+   1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+   1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+  17:36  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  42:38  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/services/ServiceFactory.ts
+    1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+    1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+    1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+    1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+    1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+    1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+    1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+    1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+   17:50  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   54:60  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  109:42  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  109:48  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/services/TraceManager.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/services/UsageHistoryManager.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/services/extractors/WebExtractor.ts
+   1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found                                  obsidianmd/settings-tab/no-manual-html-headings
+   1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                                                         obsidianmd/vault/iterate
+   1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                                                         obsidianmd/detach-leaves
+   1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                                                 obsidianmd/no-forbidden-elements
+   1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                                                 obsidianmd/no-tfile-tfolder-cast
+   1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                                                      obsidianmd/ui/sentence-case
+   1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found                                           obsidianmd/no-static-styles-assignment
+   1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                                                      obsidianmd/prefer-create-el
+   6:30  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   9:9   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  75:26  warning  'e' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+  75:29  error    Empty block statement                                                                                                no-empty
+  84:26  warning  'e' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+  84:29  error    Empty block statement                                                                                                no-empty
+
+/Users/surendran/Projects/second-brAIn/src/services/extractors/YoutubeExtractor.ts
+    1:1    error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found                                  obsidianmd/settings-tab/no-manual-html-headings
+    1:1    error    Definition for rule 'obsidianmd/vault/iterate' was not found                                                         obsidianmd/vault/iterate
+    1:1    error    Definition for rule 'obsidianmd/detach-leaves' was not found                                                         obsidianmd/detach-leaves
+    1:1    error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                                                 obsidianmd/no-forbidden-elements
+    1:1    error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                                                 obsidianmd/no-tfile-tfolder-cast
+    1:1    error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                                                      obsidianmd/ui/sentence-case
+    1:1    error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found                                           obsidianmd/no-static-styles-assignment
+    1:1    error    Definition for rule 'obsidianmd/prefer-create-el' was not found                                                      obsidianmd/prefer-create-el
+   15:9    error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+   19:15   warning  'nodePath' is assigned a value but never used                                                                        @typescript-eslint/no-unused-vars
+   96:49   warning  'e' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+   96:52   error    Empty block statement                                                                                                no-empty
+  101:9    error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  103:9    error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  108:46   error    Unnecessary escape character: \/                                                                                     no-useless-escape
+  108:104  error    Unnecessary escape character: \/                                                                                     no-useless-escape
+
+/Users/surendran/Projects/second-brAIn/src/services/index.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/services/moc-intelligence.ts
+    1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found   obsidianmd/settings-tab/no-manual-html-headings
+    1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                          obsidianmd/vault/iterate
+    1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                          obsidianmd/detach-leaves
+    1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                  obsidianmd/no-forbidden-elements
+    1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                  obsidianmd/no-tfile-tfolder-cast
+    1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                       obsidianmd/ui/sentence-case
+    1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found            obsidianmd/no-static-styles-assignment
+    1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                       obsidianmd/prefer-create-el
+   70:18  warning  'error' is defined but never used                                                     @typescript-eslint/no-unused-vars
+   75:54  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  107:47  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  107:54  warning  'existingMOCContent' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  173:36  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  178:35  warning  'content' is defined but never used. Allowed unused args must match /^_/u             @typescript-eslint/no-unused-vars
+  180:56  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  188:65  warning  'summaries' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+  188:76  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  205:36  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/services/moc-manager.ts
+    1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+    1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+    1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+    1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+    1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+    1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+    1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+    1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+    1:22  warning  'TFolder' is defined but never used                                                  @typescript-eslint/no-unused-vars
+   13:62  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   37:36  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   44:18  warning  'e' is defined but never used                                                        @typescript-eslint/no-unused-vars
+   44:21  error    Empty block statement                                                                no-empty
+   76:38  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   86:66  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  136:52  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  147:75  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  150:13  error    'content' is never reassigned. Use 'const' instead                                   prefer-const
+  166:75  warning  'context' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  169:13  error    'content' is never reassigned. Use 'const' instead                                   prefer-const
+
+/Users/surendran/Projects/second-brAIn/src/services/prompt-loader.ts
+   1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+   1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+   1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+   1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+   1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+   1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+   1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+   1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+   8:35  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  19:11  warning  'IntentPromptsJSON' is defined but never used                                        @typescript-eslint/no-unused-vars
+
+/Users/surendran/Projects/second-brAIn/src/types/config.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/types/index.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/types/llm.ts
+   1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+   1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+   1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+   1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+   1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+   1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+   1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+   1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+  11:29  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  22:29  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  28:29  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/types/moc-types.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/types/plugin.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/types/tracing.ts
+   1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+   1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+   1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+   1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+   1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+   1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+   1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+   1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+  10:11  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  11:12  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  12:29  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  17:36  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  30:11  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  31:12  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  32:29  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  57:26  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  81:29  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  88:18  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/utils/fileUtils.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/utils/index.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+/Users/surendran/Projects/second-brAIn/src/utils/stringUtils.ts
+   1:1   error    Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+   1:1   error    Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+   1:1   error    Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+   1:1   error    Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+   1:1   error    Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+   1:1   error    Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+   1:1   error    Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+   1:1   error    Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+  38:53  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+
+/Users/surendran/Projects/second-brAIn/src/utils/tokenUtils.ts
+  1:1  error  Definition for rule 'obsidianmd/settings-tab/no-manual-html-headings' was not found  obsidianmd/settings-tab/no-manual-html-headings
+  1:1  error  Definition for rule 'obsidianmd/vault/iterate' was not found                         obsidianmd/vault/iterate
+  1:1  error  Definition for rule 'obsidianmd/detach-leaves' was not found                         obsidianmd/detach-leaves
+  1:1  error  Definition for rule 'obsidianmd/no-forbidden-elements' was not found                 obsidianmd/no-forbidden-elements
+  1:1  error  Definition for rule 'obsidianmd/no-tfile-tfolder-cast' was not found                 obsidianmd/no-tfile-tfolder-cast
+  1:1  error  Definition for rule 'obsidianmd/ui/sentence-case' was not found                      obsidianmd/ui/sentence-case
+  1:1  error  Definition for rule 'obsidianmd/no-static-styles-assignment' was not found           obsidianmd/no-static-styles-assignment
+  1:1  error  Definition for rule 'obsidianmd/prefer-create-el' was not found                      obsidianmd/prefer-create-el
+
+✖ 485 problems (352 errors, 133 warnings)
+  3 errors and 0 warnings potentially fixable with the `--fix` option.
+

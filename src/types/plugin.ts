@@ -49,3 +49,73 @@ export interface NoteHierarchyAnalysis {
         secondary_mocs?: string[];
     };
 }
+
+export interface Perspective {
+    viewpoint: string;
+    analysis: string;
+}
+
+export interface Analogy {
+    concept: string;
+    analogy: string;
+    real_world_example: string;
+}
+
+export interface CaseStudy {
+    case_study_name?: string;
+    description?: string;
+}
+
+export interface KnowledgeConnection {
+    related_field: string;
+    connection_type: string;
+    detailed_explanation: string;
+}
+
+export interface PracticalApplication {
+    domain: string;
+    application: string;
+    implementation: string;
+    benefits: string;
+}
+
+export interface LearningPathway {
+    pathway_name: string;
+    difficulty: string;
+    steps: string[];
+}
+
+export interface FullAnalysisResult {
+    title: string;
+    summary?: string;
+    overview?: string;
+    context?: string;
+    detailed_summary?: string;
+    key_facts?: string[];
+    deep_insights?: string[];
+    core_concepts?: string[];
+    multiple_perspectives?: Perspective[];
+    analogies_examples?: Analogy[];
+    case_studies?: (CaseStudy | string)[];
+    knowledge_connections?: KnowledgeConnection[];
+    practical_applications?: PracticalApplication[];
+    learning_pathways?: LearningPathway[];
+    hierarchy?: MOCHierarchy;
+    hierarchy_confidence?: number;
+    hierarchy_reasoning?: string;
+    primary_author?: string;
+    learning_context?: LearningContext;
+    metadata?: Record<string, any>;
+}
+
+export interface HierarchyAnalysisResult {
+    primary_hierarchy: MOCHierarchy;
+    confidence_score: number;
+    reasoning: string;
+    alternative_hierarchies: Array<{
+        hierarchy: MOCHierarchy;
+        strength: number;
+        reasoning?: string;
+    }>;
+    learning_context?: LearningContext;
+}

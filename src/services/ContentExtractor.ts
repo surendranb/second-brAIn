@@ -1,9 +1,7 @@
 /**
  * ContentExtractor Service (Native Version)
- * 
- * Handles extraction of content using native TypeScript implementations.
- * No external Python dependencies.
  */
+import { App } from 'obsidian';
 import { YoutubeExtractor } from './extractors/YoutubeExtractor';
 import { WebExtractor } from './extractors/WebExtractor';
 
@@ -37,8 +35,8 @@ export class ContentExtractor {
     private youtubeExtractor: YoutubeExtractor;
     private webExtractor: WebExtractor;
 
-    constructor() {
-        this.youtubeExtractor = new YoutubeExtractor();
+    constructor(app: App) {
+        this.youtubeExtractor = new YoutubeExtractor(app);
         this.webExtractor = new WebExtractor();
     }
 
@@ -83,7 +81,8 @@ export class ContentExtractor {
             }
 
         } catch (error) {
-            console.error('[ContentExtractor] Extraction failed:', error.message);
+            const errorMsg = (error as Error).message;
+            console.error('[ContentExtractor] Extraction failed:', errorMsg);
             
             if (error instanceof ContentExtractionError) {
                 throw error;
@@ -96,7 +95,7 @@ export class ContentExtractor {
             throw new ContentExtractionError(
                 url,
                 contentType,
-                error.message,
+                errorMsg,
                 suggestion
             );
         }

@@ -2,26 +2,14 @@
  * HierarchyService - AI-Driven MOC Creation
  */
 
-export interface HierarchyAnalysisResult {
-    hierarchy: {
-        level1: string; 
-        level2: string; 
-        level3?: string; 
-        level4?: string;
-    };
-    confidence: number;
-    reasoning: string;
-    alternatives?: {
-        level1: string;
-        reasoning: string;
-    }[];
-}
+import { MOCHierarchy, HierarchyAnalysisResult } from '../types';
+import { LLMService, TraceManager } from './index';
 
 export class HierarchyService {
-    private llmService: any;
-    private traceManager: any;
+    private llmService: LLMService;
+    private traceManager: TraceManager;
 
-    constructor(llmService: any, traceManager: any) {
+    constructor(llmService: LLMService, traceManager: TraceManager) {
         this.llmService = llmService;
         this.traceManager = traceManager;
     }
@@ -47,7 +35,7 @@ export class HierarchyService {
                     metadata: { type: 'hierarchy-analysis', title: title.substring(0, 100) }
                 },
                 {
-                    traceId,
+                    traceId: traceId || 'no-trace',
                     generationName: 'hierarchy-analysis',
                     pass: 'Hierarchy Analysis',
                     intent: 'hierarchy-classification'
@@ -96,7 +84,13 @@ Return ONLY valid JSON in this exact format:
   },
   "confidence": 0.85,
   "reasoning": "Explain your architectural decision. Why is this the truest home for this concept?",
-  "alternatives": []
+  "alternatives": [
+    {
+      "hierarchy": { "level1": "Alternative", "level2": "Discipline" },
+      "strength": 0.6,
+      "reasoning": "Why this works too"
+    }
+  ]
 }`;
     }
 
@@ -115,15 +109,24 @@ Return ONLY valid JSON in this exact format:
             }
             
             return {
-                hierarchy: {
+                primary_hierarchy: {
                     level1: parsed.hierarchy.level1.trim(),
                     level2: parsed.hierarchy.level2.trim(),
                     level3: parsed.hierarchy.level3?.trim(),
                     level4: parsed.hierarchy.level4?.trim()
                 },
-                confidence: Math.max(0, Math.min(1, parsed.confidence || 0.5)),
+                confidence_score: Math.max(0, Math.min(1, parsed.confidence || 0.5)),
                 reasoning: parsed.reasoning || 'No reasoning',
-                alternatives: parsed.alternatives || []
+                alternative_hierarchies: (parsed.alternatives || []).map((alt: any) => ({
+                    hierarchy: {
+                        level1: alt.hierarchy?.level1 || 'Unknown',
+                        level2: alt.hierarchy?.level2 || 'Unknown',
+                        level3: alt.hierarchy?.level3,
+                        level4: alt.hierarchy?.level4
+                    },
+                    strength: alt.strength || 0.5,
+                    reasoning: alt.reasoning
+                }))
             };
         } catch (error) {
             return this.extractBasicHierarchy(responseText);
@@ -134,12 +137,13 @@ Return ONLY valid JSON in this exact format:
         const level1Match = responseText.match(/level1["\s]*:[\s"]*([^"}\n,]+)/i);
         const level2Match = responseText.match(/level2["\s]*:[\s"]*([^"}\n,]+)/i);
         return {
-            hierarchy: {
+            primary_hierarchy: {
                 level1: level1Match ? level1Match[1].trim() : 'General Knowledge',
                 level2: level2Match ? level2Match[1].trim() : 'Miscellaneous'
             },
-            confidence: 0.3,
-            reasoning: 'Fallback due to parse error'
+            confidence_score: 0.3,
+            reasoning: 'Fallback due to parse error',
+            alternative_hierarchies: []
         };
     }
 
@@ -153,6 +157,11 @@ Return ONLY valid JSON in this exact format:
             level1 = 'Business'; level2 = 'Strategy';
         }
         
-        return { hierarchy: { level1, level2 }, confidence: 0.4, reasoning: 'Keyword fallback' };
+        return { 
+            primary_hierarchy: { level1, level2 }, 
+            confidence_score: 0.4, 
+            reasoning: 'Keyword fallback',
+            alternative_hierarchies: []
+        };
     }
 }

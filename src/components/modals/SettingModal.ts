@@ -24,11 +24,11 @@ export class SettingModal extends Modal {
     onOpen() {
         const { contentEl } = this;
 
-        contentEl.createEl('h2', { text: 'AI Summarizer Settings' });
+        new Setting(contentEl).setName('AI summarizer settings').setHeading();
 
         // Provider Selection
         new Setting(contentEl)
-            .setName('AI Provider')
+            .setName('AI provider')
             .setDesc('Select the AI provider to use for summarization')
             .addDropdown(dropdown => dropdown
                 .addOption('gemini', 'Google Gemini')
@@ -41,7 +41,7 @@ export class SettingModal extends Modal {
         // Provider-specific settings
         if (this.settings.provider === 'gemini') {
             new Setting(contentEl)
-                .setName('Gemini API Key')
+                .setName('Gemini API key')
                 .setDesc('Your Google Gemini API key')
                 .addText(text => text
                     .setPlaceholder('Enter your API key')
@@ -51,7 +51,7 @@ export class SettingModal extends Modal {
                     }));
 
             new Setting(contentEl)
-                .setName('Gemini Model')
+                .setName('Gemini model')
                 .setDesc('Select the Gemini model to use')
                 .addDropdown(dropdown => {
                     this.settings.gemini.models.forEach((model: GeminiModel) => {
@@ -66,7 +66,7 @@ export class SettingModal extends Modal {
 
             // Common Settings
             new Setting(contentEl)
-                .setName('Default Prompt')
+                .setName('Default prompt')
                 .setDesc('The default prompt used for summarization')
                 .addTextArea(text => text
                     .setPlaceholder('Enter your default prompt')

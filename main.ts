@@ -1,13 +1,11 @@
-import { Plugin, WorkspaceLeaf, ItemView, Notice, TFolder, App, TFile, Modal } from 'obsidian';
+import { Plugin, WorkspaceLeaf, ItemView, Notice, TFile } from 'obsidian';
 import { AISummarizerSettingsTab } from './settings';
 import { PluginIntegration, LLMService, TraceManager } from './src/services';
 import { NoteProcessor } from './src/services/NoteProcessor';
 import { UsageHistoryManager } from './src/services/UsageHistoryManager';
 import { MOCManager } from './src/services/moc-manager';
-import { PromptLoader } from './src/services/prompt-loader';
 import { findUniqueFileName, generateId, estimateTokens, calculateCost, formatTokens } from './src/utils';
-import { GEMINI_MODELS, OPENROUTER_MODELS, PROCESSING_INTENTS, DEFAULT_SETTINGS, type GeminiModel, type ProcessingIntent, type ProcessingIntentOption, type Provider } from './src/config';
-import { SettingModal } from './src/components';
+import { GEMINI_MODELS, OPENROUTER_MODELS, PROCESSING_INTENTS, DEFAULT_SETTINGS, type ProcessingIntent, type Provider } from './src/config';
 
 type PluginSettings = typeof DEFAULT_SETTINGS;
 const VIEW_TYPE_SUMMARY = 'ai-summarizer-summary';
@@ -28,7 +26,7 @@ class SummaryView extends ItemView {
 
     constructor(leaf: WorkspaceLeaf, private plugin: AISummarizerPlugin) {
         super(leaf);
-        this.initializeUsageTracking();
+        void this.initializeUsageTracking();
         this.initializeNoteProcessor();
     }
 
@@ -41,14 +39,14 @@ class SummaryView extends ItemView {
         if (this.plugin.llmService && this.plugin.traceManager) {
             this.plugin.noteProcessor = new NoteProcessor(this.plugin.traceManager, this.plugin.llmService, this.plugin, this);
         } else {
-            setTimeout(() => this.initializeNoteProcessor(), 1000);
+            activeWindow.setTimeout(() => this.initializeNoteProcessor(), 1000);
         }
     }
 
     getViewType() { return VIEW_TYPE_SUMMARY; }
     getDisplayText() { return 'Axiom'; }
 
-    async onOpen() {
+    async onOpen(): Promise<void> {
         const { contentEl } = this;
         contentEl.empty();
 
@@ -78,7 +76,7 @@ class SummaryView extends ItemView {
 
         // Model Group
         const modelGroup = dropdownRow.createEl('div', { cls: 'axiom-form-group axiom-form-group-third' });
-        modelGroup.createEl('label', { text: '🤖 AI Model', cls: 'axiom-form-label' });
+        modelGroup.createEl('label', { text: '🤖 AI model', cls: 'axiom-form-label' });
         this.modelDropdown = modelGroup.createEl('select', { cls: 'axiom-select' }) as HTMLSelectElement;
         this.populateModelDropdown();
         this.registerDomEvent(this.modelDropdown, 'change', async () => {
@@ -100,9 +98,8 @@ class SummaryView extends ItemView {
         });
 
         // --- DYNAMIC TARGET TOPIC ROW (Hidden by default) ---
-        this.targetTopicContainer = configSection.createEl('div', { cls: 'axiom-form-group' });
-        this.targetTopicContainer.style.display = 'none';
-        this.targetTopicContainer.createEl('label', { text: '📂 Target Collection', cls: 'axiom-form-label' });
+        this.targetTopicContainer = configSection.createEl('div', { cls: 'axiom-form-group axiom-is-hidden' });
+        this.targetTopicContainer.createEl('label', { text: '📂 Target collection', cls: 'axiom-form-label' });
         
         // Create DataList for autocomplete
         const dataListId = 'axiom-topic-list';
@@ -119,14 +116,11 @@ class SummaryView extends ItemView {
 
         // --- Q&A CHECKBOX ---
         const qaGroup = configSection.createEl('div', { 
-            cls: 'axiom-form-group', 
-            attr: { style: 'flex-direction: row; align-items: center; gap: 10px; margin-top: 8px;' } 
+            cls: 'axiom-form-group axiom-qa-group'
         });
         this.qaCheckbox = qaGroup.createEl('input', { type: 'checkbox' });
         this.qaCheckbox.id = 'axiom-qa-checkbox';
-        const qaLabel = qaGroup.createEl('label', { text: '💬 Generate Verbatim Q&A Note', attr: { for: 'axiom-qa-checkbox' } });
-        qaLabel.style.fontSize = '0.9em';
-        qaLabel.style.cursor = 'pointer';
+        qaGroup.createEl('label', { text: '💬 Generate verbatim q&a note', cls: 'axiom-qa-label', attr: { for: 'axiom-qa-checkbox' } });
 
         // Initial check
         this.toggleTargetTopicVisibility();
@@ -139,8 +133,8 @@ class SummaryView extends ItemView {
         instructionsGroup.createEl('label', { text: '💡 Instructions', cls: 'axiom-form-label' });
         this.promptInput = instructionsGroup.createEl('textarea', { placeholder: 'Extra focus areas...', cls: 'axiom-textarea' });
 
-        const cleanButton = inputCard.createEl('button', { text: '✨ Summarize & Organize', cls: 'axiom-clean-button' });
-        this.registerDomEvent(cleanButton, 'click', () => this.startNoteGenerationClean());
+        const cleanButton = inputCard.createEl('button', { text: '✨ Summarize & organize', cls: 'axiom-clean-button' });
+        this.registerDomEvent(cleanButton, 'click', () => { void this.startNoteGenerationClean(); });
 
         // --- NEW SLEEK PROGRESS AREA ---
         const progressCard = mainContainer.createEl('div', { cls: 'axiom-card' });
@@ -148,7 +142,6 @@ class SummaryView extends ItemView {
         
         const progressBarContainer = progressCard.createEl('div', { cls: 'axiom-progress-bar-container' });
         this.progressFill = progressBarContainer.createEl('div', { cls: 'axiom-progress-bar-fill' });
-        this.progressFill.style.width = '0%';
 
         const progressLabels = progressCard.createEl('div', { cls: 'axiom-progress-labels' });
         progressLabels.createEl('span', { text: 'Extract' });
@@ -158,21 +151,20 @@ class SummaryView extends ItemView {
 
         // --- CHRONOLOGICAL LOG AREA ---
         const logHeader = progressCard.createEl('div', { cls: 'axiom-log-header' });
-        logHeader.createEl('span', { text: '📜 Activity Log' });
+        logHeader.createEl('span', { text: '📜 Activity log' });
         const copyLogBtn = logHeader.createEl('button', { text: '📋 Copy', cls: 'axiom-copy-log-btn' });
         this.registerDomEvent(copyLogBtn, 'click', () => {
             const logs = Array.from(this.logContainer.querySelectorAll('.axiom-log-entry'))
                 .map(el => el.textContent)
                 .join('\n');
-            navigator.clipboard.writeText(logs);
+            void navigator.clipboard.writeText(logs);
             new Notice('Logs copied to clipboard');
         });
 
         this.logContainer = progressCard.createEl('div', { cls: 'axiom-log-container' });
 
-        this.retryButton = progressCard.createEl('button', { text: '🔄 Retry', cls: 'axiom-retry-button' });
-        this.retryButton.style.display = 'none';
-        this.registerDomEvent(this.retryButton, 'click', () => this.startNoteGenerationClean());
+        this.retryButton = progressCard.createEl('button', { text: '🔄 Retry', cls: 'axiom-retry-button axiom-is-hidden' });
+        this.registerDomEvent(this.retryButton, 'click', () => { void this.startNoteGenerationClean(); });
 
         this.createStatsFooter();
     }
@@ -186,13 +178,11 @@ class SummaryView extends ItemView {
     }
 
     private toggleTargetTopicVisibility() {
-        if (this.intentDropdown.value === 'research_collection') {
-            this.targetTopicContainer.style.display = 'flex';
-            // Refresh datalist in case settings changed externally
+        const isResearch = this.intentDropdown.value === 'research_collection';
+        this.targetTopicContainer.toggleClass('axiom-is-hidden', !isResearch);
+        if (isResearch) {
             const dataList = this.containerEl.querySelector('#axiom-topic-list') as HTMLElement;
             if (dataList) this.updateTopicDataList(dataList);
-        } else {
-            this.targetTopicContainer.style.display = 'none';
         }
     }
 
@@ -202,9 +192,9 @@ class SummaryView extends ItemView {
         
         // --- UI RESET ---
         this.logContainer.empty();
-        this.progressFill.style.width = '0%';
-        this.progressFill.style.backgroundColor = 'var(--interactive-accent)';
-        this.retryButton.style.display = 'none';
+        this.progressFill.setCssProps({ width: '0%' });
+        this.progressFill.removeClass('axiom-progress-fill-error');
+        this.retryButton.addClass('axiom-is-hidden');
 
         try {
             this.plugin.noteProcessor.setStatusCallback((step, msg, err) => this.updateStatusSteps(step, msg, err));
@@ -247,7 +237,8 @@ class SummaryView extends ItemView {
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const logEntry = this.logContainer.createEl('div', { cls: 'axiom-log-entry' });
-        logEntry.innerHTML = `<span class="axiom-log-time">[${timeStr}]</span> ${status}`;
+        logEntry.createSpan({ cls: 'axiom-log-time', text: `[${timeStr}] ` });
+        logEntry.createSpan({ text: status });
         if (error) logEntry.addClass('axiom-log-error');
         
         // Keep only last 50 logs
@@ -277,33 +268,29 @@ class SummaryView extends ItemView {
         else if (step === 7) percent = 100;
 
         if (error) {
-            this.progressFill.style.backgroundColor = 'var(--color-red)';
-            this.retryButton.style.display = 'block';
+            this.progressFill.addClass('axiom-progress-fill-error');
+            this.retryButton.removeClass('axiom-is-hidden');
         } else {
-            this.progressFill.style.backgroundColor = 'var(--interactive-accent)';
+            this.progressFill.removeClass('axiom-progress-fill-error');
         }
 
-        this.progressFill.style.width = `${percent}%`;
-        this.statusMessage.textContent = status;
+        this.progressFill.setCssProps({ width: `${percent}%` });
+        this.statusMessage.setText(status);
     }
 
-    private populateModelDropdown() {
-        this.modelDropdown.innerHTML = '';
+    public populateModelDropdown() {
+        this.modelDropdown.empty();
         const models = this.plugin.settings.provider === 'openrouter' ? OPENROUTER_MODELS : GEMINI_MODELS;
         models.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m.id; opt.text = m.name;
-            this.modelDropdown.appendChild(opt);
+            this.modelDropdown.createEl('option', { value: m.id, text: m.name });
         });
         this.modelDropdown.value = this.plugin.getCurrentModel();
     }
 
     private populateIntentDropdown() {
-        this.intentDropdown.innerHTML = '';
+        this.intentDropdown.empty();
         PROCESSING_INTENTS.forEach(i => {
-            const opt = document.createElement('option');
-            opt.value = i.id; opt.text = i.name;
-            this.intentDropdown.appendChild(opt);
+            this.intentDropdown.createEl('option', { value: i.id, text: i.name });
         });
         this.intentDropdown.value = this.plugin.settings.defaultIntent;
     }
@@ -311,7 +298,7 @@ class SummaryView extends ItemView {
     private statsFooter: HTMLElement;
     private createStatsFooter() {
         this.statsFooter = this.containerEl.createEl('div', { cls: 'axiom-stats-footer' });
-        this.updateStatsFooter();
+        void this.updateStatsFooter();
     }
 
     private async updateStatsFooter() {
@@ -321,13 +308,13 @@ class SummaryView extends ItemView {
         this.statsFooter.empty();
         
         const todayGroup = this.statsFooter.createEl('div', { cls: 'axiom-stats-group' });
-        todayGroup.createEl('div', { cls: 'axiom-stats-label', text: 'TODAY' });
+        todayGroup.createEl('div', { cls: 'axiom-stats-label', text: 'Today' });
         todayGroup.createEl('div', { cls: 'axiom-stats-value', text: `${metrics.today.notes} notes • $${metrics.today.cost.toFixed(3)}` });
 
-        const separator = this.statsFooter.createEl('div', { cls: 'axiom-stats-separator' });
+        this.statsFooter.createEl('div', { cls: 'axiom-stats-separator' });
 
         const lifetimeGroup = this.statsFooter.createEl('div', { cls: 'axiom-stats-group' });
-        lifetimeGroup.createEl('div', { cls: 'axiom-stats-label', text: 'LIFETIME' });
+        lifetimeGroup.createEl('div', { cls: 'axiom-stats-label', text: 'Lifetime' });
         lifetimeGroup.createEl('div', { cls: 'axiom-stats-value', text: `${metrics.lifetime.notes} notes • $${metrics.lifetime.cost.toFixed(2)}` });
     }
 }
@@ -350,14 +337,13 @@ class AISummarizerPlugin extends Plugin {
 
                 
 
-                this.addRibbonIcon('brain', 'Open Axiom', () => this.activateView());
+                this.addRibbonIcon('brain', 'Open axiom', () => this.activateView());
         this.addSettingTab(new AISummarizerSettingsTab(this.app, this));
         this.registerView(VIEW_TYPE_SUMMARY, (leaf) => new SummaryView(leaf, this));
     }
 
-    async onunload() {
-        console.log('[brAIn] Unloading plugin. Cleaning up views and AI services...');
-        this.app.workspace.detachLeavesOfType(VIEW_TYPE_SUMMARY);
+    onunload() {
+        // No forceful detaching of leaves to preserve user layout
     }
 
     async initializeServices() {
@@ -379,7 +365,11 @@ class AISummarizerPlugin extends Plugin {
             this.traceManager = this.serviceIntegration.getTraceManager();
             if (this.mocManager) this.mocManager.mocIntelligence.setLLMService(this.llmService!);
         }
-        this.app.workspace.getLeavesOfType(VIEW_TYPE_SUMMARY).forEach(l => (l.view as any).populateModelDropdown());
+        this.app.workspace.getLeavesOfType(VIEW_TYPE_SUMMARY).forEach(l => {
+            if (l.view instanceof SummaryView) {
+                l.view.populateModelDropdown();
+            }
+        });
     }
 
     getCurrentModel(): string {

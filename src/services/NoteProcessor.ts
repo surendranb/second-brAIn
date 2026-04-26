@@ -5,6 +5,15 @@ import { HierarchyService } from './HierarchyService';
 import { TFile, TFolder } from 'obsidian';
 import { PromptLoader } from './prompt-loader';
 import { generateId } from '../utils';
+import { MOCHierarchy, FullAnalysisResult, ProcessingIntent } from '../types';
+
+export interface PluginInterface {
+    app: any;
+    settings: any;
+    getCurrentModel(): string;
+    saveSettings(): Promise<void>;
+    mocManager: any;
+}
 
 export interface ProcessingInput {
     url: string;
@@ -28,17 +37,17 @@ export class NoteProcessor {
     private llmService: LLMService;
     private contentExtractor: ContentExtractor;
     private hierarchyService: HierarchyService;
-    private plugin: any;
+    private plugin: PluginInterface;
     private summaryView: any;
     private statusCallback?: StatusCallback;
     private promptLoader: PromptLoader;
 
-    constructor(traceManager: TraceManager, llmService: LLMService, plugin: any, summaryView: any) {
+    constructor(traceManager: TraceManager, llmService: LLMService, plugin: PluginInterface, summaryView: any) {
         this.traceManager = traceManager;
         this.llmService = llmService;
         this.plugin = plugin;
         this.summaryView = summaryView;
-        this.contentExtractor = new ContentExtractor();
+        this.contentExtractor = new ContentExtractor(this.plugin.app);
         this.hierarchyService = new HierarchyService(llmService, traceManager);
         this.promptLoader = new PromptLoader(this.plugin.app);
     }
@@ -94,7 +103,7 @@ export class NoteProcessor {
                 this.plugin.getCurrentModel(),
                 vaultMap
             );
-            this.updateStatus(2, `📍 Hierarchy: ${hierarchyResult.hierarchy.level1} > ${hierarchyResult.hierarchy.level2}`);
+            this.updateStatus(2, `📍 Hierarchy: ${hierarchyResult.primary_hierarchy.level1} > ${hierarchyResult.primary_hierarchy.level2}`);
             
             this.updateStatus(3, 'Running AI analysis (5-pass)...');
             const analysisResult = await this.traceManager.withSpan(
@@ -106,8 +115,8 @@ export class NoteProcessor {
                 { input: { contentType: extractedContent.metadata.type } }
             );
             
-            analysisResult.hierarchy = hierarchyResult.hierarchy;
-            analysisResult.hierarchy_confidence = hierarchyResult.confidence;
+            analysisResult.hierarchy = hierarchyResult.primary_hierarchy;
+            analysisResult.hierarchy_confidence = hierarchyResult.confidence_score;
             analysisResult.hierarchy_reasoning = hierarchyResult.reasoning;
 
             // --- Robust Author Extraction ---
@@ -149,7 +158,7 @@ export class NoteProcessor {
                     await this.createQANote(analysisResult, qaMarkdown, note.path);
                     this.updateStatus(4, '✅ Q&A Note created');
                 } catch (e) {
-                    this.updateStatus(4, `⚠️ Q&A Extraction failed: ${e.message}`, true);
+                    this.updateStatus(4, `⚠️ Q&A Extraction failed: ${(e as Error).message}`, true);
                 }
             }
 
@@ -159,7 +168,7 @@ export class NoteProcessor {
                     await this.saveArchiveFile(extractedContent, analysisResult, note.path, noteId, archivePath);
                     this.updateStatus(4, '📦 Transcript archived (Layer 0)');
                 } catch (e) {
-                    this.updateStatus(4, `⚠️ Archiving failed: ${e.message}`, true);
+                    this.updateStatus(4, `⚠️ Archiving failed: ${(e as Error).message}`, true);
                 }
             }
 
@@ -183,10 +192,10 @@ export class NoteProcessor {
             return { note, traceId };
 
         } catch (error) {
-            console.error('❌ Error:', error.message);
-            this.updateStatus(7, `❌ Error: ${error.message}`, true);
+            console.error('❌ Error:', (error as Error).message);
+            this.updateStatus(7, `❌ Error: ${(error as Error).message}`, true);
             await this.traceManager.endTrace(traceId, { 
-                output: { error: error.message, processStopped: true } 
+                output: { error: (error as Error).message, processStopped: true } 
             });
             throw error;
         } finally {
@@ -194,7 +203,7 @@ export class NoteProcessor {
         }
     }
 
-    private getTargetFolderPath(analysisResult: any, intent: string, targetTopic?: string): string {
+    private getTargetFolderPath(analysisResult: FullAnalysisResult, intent: string, targetTopic?: string): string {
         let folderPath = this.plugin.settings.mocFolder || 'MOCs';
         if (targetTopic) {
             folderPath = `${this.plugin.settings.topicFolders?.rootFolder || 'Research Topics'}/${targetTopic}`;
@@ -219,7 +228,7 @@ export class NoteProcessor {
         return folderPath;
     }
 
-    private getArchivePath(analysisResult: any): string {
+    private getArchivePath(analysisResult: FullAnalysisResult): string {
         const now = new Date();
         const year = now.getFullYear().toString();
         const month = (now.getMonth() + 1).toString().padStart(2, '0') + '-' + now.toLocaleString('en-US', { month: 'long' });
@@ -234,7 +243,7 @@ export class NoteProcessor {
         return `${monthDir}/${dateStr}-${authorSlug}${safeTitle}-Transcript.md`;
     }
 
-    private async extractPrimaryAuthor(content: ExtractedContent, analysisResult: any, traceId: string): Promise<string> {
+    private async extractPrimaryAuthor(content: ExtractedContent, analysisResult: FullAnalysisResult, traceId: string): Promise<string> {
         const sample = content.content.substring(0, 5000);
         const metadata = JSON.stringify(analysisResult.metadata || {});
         const promptText = `Identify the single primary author or main guest speaker from this content. Look for host introductions or self-identifications. 
@@ -262,9 +271,9 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
         }
     }
 
-    private async performAIAnalysis(extractedContent: ExtractedContent, input: ProcessingInput, traceId: string): Promise<any> {
+    private async performAIAnalysis(extractedContent: ExtractedContent, input: ProcessingInput, traceId: string): Promise<FullAnalysisResult> {
         const passes = ['Structure & Metadata', 'Content & Concepts', 'Perspectives & Examples', 'Connections & Applications', 'Learning Paths & Actions'];
-        let fullResult: any = {};
+        let fullResult: Partial<FullAnalysisResult> = {};
 
         for (let i = 0; i < passes.length; i++) {
             const passName = passes[i];
@@ -313,11 +322,11 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
             fullResult.title = urlTitle || 'Extracted Content';
         }
         
-        if (!fullResult.summary) fullResult.summary = this.createSummaryFromAnalysis(fullResult, input.url);
-        return fullResult;
+        if (!fullResult.summary) fullResult.summary = this.createSummaryFromAnalysis(fullResult as FullAnalysisResult, input.url);
+        return fullResult as FullAnalysisResult;
     }
 
-    private createSummaryFromAnalysis(result: any, url: string): string {
+    private createSummaryFromAnalysis(result: FullAnalysisResult, url: string): string {
         let content = `# ${result.title}\n\n`;
         if (result.overview) content += `## Overview\n${result.overview}\n\n`;
         if (result.context) content += `## Context & Background\n${result.context}\n\n`;
@@ -330,9 +339,10 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
         ];
 
         for (const sec of listSections) {
-            if (result[sec.key]?.length) {
+            const data = (result as any)[sec.key];
+            if (data?.length) {
                 content += `## ${sec.title}\n`;
-                result[sec.key].forEach((item: string, index: number) => {
+                data.forEach((item: string, index: number) => {
                     if (sec.isInsights) {
                         const colonIndex = item.indexOf(':');
                         if (colonIndex > 0 && colonIndex < 100) content += `### ${index + 1}. ${item.substring(0, colonIndex).trim()}\n${item.substring(colonIndex + 1).trim()}\n\n`;
@@ -390,7 +400,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
         return map[passIndex];
     }
 
-    private async createNote(analysisResult: any, url: string, intent: string, assets: { targetTopic?: string, archivePath?: string | null, qaPath?: string | null }): Promise<TFile> {
+    private async createNote(analysisResult: FullAnalysisResult, url: string, intent: string, assets: { targetTopic?: string, archivePath?: string | null, qaPath?: string | null }): Promise<TFile> {
         const title = analysisResult.title || 'Untitled Note';
         const fileName = title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + '.md';
         const folderPath = this.getTargetFolderPath(analysisResult, intent, assets.targetTopic);
@@ -463,7 +473,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
         return fullMarkdown.trim();
     }
 
-    private async createQANote(analysisResult: any, markdown: string, summaryPath: string): Promise<TFile> {
+    private async createQANote(analysisResult: FullAnalysisResult, markdown: string, summaryPath: string): Promise<TFile> {
         const title = `${analysisResult.title} (Q&A)`;
         const fileName = title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + '.md';
         const folderPath = this.plugin.app.vault.getAbstractFileByPath(summaryPath).parent.path;
@@ -481,7 +491,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
         return await this.plugin.app.vault.create(`${folderPath}/${fileName}`, this.buildFrontmatter(frontmatter) + '\n' + markdown);
     }
 
-    private async saveArchiveFile(content: ExtractedContent, analysisResult: any, summaryNotePath: string, noteId: string, filePath: string): Promise<void> {
+    private async saveArchiveFile(content: ExtractedContent, analysisResult: FullAnalysisResult, summaryNotePath: string, noteId: string, filePath: string): Promise<void> {
         const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
         const parts = folderPath.split('/');
         let currentPath = '';
@@ -524,7 +534,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
         return content;
     }
 
-    private async performMOCCascade(analysisResult: any, traceId: string): Promise<void> {
+    private async performMOCCascade(analysisResult: FullAnalysisResult, traceId: string): Promise<void> {
         if (!this.plugin.settings.enableMOC || !analysisResult.hierarchy) return;
         const mocStructure = this.plugin.mocManager.createHierarchicalStructure(analysisResult.hierarchy);
         for (let i = mocStructure.length - 1; i >= 0; i--) {

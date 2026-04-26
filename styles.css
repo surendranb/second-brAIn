@@ -238,3 +238,171 @@
     color: var(--color-red);
     background: rgba(255, 0, 0, 0.05);
 }
+/* --- UTILITY CLASSES --- */
+.axiom-is-hidden { display: none !important; }
+.axiom-is-visible-flex { display: flex !important; }
+.axiom-is-visible-block { display: block !important; }
+.axiom-qa-label { font-size: 0.9em; cursor: pointer; }
+.axiom-progress-fill-error { background-color: var(--color-red) !important; }
+
+/* Phase 1 Remediation Classes */
+
+.axiom-qa-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.axiom-intent-section {
+    margin-top: 20px;
+}
+
+.axiom-status-div {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: var(--background-secondary);
+    border-radius: 4px;
+}
+
+.axiom-status-text {
+    margin: 0;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.axiom-prompt-editor {
+    margin-top: 20px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 15px;
+}
+
+.axiom-prompt-editor-title {
+    margin-top: 0;
+}
+
+.axiom-prompt-section {
+    margin-bottom: 15px;
+}
+
+.axiom-prompt-header {
+    margin-bottom: 5px;
+}
+
+.axiom-prompt-desc {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.axiom-prompt-textarea {
+    width: 100%;
+    min-height: 100px;
+    font-family: var(--font-monospace);
+    font-size: 0.85em;
+    background-color: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 3px;
+    padding: 8px;
+}
+
+.axiom-prompt-info {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 15px;
+    margin-bottom: 0;
+}
+
+.axiom-prompt-error {
+    color: var(--text-error);
+    font-style: italic;
+}
+
+/* Modal Specific Classes */
+
+.axiom-hierarchy-explanation {
+    margin-bottom: 20px;
+    padding: 12px;
+    background-color: var(--background-secondary);
+    border-radius: 6px;
+    font-size: 0.9em;
+}
+
+.axiom-hierarchy-explanation p {
+    margin: 0;
+    margin-bottom: 8px;
+}
+
+.axiom-hierarchy-explanation p:last-child {
+    margin-bottom: 0;
+}
+
+.axiom-confidence-score {
+    margin-bottom: 15px;
+    font-size: 0.85em;
+    color: var(--text-muted);
+}
+
+.axiom-multiple-selection-container {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    padding: 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+}
+
+.axiom-multiple-selection-checkbox {
+    margin-right: 8px;
+}
+
+.axiom-modal-button-container {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.axiom-confirm-button {
+    background-color: var(--interactive-accent) !important;
+    color: var(--text-on-accent) !important;
+}
+
+.axiom-hierarchy-option {
+    margin-bottom: 15px;
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.axiom-hierarchy-option-primary {
+    border: 2px solid var(--interactive-accent);
+}
+
+.axiom-hierarchy-option-alt {
+    border: 1px solid var(--background-modifier-border);
+}
+
+.axiom-hierarchy-option-title {
+    margin-bottom: 8px;
+}
+
+.axiom-hierarchy-option-title-primary {
+    color: var(--interactive-accent);
+}
+
+.axiom-hierarchy-path {
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+.axiom-hierarchy-reasoning {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.axiom-hierarchy-radio {
+    margin-top: 8px;
+}

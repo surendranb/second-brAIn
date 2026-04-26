@@ -1,9 +1,13 @@
 import { spawn } from 'child_process';
-import * as path from 'path';
-import * as fs from 'fs';
-import { Platform } from 'obsidian';
+import { Platform, normalizePath, App } from 'obsidian';
 
 export class YoutubeExtractor {
+    private app: App;
+
+    constructor(app: App) {
+        this.app = app;
+    }
+
     async extract(url: string): Promise<string> {
         if (Platform.isMobile) {
             throw new Error('YouTube extraction is currently only available on Desktop (requires yt-dlp).');
@@ -12,14 +16,20 @@ export class YoutubeExtractor {
         const videoId = this.extractVideoId(url);
         if (!videoId) throw new Error('Invalid YouTube URL');
 
-        // @ts-ignore
-        const pluginPath = this.getPluginPath();
-        const binaryPath = path.join(pluginPath, 'bin', 'yt-dlp');
-        const outputPath = path.join(pluginPath, 'scratch', videoId);
-        const nodePath = '/opt/homebrew/bin/node';
+        const adapter = this.app.vault.adapter as any;
+        if (!adapter.basePath) throw new Error('Cannot determine vault base path');
+
+        const pluginDir = normalizePath('.obsidian/plugins/axiom');
+        const binaryPath = (adapter.getFullPath ? adapter.getFullPath(normalizePath(`${pluginDir}/bin/yt-dlp`)) : `${adapter.basePath}/${pluginDir}/bin/yt-dlp`);
+        const scratchDir = normalizePath(`${pluginDir}/scratch`);
+        const outputPath = (adapter.getFullPath ? adapter.getFullPath(normalizePath(`${scratchDir}/${videoId}`)) : `${adapter.basePath}/${scratchDir}/${videoId}`);
+
+        // Ensure scratch dir exists
+        if (!(await this.app.vault.adapter.exists(scratchDir))) {
+            await this.app.vault.adapter.mkdir(scratchDir);
+        }
 
         return new Promise((resolve, reject) => {
-            // Hardened yt-dlp arguments to bypass 429s
             const args = [
                 '--skip-download',
                 '--write-auto-subs',
@@ -27,20 +37,16 @@ export class YoutubeExtractor {
                 '--sub-lang', 'en,en-US',
                 '--sub-format', 'vtt',
                 '--output', outputPath,
-                // Borrow cookies from Chrome to bypass 429s (common on Mac)
                 '--cookies-from-browser', 'chrome',
-                // Use system node to solve signatures
                 '--js-runtimes', 'node',
-                // Mimic a high-fidelity browser signature
                 '--user-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
                 '--add-header', 'Accept-Language:en-US,en;q=0.9',
                 '--add-header', 'Sec-Fetch-Mode:navigate',
                 '--add-header', 'Sec-Fetch-Site:cross-site',
-                '--sleep-subtitles', '1', // Add jitter to avoid detection
+                '--sleep-subtitles', '1',
                 url
             ];
 
-            // Inject common Mac paths so yt-dlp can find Node to solve signatures
             const env = { 
                 ...process.env, 
                 PATH: `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${process.env.PATH || ''}` 
@@ -51,12 +57,11 @@ export class YoutubeExtractor {
             let stderr = '';
             child.stderr.on('data', (data) => {
                 stderr += data.toString();
-                console.log('[brAIn yt-dlp]', data.toString().trim());
             });
 
             child.on('close', (code) => {
                 if (code === 0) {
-                    this.readAndCleanTranscript(outputPath)
+                    this.readAndCleanTranscript(scratchDir, videoId)
                         .then(resolve)
                         .catch(reject);
                 } else {
@@ -69,19 +74,15 @@ export class YoutubeExtractor {
         });
     }
 
-    private async readAndCleanTranscript(basePath: string): Promise<string> {
-        const dir = path.dirname(basePath);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        
-        const files = fs.readdirSync(dir);
-        const transcriptFile = files.find(f => f.startsWith(path.basename(basePath)) && f.endsWith('.vtt'));
+    private async readAndCleanTranscript(scratchDir: string, videoId: string): Promise<string> {
+        const files = await this.app.vault.adapter.list(scratchDir);
+        const transcriptFile = files.files.find(f => f.includes(videoId) && f.endsWith('.vtt'));
 
         if (!transcriptFile) {
             throw new Error('No transcript available for this video.');
         }
 
-        const fullPath = path.join(dir, transcriptFile);
-        const content = fs.readFileSync(fullPath, 'utf8');
+        const content = await this.app.vault.adapter.read(transcriptFile);
         
         const cleaned = content
             .replace(/WEBVTT[\s\S]*?\n\n/, '')
@@ -93,15 +94,8 @@ export class YoutubeExtractor {
             .replace(/\s+/g, ' ')
             .trim();
 
-        try { fs.unlinkSync(fullPath); } catch (e) {}
+        try { await this.app.vault.adapter.remove(transcriptFile); } catch (e) {}
         return cleaned;
-    }
-
-    private getPluginPath(): string {
-        // @ts-ignore
-        const adapter = window.app.vault.adapter;
-        // @ts-ignore
-        return path.join(adapter.basePath, '.obsidian', 'plugins', 'second-brAIn');
     }
 
     private extractVideoId(url: string): string | null {

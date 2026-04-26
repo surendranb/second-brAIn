@@ -1,20 +1,22 @@
 /**
  * Hierarchy Choice Modal Component
- * Extracted from main.ts for better modularity
  */
 
 import { App, Modal } from 'obsidian';
-import { MOCHierarchy, LearningContext } from '../../types';
+import { MOCHierarchy, LearningContext, HierarchyAnalysisResult } from '../../types';
+
+export interface HierarchyChoiceResult {
+    hierarchy: MOCHierarchy;
+    learning_context?: LearningContext;
+}
 
 export class HierarchyChoiceModal extends Modal {
-    private result: { hierarchy: MOCHierarchy, learning_context: LearningContext } | null = null;
-    private onChoose: (result: { hierarchy: MOCHierarchy, learning_context: LearningContext }) => void;
-    private analysisResult: any;
-    private allowMultiple: boolean = false;
-    private selectedHierarchies: MOCHierarchy[] = [];
+    private result: HierarchyChoiceResult | null = null;
+    private onChoose: (result: HierarchyChoiceResult) => void;
+    private analysisResult: HierarchyAnalysisResult;
     private confirmButton: HTMLButtonElement;
 
-    constructor(app: App, analysisResult: any, onChoose: (result: { hierarchy: MOCHierarchy, learning_context: LearningContext }) => void) {
+    constructor(app: App, analysisResult: HierarchyAnalysisResult, onChoose: (result: HierarchyChoiceResult) => void) {
         super(app);
         this.analysisResult = analysisResult;
         this.onChoose = onChoose;
@@ -22,111 +24,77 @@ export class HierarchyChoiceModal extends Modal {
 
     onOpen() {
         const { contentEl } = this;
-        contentEl.createEl('h2', { text: '🎯 Choose Hierarchy Placement' });
+        contentEl.createEl('h2', { text: '🎯 Choose hierarchy placement' });
 
         // Cross-domain explanation
-        const explanation = contentEl.createEl('div', { cls: 'hierarchy-choice-explanation' });
-        explanation.innerHTML = `
-            <p><strong>Cross-domain content detected!</strong> This content could legitimately belong in multiple knowledge domains.</p>
-            <p>Choose the best placement for your learning goals, or select multiple hierarchies if the content truly spans domains.</p>
-        `;
-        explanation.style.marginBottom = '20px';
-        explanation.style.padding = '12px';
-        explanation.style.backgroundColor = 'var(--background-secondary)';
-        explanation.style.borderRadius = '6px';
-        explanation.style.fontSize = '0.9em';
+        const explanation = contentEl.createEl('div', { cls: 'axiom-hierarchy-explanation' });
+        explanation.createEl('p', { text: 'Cross-domain content detected!' }).createEl('strong');
+        explanation.createEl('p', { text: 'This content could legitimately belong in multiple knowledge domains.' });
+        explanation.createEl('p', { text: 'Choose the best placement for your learning goals.' });
 
         // Confidence score
         if (this.analysisResult.confidence_score) {
-            const confidence = contentEl.createEl('div', {
-                text: `AI Confidence: ${Math.round(this.analysisResult.confidence_score * 100)}%`
+            contentEl.createEl('div', {
+                text: `AI confidence: ${Math.round(this.analysisResult.confidence_score * 100)}%`,
+                cls: 'axiom-confidence-score'
             });
-            confidence.style.marginBottom = '15px';
-            confidence.style.fontSize = '0.85em';
-            confidence.style.color = 'var(--text-muted)';
         }
 
         // Primary hierarchy
-        this.createHierarchyOption(contentEl, this.analysisResult.primary_hierarchy, true, '🎯 Primary Recommendation');
+        this.createHierarchyOption(contentEl, this.analysisResult.primary_hierarchy, true, '🎯 Primary recommendation', this.analysisResult.reasoning);
 
         // Alternative hierarchies
-        if (this.analysisResult.alternative_hierarchies?.length > 0) {
-            contentEl.createEl('h3', { text: '🔄 Alternative Placements' });
-            this.analysisResult.alternative_hierarchies.forEach((alt: any, index: number) => {
-                this.createHierarchyOption(contentEl, alt, false, `Alternative ${index + 1} (${Math.round(alt.strength * 100)}% strength)`);
+        if (this.analysisResult.alternative_hierarchies && this.analysisResult.alternative_hierarchies.length > 0) {
+            contentEl.createEl('h3', { text: '🔄 Alternative placements' });
+            this.analysisResult.alternative_hierarchies.forEach((alt, index) => {
+                this.createHierarchyOption(contentEl, alt.hierarchy, false, `Alternative ${index + 1} (${Math.round(alt.strength * 100)}% strength)`, alt.reasoning);
             });
         }
 
-        // Multiple selection option
-        const multipleContainer = contentEl.createEl('div', { cls: 'multiple-selection-container' });
-        multipleContainer.style.marginTop = '20px';
-        multipleContainer.style.marginBottom = '20px';
-        multipleContainer.style.padding = '12px';
-        multipleContainer.style.border = '1px solid var(--background-modifier-border)';
-        multipleContainer.style.borderRadius = '6px';
-
-        const multipleCheckbox = multipleContainer.createEl('input', { type: 'checkbox' }) as HTMLInputElement;
-        multipleCheckbox.style.marginRight = '8px';
-        multipleContainer.createEl('span', { text: 'Allow multiple hierarchy placement (creates links in both locations)' });
-
-        multipleCheckbox.addEventListener('change', () => {
-            this.allowMultiple = multipleCheckbox.checked;
-            this.updateButtons();
-        });
-
         // Buttons
-        const buttonContainer = contentEl.createEl('div', { cls: 'hierarchy-choice-buttons' });
-        buttonContainer.style.marginTop = '20px';
-        buttonContainer.style.display = 'flex';
-        buttonContainer.style.gap = '10px';
-        buttonContainer.style.justifyContent = 'flex-end';
+        const buttonContainer = contentEl.createEl('div', { cls: 'axiom-modal-button-container' });
 
         const cancelButton = buttonContainer.createEl('button', { text: 'Cancel' });
         cancelButton.addEventListener('click', () => this.close());
 
-        this.confirmButton = buttonContainer.createEl('button', { text: 'Confirm Selection' });
-        this.confirmButton.style.backgroundColor = 'var(--interactive-accent)';
-        this.confirmButton.style.color = 'var(--text-on-accent)';
+        this.confirmButton = buttonContainer.createEl('button', { text: 'Confirm selection', cls: 'axiom-confirm-button' });
         this.confirmButton.disabled = true;
         this.confirmButton.addEventListener('click', () => this.handleConfirm());
     }
 
-    private createHierarchyOption(containerEl: HTMLElement, hierarchy: any, isPrimary: boolean, title: string) {
-        const optionContainer = containerEl.createEl('div', { cls: 'hierarchy-option' });
-        optionContainer.style.marginBottom = '15px';
-        optionContainer.style.padding = '12px';
-        optionContainer.style.border = isPrimary ? '2px solid var(--interactive-accent)' : '1px solid var(--background-modifier-border)';
-        optionContainer.style.borderRadius = '6px';
-        optionContainer.style.cursor = 'pointer';
+    private createHierarchyOption(containerEl: HTMLElement, hierarchy: MOCHierarchy, isPrimary: boolean, title: string, reasoning?: string) {
+        const optionContainer = containerEl.createEl('div', { 
+            cls: `axiom-hierarchy-option ${isPrimary ? 'axiom-hierarchy-option-primary' : 'axiom-hierarchy-option-alt'}` 
+        });
 
-        const titleEl = optionContainer.createEl('h4', { text: title });
-        titleEl.style.marginBottom = '8px';
-        titleEl.style.color = isPrimary ? 'var(--interactive-accent)' : 'var(--text-normal)';
+        optionContainer.createEl('h4', { 
+            text: title,
+            cls: `axiom-hierarchy-option-title ${isPrimary ? 'axiom-hierarchy-option-title-primary' : ''}`
+        });
 
         // Hierarchy path
-        const pathParts = [hierarchy.level1, hierarchy.level2, hierarchy.level3, hierarchy.level4].filter(Boolean);
-        const pathEl = optionContainer.createEl('div', { text: pathParts.join(' > ') });
-        pathEl.style.fontWeight = '500';
-        pathEl.style.marginBottom = '6px';
+        const pathParts = [hierarchy.level1, hierarchy.level2, hierarchy.level3, hierarchy.level4].filter(p => !!p);
+        optionContainer.createEl('div', { 
+            text: pathParts.join(' > '),
+            cls: 'axiom-hierarchy-path'
+        });
 
         // Reasoning
-        if (hierarchy.reasoning) {
-            const reasoningEl = optionContainer.createEl('div', { text: hierarchy.reasoning });
-            reasoningEl.style.fontSize = '0.85em';
-            reasoningEl.style.color = 'var(--text-muted)';
-            reasoningEl.style.fontStyle = 'italic';
+        if (reasoning) {
+            optionContainer.createEl('div', { 
+                text: reasoning,
+                cls: 'axiom-hierarchy-reasoning'
+            });
         }
 
         // Radio button for single selection
-        const radio = optionContainer.createEl('input', { type: 'radio' }) as HTMLInputElement;
+        const radio = optionContainer.createEl('input', { type: 'radio', cls: 'axiom-hierarchy-radio' }) as HTMLInputElement;
         radio.name = 'hierarchy-choice';
-        radio.value = JSON.stringify(hierarchy);
-        radio.style.marginTop = '8px';
 
         if (isPrimary) {
             radio.checked = true;
             this.result = {
-                hierarchy: hierarchy as MOCHierarchy,
+                hierarchy: hierarchy,
                 learning_context: this.analysisResult.learning_context
             };
             this.updateButtons();
@@ -135,7 +103,7 @@ export class HierarchyChoiceModal extends Modal {
         radio.addEventListener('change', () => {
             if (radio.checked) {
                 this.result = {
-                    hierarchy: hierarchy as MOCHierarchy,
+                    hierarchy: hierarchy,
                     learning_context: this.analysisResult.learning_context
                 };
                 this.updateButtons();

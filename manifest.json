@@ -5,5 +5,5 @@
 	"description": "Multi-pass AI agent for autonomous knowledge synthesis from YouTube and Web articles.",
 	"author": "Surendran",
 	"minAppVersion": "1.4.0",
-	"isDesktopOnly": false
+	"isDesktopOnly": true
 }
