@@ -52,11 +52,14 @@ MOCs/
 
 ---
 
-## ⚙️ Quick Start
+## ⚙️ Quick Start (Manual Install)
 
-1. **Install**: Clone this repo into your vault's `.obsidian/plugins/` folder.
+1. **Clone**: Run the following in your vault's `.obsidian/plugins/` directory:
+   ```bash
+   git clone https://github.com/surendranb/second-brAIn brAIn
+   ```
 2. **API Key**: Get your API key from the [Google AI Studio](https://aistudio.google.com/app/apikey).
-3. **Configure**: Enter your key in the brAIn settings tab.
+3. **Configure**: Enable the plugin in Obsidian settings, enter your key, and select your model.
 4. **Execute**: Open the brAIn sidebar, paste a URL, and click **Summarize & Organize**.
 
 ---
