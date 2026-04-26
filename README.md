@@ -10,6 +10,13 @@
 
 ---
 
+## 📸 The Experience
+
+![brAIn Feature Showcase](https://raw.githubusercontent.com/surendranb/second-brAIn/main/assets/showcase.png)
+*Real-time usage tracking, granular progress monitoring, and automatic hierarchical organization.*
+
+---
+
 ## 🚀 Key Features
 
 ### 🌊 5-Pass Neural Synthesis
@@ -20,13 +27,27 @@ brAIn uses a multi-agent waterfall to synthesize knowledge across 5 distinct lay
 - **Layer 4: Semantic Connections**: Maps the content to your existing knowledge graph and real-world apps.
 - **Layer 5: Generative Learning**: Crafts actionable paths, retrieval-augmented Q&A, and follow-up prompts.
 
-### ⚡ Integrated Extraction
-- **Streamlined Processing**: Direct extraction from YouTube and Web sources without external dependencies.
-- **Modern Model Support**: Optimized for the latest Gemini and Gemma series models.
+### 📁 Hierarchical Organization
+brAIn doesn't just create notes; it builds a structured knowledge graph. Based on the AI's taxonomy analysis, notes are automatically filed into deep hierarchies with corresponding Maps of Content (MOCs):
+
+```text
+MOCs/
+├── Biology/
+│   └── Cell Biology/
+│       └── 00-Cell Biology MOC.md
+├── Business/
+│   ├── Entrepreneurship/
+│   ├── Finance & Investment/
+│   ├── Leadership/
+│   └── Marketing/
+└── Venture Capital/
+    ├── 00-Venture Capital MOC.md
+    └── ...
+```
 
 ### ⚖️ Precision Tokenomics
 - **Usage Heartbeats**: Visual feedback for token count and cost increments for every pass.
-- **Tiered Pricing**: Accurately tracks costs across modern model tiers.
+- **Tiered Pricing**: Accurately tracks costs across modern model tiers (Flash, Pro).
 - **Atomic Recording**: Usage is persisted immediately after every pass to ensure accurate tracking.
 
 ---
@@ -51,7 +72,7 @@ The agent will prioritize your local prompts over the internal defaults.
 
 ## 🛠️ Tech Stack
 - **Environment**: Obsidian (Desktop & Mobile)
-- **Intelligence**: Gemini
+- **Intelligence**: Gemini 3 / Gemma 4
 - **Extraction**: `yt-dlp` + `readability.js`
 - **Styling**: Vanilla CSS
 
