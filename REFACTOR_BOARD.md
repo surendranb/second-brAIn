@@ -19,13 +19,13 @@ This board tracks the transformation of **brAIn** from a personal Python-based s
 
 - [x] **Task 0.1**: Add `@mozilla/readability` and `turndown` to `package.json`.
     - **Outcome**: `npm run build` succeeds, and the new dependencies are bundled into `main.js`.
-- [ ] **Task 0.2**: Implement `YoutubeExtractor.ts` (Native TS parsing).
+- [x] **Task 0.2**: Implement `YoutubeExtractor.ts` (Native TS parsing).
     - **Outcome**: A YouTube video URL is summarized successfully without the plugin spawning any Python processes.
-- [ ] **Task 0.3**: Implement `WebExtractor.ts` (Native TS using Readability).
+- [x] **Task 0.3**: Implement `WebExtractor.ts` (Native TS using Readability).
     - **Outcome**: A complex article URL is summarized with high-quality Markdown extraction, confirmed via manual verification in Obsidian.
-- [ ] **Task 0.4**: Update `ContentExtractor.ts` and UI to point to new native engines.
+- [x] **Task 0.4**: Update `ContentExtractor.ts` and UI to point to new native engines.
     - **Outcome**: All extraction types (YT/Web) work perfectly in the local Obsidian instance. 
-- [ ] **Task 0.5**: **The Purge**: Delete all `.py` files, `requirements.txt`, and `venv` references.
+- [x] **Task 0.5**: **The Purge**: Delete all `.py` files, `requirements.txt`, and `venv` references.
     - **Outcome**: The repository is 100% TypeScript/CSS and the plugin still works perfectly on a fresh install without Python.
 
 ### Milestone 1: Compliance & Hardening
@@ -61,7 +61,9 @@ This board tracks the transformation of **brAIn** from a personal Python-based s
 
 ## 🛠️ Execution Protocol
 1. **Atomic Step**: Work on exactly one `[ ]` task at a time.
-2. **Build Check**: Run `npm run build` after every modification.
-3. **Manual Verification**: I will wait for you to verify the feature in your Obsidian instance.
-4. **Sign-off**: Check off the item ONLY after successful manual verification.
-5. **No Early Deletion**: Python scripts remain in the codebase until Milestone 0 is fully verified as an **outcome**.
+2. **Branch First**: All refactoring must happen on a feature branch (Active: `feature/native-extraction`).
+3. **Commit Protocol**: Commit at the end of every task using Conventional Commits.
+4. **Build Check**: Run `npm run build` after every modification.
+5. **Manual Verification**: I will wait for you to verify the feature in your Obsidian instance.
+6. **Sign-off**: Check off the item ONLY after successful manual verification.
+7. **No Early Deletion**: Python scripts remain in the codebase until Milestone 0 is fully verified as an **outcome**.

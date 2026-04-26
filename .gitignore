@@ -58,3 +58,7 @@ MVP_ROADMAP.md
 *-ANALYSIS*.md
 *-COMPLETE*.md
 *-IMPLEMENTED*.md
+
+# Binaries and Scratch
+bin/
+scratch/
