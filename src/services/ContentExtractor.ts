@@ -1,8 +1,11 @@
 /**
- * ContentExtractor Service
+ * ContentExtractor Service (Native Version)
  * 
- * Handles extraction of content from various sources (YouTube, web pages, etc.)
+ * Handles extraction of content using native TypeScript implementations.
+ * No external Python dependencies.
  */
+import { YoutubeExtractor } from './extractors/YoutubeExtractor';
+import { WebExtractor } from './extractors/WebExtractor';
 
 export interface ExtractedContent {
     content: string;
@@ -10,6 +13,8 @@ export interface ExtractedContent {
         type: 'youtube' | 'web';
         url: string;
         title?: string;
+        excerpt?: string;
+        byline?: string;
         length: number;
         extractedAt: Date;
         platform?: string;
@@ -29,10 +34,12 @@ export class ContentExtractionError extends Error {
 }
 
 export class ContentExtractor {
-    private plugin: any;
+    private youtubeExtractor: YoutubeExtractor;
+    private webExtractor: WebExtractor;
 
-    constructor(plugin: any) {
-        this.plugin = plugin;
+    constructor() {
+        this.youtubeExtractor = new YoutubeExtractor();
+        this.webExtractor = new WebExtractor();
     }
 
     /**
@@ -40,48 +47,51 @@ export class ContentExtractor {
      */
     async extractContent(url: string): Promise<ExtractedContent> {
         const contentType = this.detectContentType(url);
-        let content: string;
         
         try {
-            switch (contentType) {
-                case 'youtube':
-                    content = await this.fetchYouTubeTranscript(url);
-                    break;
-                case 'web':
-                    content = await this.fetchWebContent(url);
-                    break;
-                default:
-                    throw new ContentExtractionError(
+            if (contentType === 'youtube') {
+                const transcript = await this.youtubeExtractor.extract(url);
+                this.validateContent(transcript, 'youtube', url);
+                
+                return {
+                    content: transcript,
+                    metadata: {
+                        type: 'youtube',
                         url,
-                        'web',
-                        'Unsupported URL type',
-                        'Please provide a valid YouTube or web URL'
-                    );
+                        length: transcript.length,
+                        extractedAt: new Date(),
+                        platform: 'YouTube'
+                    }
+                };
+            } else {
+                const result = await this.webExtractor.extract(url);
+                this.validateContent(result.content, 'web', url);
+
+                return {
+                    content: result.content,
+                    metadata: {
+                        type: 'web',
+                        url,
+                        title: result.title,
+                        excerpt: result.excerpt,
+                        byline: result.byline,
+                        length: result.content.length,
+                        extractedAt: new Date(),
+                        platform: 'Web'
+                    }
+                };
             }
 
-            this.validateContent(content, contentType, url);
-
-            return {
-                content,
-                metadata: {
-                    type: contentType,
-                    url,
-                    length: content.length,
-                    extractedAt: new Date(),
-                    platform: contentType === 'youtube' ? 'YouTube' : 'Web'
-                }
-            };
-
         } catch (error) {
-            console.error('Extraction failed:', error.message);
+            console.error('[ContentExtractor] Extraction failed:', error.message);
             
             if (error instanceof ContentExtractionError) {
                 throw error;
             }
             
             const suggestion = contentType === 'youtube' 
-                ? 'Please ensure the video has captions available and try again'
-                : 'Please check if the URL is accessible and not behind authentication';
+                ? 'Please ensure the video has English captions available.'
+                : 'Please check if the URL is publicly accessible.';
                 
             throw new ContentExtractionError(
                 url,
@@ -100,7 +110,7 @@ export class ContentExtractor {
     }
 
     private validateContent(content: string, type: 'youtube' | 'web', url: string): void {
-        if (!content || content.trim().length < 100) {
+        if (!content || content.trim().length < 50) {
             throw new ContentExtractionError(
                 url,
                 type,
@@ -108,137 +118,5 @@ export class ContentExtractor {
                 'Please try again or check if the content is available'
             );
         }
-
-        const errorIndicators = [
-            '[ERROR]',
-            'Could not fetch',
-            'No SRT URL found',
-            'Failed to fetch',
-            'Error:',
-            'Exception:'
-        ];
-
-        for (const indicator of errorIndicators) {
-            if (content.includes(indicator)) {
-                throw new ContentExtractionError(
-                    url,
-                    type,
-                    `Content contains error indicator: ${indicator}`,
-                    'The extraction process encountered an error - please try again'
-                );
-            }
-        }
-    }
-
-    private async fetchYouTubeTranscript(url: string): Promise<string> {
-        const path = require('path');
-        // @ts-ignore
-        const vaultPath = this.plugin.app.vault.adapter.basePath || '';
-        const scriptPath = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'fetch_transcript.py');
-        const venvPython = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'venv', 'bin', 'python3');
-
-        const { spawn } = require('child_process');
-        const pythonProcess = spawn(venvPython, [scriptPath, url]);
-
-        let fullOutput = "";
-        let lastErrorLine = "";
-
-        return new Promise((resolve, reject) => {
-            pythonProcess.stdout.on('data', (data: Buffer) => {
-                fullOutput += data.toString();
-            });
-
-            pythonProcess.stderr.on('data', (data: Buffer) => {
-                const errorOutput = data.toString();
-                fullOutput += errorOutput;
-                if (errorOutput.includes("[ERROR]")) {
-                    lastErrorLine = errorOutput.trim();
-                }
-            });
-
-            pythonProcess.on('close', (code: number) => {
-                const startMarker = "--- TRANSCRIPT_START ---";
-                const endMarker = "--- TRANSCRIPT_END ---";
-                
-                const startIndex = fullOutput.indexOf(startMarker);
-                const endIndex = fullOutput.indexOf(endMarker);
-                
-                let processedResult = "";
-                if (startIndex !== -1 && endIndex !== -1) {
-                    processedResult = fullOutput.substring(startIndex + startMarker.length, endIndex).trim();
-                } else {
-                    // Fallback to old marker or full trim if new markers missing
-                    const oldMarker = "[INFO] Script finished. Outputting result.";
-                    const oldIndex = fullOutput.lastIndexOf(oldMarker);
-                    processedResult = oldIndex !== -1 
-                        ? fullOutput.substring(oldIndex + oldMarker.length).trim()
-                        : fullOutput.trim();
-                }
-
-                if (processedResult.startsWith('Error: Failed to fetch transcript')) {
-                    reject(new Error(`Transcript fetch failed: ${processedResult}`));
-                } else if (lastErrorLine && lastErrorLine.includes('[ERROR]')) {
-                    reject(new Error(`Python script error: ${lastErrorLine}`));
-                } else if (fullOutput.includes('No SRT URL found')) {
-                    reject(new Error('No captions available for this video'));
-                } else if (code !== 0) {
-                    reject(new Error(`Python process exited with code ${code}`));
-                } else if (!processedResult || processedResult.trim().length < 50) {
-                    reject(new Error('No meaningful transcript data was returned'));
-                } else {
-                    resolve(processedResult);
-                }
-            });
-
-            pythonProcess.on('error', (err: Error) => {
-                reject(new Error(`Failed to start transcript extraction: ${err.message}`));
-            });
-        });
-    }
-
-    private async fetchWebContent(url: string): Promise<string> {
-        const path = require('path');
-        // @ts-ignore
-        const vaultPath = this.plugin.app.vault.adapter.basePath || '';
-        const scriptPath = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'fetch_content.py');
-        const venvPython = path.join(vaultPath, '.obsidian', 'plugins', 'second-brAIn', 'venv', 'bin', 'python3');
-
-        const { spawn } = require('child_process');
-        const pythonProcess = spawn(venvPython, [scriptPath, url]);
-
-        let fullOutput = "";
-        let lastErrorLine = "";
-
-        return new Promise((resolve, reject) => {
-            pythonProcess.stdout.on('data', (data: Buffer) => {
-                fullOutput += data.toString();
-            });
-
-            pythonProcess.stderr.on('data', (data: Buffer) => {
-                const errorOutput = data.toString();
-                fullOutput += errorOutput;
-                if (errorOutput.includes("[ERROR]")) {
-                    lastErrorLine = errorOutput.trim();
-                }
-            });
-
-            pythonProcess.on('close', (code: number) => {
-                if (lastErrorLine && lastErrorLine.includes('[ERROR]')) {
-                    reject(new Error(`Python script error: ${lastErrorLine}`));
-                } else if (fullOutput.includes('Failed to fetch') || fullOutput.includes('Error:')) {
-                    reject(new Error('Could not fetch content from this URL'));
-                } else if (code !== 0) {
-                    reject(new Error(`Python process exited with code ${code}`));
-                } else if (!fullOutput || fullOutput.trim().length < 50) {
-                    reject(new Error('No meaningful content was returned'));
-                } else {
-                    resolve(fullOutput.trim());
-                }
-            });
-
-            pythonProcess.on('error', (err: Error) => {
-                reject(new Error(`Failed to start web content extraction: ${err.message}`));
-            });
-        });
     }
 }

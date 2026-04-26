@@ -38,7 +38,7 @@ export class NoteProcessor {
         this.llmService = llmService;
         this.plugin = plugin;
         this.summaryView = summaryView;
-        this.contentExtractor = new ContentExtractor(plugin);
+        this.contentExtractor = new ContentExtractor();
         this.hierarchyService = new HierarchyService(llmService, traceManager);
         this.promptLoader = new PromptLoader();
     }
