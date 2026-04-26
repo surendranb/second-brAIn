@@ -6,7 +6,7 @@
 [![Obsidian Support](https://img.shields.io/badge/obsidian-v1.4.0+-teal.svg)](https://obsidian.md)
 [![Powered by](https://img.shields.io/badge/AI-Gemini%203-blue.svg)](https://deepmind.google/technologies/gemini/)
 
-**brAIn** is an autonomous agentic pipeline designed to extract, synthesize, and organize high-fidelity knowledge from YouTube and Web articles directly into your Obsidian vault. 
+**brAIn** is an autonomous agentic pipeline designed to extract, synthesize, and organize knowledge from YouTube and Web articles directly into your Obsidian vault.
 
 ---
 
@@ -17,9 +17,9 @@
 
 ---
 
-## 🚀 Core Value Proposition
+## 🚀 Key Features
 
-### 1. 🌊 5-Pass Neural Synthesis
+### 🌊 5-Pass Neural Synthesis
 brAIn uses a multi-agent waterfall to synthesize knowledge across 5 distinct layers:
 - **Layer 1: Structural Taxonomy**: Identifies core entities, bylines, and technical metadata.
 - **Layer 2: Conceptual Deep-Dive**: Isolates the "load-bearing" ideas and technical frameworks.
@@ -27,14 +27,14 @@ brAIn uses a multi-agent waterfall to synthesize knowledge across 5 distinct lay
 - **Layer 4: Semantic Connections**: Maps the content to your existing knowledge graph and real-world apps.
 - **Layer 5: Generative Learning**: Crafts actionable paths, retrieval-augmented Q&A, and follow-up prompts.
 
-### 2. ⚡ Native Performance
-- **High-Performance Extraction**: Built with a native bridge for YouTube and Web parsing, eliminating external scripting dependencies.
-- **Low-Latency Logic**: Optimized for the latest Gemini and Gemma series models.
+### ⚡ Integrated Extraction
+- **Streamlined Processing**: Direct extraction from YouTube and Web sources without external dependencies.
+- **Modern Model Support**: Optimized for the latest Gemini and Gemma series models.
 
-### 3. ⚖️ Precision Tokenomics
-- **Real-time Heartbeats**: Visual feedback for token count and cost increments for every pass.
+### ⚖️ Precision Tokenomics
+- **Usage Heartbeats**: Visual feedback for token count and cost increments for every pass.
 - **Tiered Pricing**: Accurately tracks costs across modern model tiers.
-- **Atomic Recording**: Usage is persisted immediately after every pass to ensure foolproof tracking.
+- **Atomic Recording**: Usage is persisted immediately after every pass to ensure accurate tracking.
 
 ---
 
@@ -57,10 +57,9 @@ The agent will prioritize your local prompts over the internal defaults.
 ---
 
 ## 🛠️ Tech Stack
-- **Environment**: Obsidian (Desktop & Mobile ready)
-- **Language**: TypeScript
+- **Environment**: Obsidian (Desktop & Mobile)
 - **Intelligence**: Gemini 3 / Gemma 4
-- **Extraction**: `yt-dlp` (Native Bridge) + `readability.js`
+- **Extraction**: `yt-dlp` + `readability.js`
 - **Styling**: Vanilla CSS
 
 ---
