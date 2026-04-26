@@ -58,7 +58,7 @@ export class ServiceFactory {
 
     if (provider === 'gemini') {
       apiKey = pluginConfig.gemini?.apiKey || '';
-      model = pluginConfig.gemini?.model || 'gemini-2.5-flash';
+      model = pluginConfig.gemini?.model || 'gemini-flash-lite-latest';
     } else if (provider === 'openrouter') {
       apiKey = pluginConfig.openrouter?.apiKey || '';
       model = pluginConfig.openrouter?.model || 'google/gemini-2.0-flash-exp:free';

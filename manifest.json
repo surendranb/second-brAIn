@@ -3,7 +3,8 @@
 	"name": "brAIn",
 	"version": "0.1.0",
 	"main": "main.js",
-	"description": "Building your knowledge base with AI",
+	"description": "Multi-pass AI agent for autonomous knowledge synthesis from YouTube and Web articles.",
 	"author": "Surendran",
-	"minAppVersion": "0.12.0"
-  }
+	"minAppVersion": "1.4.0",
+	"isDesktopOnly": false
+}

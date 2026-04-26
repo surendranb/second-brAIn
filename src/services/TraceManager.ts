@@ -242,6 +242,19 @@ export class TraceManager {
     this.currentNoteUsage.cost += event.cost;
     this.currentNoteUsage.model = event.model;
 
+    // --- ATOMIC PERSISTENCE ---
+    // Record this individual event immediately to history so it's "Fool Proof"
+    if (this.usageHistoryManager && this.currentNoteUsage.noteId) {
+        this.usageHistoryManager.addRecord({
+            noteId: this.currentNoteUsage.noteId,
+            inputTokens: event.promptTokens,
+            outputTokens: event.completionTokens,
+            cost: event.cost,
+            model: event.model,
+            intent: event.intent
+        }).catch(err => console.error('[TraceManager] Atomic record failed:', err));
+    }
+
     this.usageCallbacks.forEach(callback => {
       try {
         callback(event);
@@ -264,7 +277,11 @@ export class TraceManager {
   async completeNoteTracking(): Promise<UsageRecord | null> {
     if (!this.currentNoteUsage.noteId || !this.usageHistoryManager) return null;
 
-    const record: UsageRecord = {
+    // We no longer add a final aggregate record here because we now record 
+    // each pass atomically in emitUsageEvent. This ensures "Fool Proof" 
+    // persistence even on mid-session crashes.
+    
+    const finalNoteUsage: UsageRecord = {
       noteId: this.currentNoteUsage.noteId,
       timestamp: new Date().toISOString(),
       inputTokens: this.currentNoteUsage.inputTokens,
@@ -273,9 +290,8 @@ export class TraceManager {
       model: this.currentNoteUsage.model || 'unknown'
     };
 
-    await this.usageHistoryManager.addRecord(record);
     this.resetCurrentNoteUsage();
-    return record;
+    return finalNoteUsage;
   }
 
   getCurrentNoteUsage(): { inputTokens: number; outputTokens: number; cost: number } {

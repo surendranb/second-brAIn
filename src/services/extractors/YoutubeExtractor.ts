@@ -1,9 +1,14 @@
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import { Platform } from 'obsidian';
 
 export class YoutubeExtractor {
     async extract(url: string): Promise<string> {
+        if (Platform.isMobile) {
+            throw new Error('YouTube extraction is currently only available on Desktop (requires yt-dlp).');
+        }
+
         const videoId = this.extractVideoId(url);
         if (!videoId) throw new Error('Invalid YouTube URL');
 
@@ -19,19 +24,29 @@ export class YoutubeExtractor {
                 '--skip-download',
                 '--write-auto-subs',
                 '--write-subs',
-                '--sub-lang', 'en.*',
+                '--sub-lang', 'en,en-US',
                 '--sub-format', 'vtt',
                 '--output', outputPath,
-                // Critical: Use the system node as the JS runtime to solve signatures
-                '--js-runtimes', `node:${nodePath}`,
-                // Mimic a real browser signature
-                '--user-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                // Borrow cookies from Chrome to bypass 429s (common on Mac)
+                '--cookies-from-browser', 'chrome',
+                // Use system node to solve signatures
+                '--js-runtimes', 'node',
+                // Mimic a high-fidelity browser signature
+                '--user-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
                 '--add-header', 'Accept-Language:en-US,en;q=0.9',
                 '--add-header', 'Sec-Fetch-Mode:navigate',
+                '--add-header', 'Sec-Fetch-Site:cross-site',
+                '--sleep-subtitles', '1', // Add jitter to avoid detection
                 url
             ];
 
-            const child = spawn(binaryPath, args);
+            // Inject common Mac paths so yt-dlp can find Node to solve signatures
+            const env = { 
+                ...process.env, 
+                PATH: `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${process.env.PATH || ''}` 
+            };
+
+            const child = spawn(binaryPath, args, { env });
 
             let stderr = '';
             child.stderr.on('data', (data) => {

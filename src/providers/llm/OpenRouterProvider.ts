@@ -79,14 +79,21 @@ export class OpenRouterProvider implements LLMProvider {
    * Stream text generation using OpenRouter API
    */
   async *streamText(request: LLMRequest): AsyncIterable<LLMStreamChunk> {
-    // Basic implementation for now, OpenRouter supports SSE
-    // For simplicity, we'll just yield the full response as a single chunk if streaming is not fully implemented
     const response = await this.generateText(request);
     yield {
       text: response.text,
       isComplete: true,
       metadata: response.metadata
     };
+  }
+
+  /**
+   * Count tokens for OpenRouter models
+   * Falls back to high-precision heuristic as OpenRouter doesn't have a universal free count endpoint
+   */
+  async countTokens(text: string, _model?: string): Promise<number> {
+    const { estimateTokens } = await import('../../utils/tokenUtils');
+    return estimateTokens(text);
   }
 
   /**

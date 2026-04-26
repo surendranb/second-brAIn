@@ -34,6 +34,7 @@ export interface LLMProvider {
   
   generateText(request: LLMRequest): Promise<LLMResponse>;
   streamText(request: LLMRequest): AsyncIterable<LLMStreamChunk>;
+  countTokens(text: string, model?: string): Promise<number>;
   isConfigured(): boolean;
   validateConfig(): Promise<boolean>;
 }

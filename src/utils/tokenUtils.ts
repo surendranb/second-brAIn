@@ -4,72 +4,62 @@
  */
 
 /**
- * Estimates token count from text (rough approximation)
+ * Estimates token count from text with higher precision than length/4.
+ * Uses a word-based heuristic (approx 1.3 tokens per word for English)
  */
 export function estimateTokens(text: string): number {
-    // Rough estimation: ~4 characters per token
-    return Math.ceil(text.length / 4);
+    if (!text) return 0;
+    const wordCount = text.trim().split(/\s+/).length;
+    return Math.ceil(wordCount * 1.35); // Heuristic for Gemini/GPT models
 }
 
 /**
- * Calculates cost for Gemini API usage
+ * Normalizes model names to canonical versions for pricing
+ */
+export function normalizeModelName(model: string): string {
+    const m = model.toLowerCase();
+    if (m.includes('flash-lite')) return 'gemini-flash-lite-latest';
+    if (m.includes('pro')) return 'gemini-pro-latest';
+    if (m.includes('flash')) return 'gemini-flash-latest';
+    return model;
+}
+
+/**
+ * Calculates cost for Gemini API usage based on specific user-defined rates
  */
 export function calculateCost(inputTokens: number, outputTokens: number, model: string): number {
-    // Gemini pricing per million tokens
-    const pricing: Record<string, {
-        input: { small: number; large: number; threshold: number };
-        output: { small: number; large: number; threshold: number };
-    }> = {
-        'gemini-2.5-pro': {
-            input: { small: 1.25, large: 2.50, threshold: 200000 },
-            output: { small: 10.00, large: 15.00, threshold: 200000 }
-        },
-        'gemini-2.5-flash': {
-            input: { small: 0.30, large: 0.30, threshold: Infinity },
-            output: { small: 2.50, large: 2.50, threshold: Infinity }
-        },
-        'gemini-2.5-flash-lite': {
-            input: { small: 0.10, large: 0.10, threshold: Infinity },
-            output: { small: 0.40, large: 0.40, threshold: Infinity }
-        },
-        'gemini-2.0-flash': {
-            input: { small: 0.10, large: 0.10, threshold: Infinity },
-            output: { small: 0.40, large: 0.40, threshold: Infinity }
-        },
-        'gemma-3-27b-it': {
-            input: { small: 0.20, large: 0.20, threshold: Infinity },
-            output: { small: 0.20, large: 0.20, threshold: Infinity }
-        },
-        'gemma-3-12b-it': {
-            input: { small: 0.10, large: 0.10, threshold: Infinity },
-            output: { small: 0.10, large: 0.10, threshold: Infinity }
-        },
-        'openai/gpt-oss-120b:free': {
-            input: { small: 0, large: 0, threshold: Infinity },
-            output: { small: 0, large: 0, threshold: Infinity }
-        },
-        'google/gemma-3-27b-it:free': {
-            input: { small: 0, large: 0, threshold: Infinity },
-            output: { small: 0, large: 0, threshold: Infinity }
-        },
-        'google/gemini-2.0-flash-exp:free': {
-            input: { small: 0, large: 0, threshold: Infinity },
-            output: { small: 0, large: 0, threshold: Infinity }
-        }
-    };
+    const normalizedModel = normalizeModelName(model);
+    const totalTokens = inputTokens + outputTokens;
+    
+    let inputRate = 0;
+    let outputRate = 0;
 
-    const modelPricing = pricing[model] || pricing['gemini-2.5-flash']; // Default fallback
+    switch (normalizedModel) {
+        case 'gemini-flash-lite-latest':
+            inputRate = 0.1;
+            outputRate = 0.4;
+            break;
+        case 'gemini-flash-latest':
+            inputRate = 0.3;
+            outputRate = 2.5;
+            break;
+        case 'gemini-pro-latest':
+            // Pro pricing shifts at 200K tokens
+            if (totalTokens > 200000) {
+                inputRate = 2.5;
+                outputRate = 15.0;
+            } else {
+                inputRate = 1.25;
+                outputRate = 10.0;
+            }
+            break;
+        default:
+            // Fallback to Flash pricing
+            inputRate = 0.3;
+            outputRate = 2.5;
+    }
 
-    // Calculate input cost
-    const inputRate = inputTokens > modelPricing.input.threshold
-        ? modelPricing.input.large
-        : modelPricing.input.small;
     const inputCost = (inputTokens / 1000000) * inputRate;
-
-    // Calculate output cost (FIXED: use outputTokens for threshold check)
-    const outputRate = outputTokens > modelPricing.output.threshold
-        ? modelPricing.output.large
-        : modelPricing.output.small;
     const outputCost = (outputTokens / 1000000) * outputRate;
 
     return inputCost + outputCost;
@@ -80,6 +70,6 @@ export function calculateCost(inputTokens: number, outputTokens: number, model: 
  */
 export function formatTokens(tokens: number): string {
     if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
-    if (tokens >= 1000) return `${(tokens / 1000).toFixed(0)}K`;
+    if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}K`;
     return `${tokens}`;
 }

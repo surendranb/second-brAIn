@@ -1,3 +1,4 @@
+import { App, TFile } from 'obsidian';
 import { ProcessingIntent } from '../config';
 
 export interface PromptTemplate {
@@ -30,17 +31,23 @@ interface IntentPromptsJSON {
 export class PromptLoader {
     private promptCache: Map<ProcessingIntent, IntentPrompts> = new Map();
 
-    constructor() {
-        // No app dependency needed for embedded prompts
-    }
+    constructor(private app: App) {}
 
     async loadPromptsForIntent(intent: ProcessingIntent): Promise<IntentPrompts> {
-        // Check cache first
-        if (this.promptCache.has(intent)) {
-            return this.promptCache.get(intent)!;
-        }
+        // Check cache first (Disabled for now to allow hot-reloading during development/testing)
+        // if (this.promptCache.has(intent)) {
+        //     return this.promptCache.get(intent)!;
+        // }
 
         try {
+            // 1. Try to load custom prompts from the vault
+            const customPrompts = await this.loadCustomPrompts(intent);
+            if (customPrompts) {
+                console.log(`[brAIn] Using custom vault-native prompts for ${intent}`);
+                return customPrompts;
+            }
+
+            // 2. Fallback to embedded prompts
             const prompts = this.getEmbeddedPrompts(intent);
             this.promptCache.set(intent, prompts);
             return prompts;
@@ -48,6 +55,36 @@ export class PromptLoader {
             console.error(`[PromptLoader] Failed to load prompts for intent ${intent}:`, error);
             throw new Error(`Failed to load prompts for intent '${intent}': ${error.message}`);
         }
+    }
+
+    private async loadCustomPrompts(intent: ProcessingIntent): Promise<IntentPrompts | null> {
+        const stages = ['structure', 'content', 'perspectives', 'connections', 'learning'];
+        const results: Partial<IntentPrompts> = {};
+        let foundAny = false;
+
+        for (const stage of stages) {
+            const path = `.brAIn/prompts/${intent}/${stage}.md`;
+            const file = this.app.vault.getAbstractFileByPath(path);
+            
+            if (file instanceof TFile) {
+                const content = await this.app.vault.read(file);
+                // Simple parsing: Use the entire file content as the prompt
+                results[stage as keyof IntentPrompts] = content;
+                foundAny = true;
+            }
+        }
+
+        if (!foundAny) return null;
+
+        // Fill in missing stages with embedded defaults
+        const embedded = this.getEmbeddedPrompts(intent);
+        return {
+            structure: results.structure || embedded.structure,
+            content: results.content || embedded.content,
+            perspectives: results.perspectives || embedded.perspectives,
+            connections: results.connections || embedded.connections,
+            learning: results.learning || embedded.learning
+        };
     }
 
     private getEmbeddedPrompts(intent: ProcessingIntent): IntentPrompts {

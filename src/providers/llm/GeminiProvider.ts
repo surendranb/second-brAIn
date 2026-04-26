@@ -8,12 +8,9 @@ import type { LLMProvider, LLMRequest, LLMResponse, LLMStreamChunk } from '../..
 export class GeminiProvider implements LLMProvider {
   readonly name = 'gemini';
   readonly supportedModels = [
-    'gemini-2.5-pro',
-    'gemini-2.5-flash', 
-    'gemini-2.5-flash-lite',
-    'gemini-2.0-flash',
-    'gemma-3-27b-it',
-    'gemma-3-12b-it'
+    'gemini-flash-lite-latest',
+    'gemini-flash-latest',
+    'gemini-pro-latest'
   ];
 
   private client: GoogleGenerativeAI | null = null;
@@ -35,7 +32,7 @@ export class GeminiProvider implements LLMProvider {
     }
 
     const model = this.client.getGenerativeModel({ 
-      model: request.model || 'gemini-2.5-flash' 
+      model: request.model || 'gemini-flash-lite-latest' 
     }, { apiVersion: 'v1beta' });
 
     const geminiRequest: GenerateContentRequest = {
@@ -56,29 +53,43 @@ export class GeminiProvider implements LLMProvider {
       }
     }
 
-    try {
-      const result = await model.generateContent(geminiRequest);
-      const responseText = result.response.text();
-      
-      // Extract usage information if available
-      const usage = (result.response as any).usageMetadata ? {
-        promptTokens: (result.response as any).usageMetadata.promptTokenCount || 0,
-        completionTokens: (result.response as any).usageMetadata.candidatesTokenCount || 0,
-        totalTokens: (result.response as any).usageMetadata.totalTokenCount || 0
-      } : undefined;
+    let lastError: any;
+    const maxRetries = 3;
+    
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const result = await model.generateContent(geminiRequest);
+            const responseText = result.response.text();
+            
+            // Extract usage information if available
+            const usage = (result.response as any).usageMetadata ? {
+                promptTokens: (result.response as any).usageMetadata.promptTokenCount || 0,
+                completionTokens: (result.response as any).usageMetadata.candidatesTokenCount || 0,
+                totalTokens: (result.response as any).usageMetadata.totalTokenCount || 0
+            } : undefined;
 
-      return {
-        text: responseText,
-        model: request.model || 'gemini-2.5-flash',
-        usage,
-        metadata: {
-          ...request.metadata,
-          finishReason: result.response.candidates?.[0]?.finishReason
+            return {
+                text: responseText,
+                model: request.model || 'gemini-flash-lite-latest',
+                usage,
+                metadata: {
+                    ...request.metadata,
+                    finishReason: result.response.candidates?.[0]?.finishReason
+                }
+            };
+        } catch (error) {
+            lastError = error;
+            const errorMsg = error.message?.toLowerCase() || '';
+            if (errorMsg.includes('429') || errorMsg.includes('too many requests')) {
+                const waitTime = Math.pow(2, i + 1) * 1000 + Math.random() * 1000;
+                console.warn(`[GeminiProvider] Rate limited (429). Retrying in ${Math.round(waitTime)}ms... (Attempt ${i + 1}/${maxRetries})`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+                continue;
+            }
+            throw error;
         }
-      };
-    } catch (error) {
-      throw new Error(`Gemini API error: ${error.message}`);
     }
+    throw new Error(`Gemini API error after ${maxRetries} retries: ${lastError.message}`);
   }
 
   /**
@@ -90,7 +101,7 @@ export class GeminiProvider implements LLMProvider {
     }
 
     const model = this.client.getGenerativeModel({ 
-      model: request.model || 'gemini-2.5-flash' 
+      model: request.model || 'gemini-flash-lite-latest' 
     }, { apiVersion: 'v1beta' });
 
     const geminiRequest: GenerateContentRequest = {
@@ -137,6 +148,27 @@ export class GeminiProvider implements LLMProvider {
   }
 
   /**
+   * Count tokens for the given text using Gemini's native API
+   */
+  async countTokens(text: string, modelId?: string): Promise<number> {
+    if (!this.client) {
+      return Math.ceil(text.length / 4);
+    }
+
+    try {
+      const model = this.client.getGenerativeModel({ 
+        model: modelId || 'gemini-flash-lite-latest' 
+      }, { apiVersion: 'v1beta' });
+      
+      const result = await model.countTokens(text);
+      return result.totalTokens;
+    } catch (error) {
+      console.warn('[GeminiProvider] countTokens failed, falling back to estimate:', error);
+      return Math.ceil(text.length / 4);
+    }
+  }
+
+  /**
    * Check if the provider is configured
    */
   isConfigured(): boolean {
@@ -152,7 +184,7 @@ export class GeminiProvider implements LLMProvider {
     }
 
     try {
-      const model = this.client!.getGenerativeModel({ model: 'gemini-2.5-flash' }, { apiVersion: 'v1beta' });
+      const model = this.client!.getGenerativeModel({ model: 'gemini-flash-lite-latest' }, { apiVersion: 'v1beta' });
       const result = await model.generateContent({
         contents: [{
           role: 'user',

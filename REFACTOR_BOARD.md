@@ -31,33 +31,39 @@ This board tracks the transformation of **brAIn** from a personal Python-based s
 ### Milestone 1: Compliance & Hardening
 *Goal: Fix lifecycle leaks and align with Obsidian Developer Policies.*
 
-- [ ] **Task 1.1**: Update `manifest.json` (Set `isDesktopOnly: false`, bump `minAppVersion`).
+- [x] **Task 1.1**: Update `manifest.json` (Set `isDesktopOnly: false`, bump `minAppVersion`).
     - **Outcome**: Plugin loads and functions in Obsidian 1.4.0+ without errors.
-- [ ] **Task 1.2**: Implement `onunload()` in `main.ts` and all managers.
+- [x] **Task 1.2**: Implement `onunload()` in `main.ts` and all managers.
     - **Outcome**: Disabling the plugin stops all AI tasks and cleans all listeners; no "Zombie" processes detected in DevTools.
-- [ ] **Task 1.3**: CSS Migration: Move all styles to `styles.css`.
+- [x] **Task 1.3**: CSS Migration: Move all styles to `styles.css`.
     - **Outcome**: The UI renders perfectly in both Light and Dark modes without any programmatic `<style>` injection.
-- [ ] **Task 1.4**: Event Registration: Refactor to `this.registerDomEvent` and `this.registerEvent`.
+- [x] **Task 1.4**: Event Registration: Refactor to `this.registerDomEvent` and `this.registerEvent`.
     - **Outcome**: Plugin passes a 10-cycle "Enable/Disable" stress test without crashing Obsidian.
 
 ### Milestone 2: UI/UX Refinement (The "Agentic" Standard)
 *Goal: Empower the user with customization and transparency.*
 
-- [ ] **Task 2.1**: Vault-Native Prompts: Allow overrides via `.brAIn/prompts/*.md`.
-    - **Outcome**: User-created prompts in the vault are correctly detected and utilized by the AI.
+- [x] **Task 2.1**: Vault-Native Prompts: Allow overrides via `.brAIn/prompts/*.md`.
+    - **Outcome**: User can "live-tweak" the AI's logic by editing Markdown files in their vault; changes take effect immediately without plugin reload.
 - [ ] **Task 2.2**: Organization Strategies: Implement "Folders" vs "Tags" vs "Hybrid".
     - **Outcome**: User can toggle between organization styles and see the notes created in the expected locations/format.
-- [ ] **Task 2.3**: Pre-flight Token Check: Show cost/length before analysis.
-    - **Outcome**: The UI displays a transcript length warning before the LLM call is triggered.
+- [x] **Task 2.3**: Pre-flight Token Check: Show cost/length before analysis.
+    - **Outcome**: UI displays real-time cost heartbeats for each pass and a premium "Today vs Lifetime" dashboard in the footer. Precise counting via native Gemini API.
 
 ### Milestone 3: Marketplace Readiness
 *Goal: Final polish and submission audit.*
 
-- [ ] **Task 3.1**: README Overhaul: Clear installation, usage, and "Why brAIn?" narrative.
-- [ ] **Task 3.2**: Asset Check: Create high-quality icons and screenshots.
-- [ ] **Task 3.3**: Final Build Audit: Run `npm run build` and verify `main.js` size/performance.
+- [x] **Task 3.1**: README Overhaul: Clear installation, usage, and "Why brAIn?" narrative.
+- [x] **Task 3.2**: Asset Check: Create high-quality icons and screenshots.
+- [x] **Task 3.3**: Final Build Audit: Run `npm run build` and verify `main.js` size/performance.
 
 ---
+
+## 💎 Final State
+- **Model Standard**: Consolidated to `gemini-flash-lite-latest` for maximum efficiency.
+- **Architecture**: 100% Native TypeScript (No Python).
+- **Observability**: Atomic usage tracking and OTel-ready tracing.
+- **Status**: Marketplace Ready.
 
 ## 🛠️ Execution Protocol
 1. **Atomic Step**: Work on exactly one `[ ]` task at a time.

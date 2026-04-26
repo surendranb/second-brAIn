@@ -52,6 +52,10 @@ export interface TraceProvider {
   // Configuration
   isConfigured(): boolean;
   flush(): Promise<void>;
+
+  // Metrics & Deep Linking
+  getMetrics?(): Promise<any>;
+  getTraceUrl?(traceId: string): string;
 }
 
 export interface TracingConfig {

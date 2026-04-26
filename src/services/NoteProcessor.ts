@@ -40,7 +40,7 @@ export class NoteProcessor {
         this.summaryView = summaryView;
         this.contentExtractor = new ContentExtractor();
         this.hierarchyService = new HierarchyService(llmService, traceManager);
-        this.promptLoader = new PromptLoader();
+        this.promptLoader = new PromptLoader(this.plugin.app);
     }
 
     setStatusCallback(callback: StatusCallback) {
@@ -56,7 +56,23 @@ export class NoteProcessor {
     async processURL(input: ProcessingInput): Promise<ProcessingResult> {
         this.updateStatus(0, 'Extracting content...');
         const extractedContent = await this.contentExtractor.extractContent(input.url);
+        
+        // --- PRE-FLIGHT TOKEN & COST CALCULATION ---
+        const modelId = this.plugin.getCurrentModel();
+        const inputTokens = await this.llmService.countTokens(extractedContent.content, modelId);
+        
+        // Multi-pass analysis estimate (5 passes + system prompts + metadata extraction)
+        const estimatedTotalInput = inputTokens * 5.2; 
+        const estimatedTotalOutput = 2500; // Average across 5 passes
+        
+        const { calculateCost, formatTokens } = await import('../utils/tokenUtils');
+        const estCost = calculateCost(estimatedTotalInput, estimatedTotalOutput, modelId);
+        
         this.updateStatus(0, `Content extracted (${extractedContent.metadata.type})`);
+        this.updateStatus(1, `⚖️ Pre-flight: ~${formatTokens(inputTokens)} tokens | Est. Total: $${estCost.toFixed(4)}`);
+        
+        // Pause briefly for user to see the pre-flight check
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         const traceId = await this.traceManager.startTrace({
             name: 'note-creation',
@@ -271,6 +287,15 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
             });
 
             if (!response) continue;
+
+            // --- USAGE HEARTBEAT ---
+            if (response.usage) {
+                const { calculateCost, formatTokens } = await import('../utils/tokenUtils');
+                const model = this.plugin.getCurrentModel();
+                const passCost = calculateCost(response.usage.promptTokens, response.usage.completionTokens, model);
+                const totalTokens = formatTokens(response.usage.totalTokens);
+                this.updateStatus(3, `✅ Pass ${i + 1} Success (+${totalTokens} tokens / $${passCost.toFixed(5)})`);
+            }
             
             try {
                 let cleanedText = response.text.trim();
@@ -402,13 +427,13 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
         return await this.plugin.app.vault.create(`${folderPath}/${fileName}`, this.buildFrontmatter(frontmatter) + '\n' + analysisResult.summary);
     }
 
-    private async performVerbatimQAExtraction(content: ExtractedContent, traceId: string): Promise<string> {
-        const promptLoader = new PromptLoader();
+    private async performVerbatimQAExtraction(extractedContent: ExtractedContent, traceId: string): Promise<string> {
+        const promptLoader = new PromptLoader(this.plugin.app);
         const promptData = await promptLoader.loadPromptsForIntent('verbatim_qa' as any);
         const promptTemplate = (promptData as any).structure;
         
         const CHUNK_SIZE = 15000; // Resolution Fix
-        const text = content.content;
+        const text = extractedContent.content;
         const chunks: string[] = [];
         for (let i = 0; i < text.length; i += CHUNK_SIZE) {
             chunks.push(text.substring(i, i + CHUNK_SIZE));

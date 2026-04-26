@@ -10,7 +10,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
     constructor(app: App, plugin: AISummarizerPlugin) {
         super(app, plugin);
         this.plugin = plugin;
-        this.promptLoader = new PromptLoader();
+        this.promptLoader = new PromptLoader(this.app);
     }
 
     display(): void {

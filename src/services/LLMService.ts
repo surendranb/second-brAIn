@@ -34,6 +34,17 @@ export class LLMService {
   }
   
   /**
+   * Count tokens for the given text
+   */
+  async countTokens(text: string, model?: string): Promise<number> {
+    if (!this.provider.isConfigured()) {
+      return Math.ceil(text.length / 4); // Fallback to rough estimate if not configured
+    }
+    
+    return await this.provider.countTokens(text, model);
+  }
+  
+  /**
    * Get information about the current provider
    */
   getProviderInfo(): { name: string; models: string[] } {
