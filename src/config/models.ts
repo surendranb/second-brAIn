@@ -13,17 +13,17 @@ export interface GeminiModel {
 export const GEMINI_MODELS: GeminiModel[] = [
     {
         id: 'gemini-flash-lite-latest',
-        name: 'Gemini Flash-Lite',
+        name: 'Gemini 3 Flash-Lite',
         description: 'Fastest and most cost-efficient.'
     },
     {
         id: 'gemini-flash-latest',
-        name: 'Gemini Flash',
+        name: 'Gemini 3 Flash',
         description: 'Balanced speed and intelligence.'
     },
     {
         id: 'gemini-pro-latest',
-        name: 'Gemini Pro',
+        name: 'Gemini 3 Pro',
         description: 'Deep reasoning and complex synthesis.'
     }
 ];
