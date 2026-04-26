@@ -10,13 +10,6 @@
 
 ---
 
-## 📸 The Experience
-
-![brAIn Feature Showcase](https://raw.githubusercontent.com/surendranb/second-brAIn/main/assets/screenshot_mockup.png)
-*Glassmorphic dashboard with real-time usage tracking and granular progress monitoring.*
-
----
-
 ## 🚀 Key Features
 
 ### 🌊 5-Pass Neural Synthesis
@@ -58,7 +51,7 @@ The agent will prioritize your local prompts over the internal defaults.
 
 ## 🛠️ Tech Stack
 - **Environment**: Obsidian (Desktop & Mobile)
-- **Intelligence**: Gemini 3 / Gemma 4
+- **Intelligence**: Gemini
 - **Extraction**: `yt-dlp` + `readability.js`
 - **Styling**: Vanilla CSS
 
