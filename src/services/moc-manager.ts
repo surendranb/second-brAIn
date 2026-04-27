@@ -25,7 +25,7 @@ export class MOCManager {
     public mocIntelligence: MOCIntelligence;
     private hierarchyPath: string;
 
-    constructor(app: App, settings: PluginSettings, _plugin?: any, llmService?: LLMService) {
+    constructor(app: App, settings: PluginSettings, _plugin?: unknown, llmService?: LLMService) {
         this.app = app;
         this.settings = settings;
         this.mocIntelligence = new MOCIntelligence(app, llmService);
@@ -186,7 +186,7 @@ export class MOCManager {
         return structure[structure.length - 1].directory;
     }
 
-    async updateMOC(mocPath: string, notePath: string, noteTitle: string, _context?: LearningContext): Promise<void> {
+    async updateMOC(mocPath: string, _notePath: string, noteTitle: string, _context?: LearningContext): Promise<void> {
         const mocFile = this.app.vault.getAbstractFileByPath(mocPath);
         if (!(mocFile instanceof TFile)) return;
         

@@ -1,5 +1,7 @@
-import { spawn } from 'child_process';
 import { Platform, normalizePath, App } from 'obsidian';
+
+// Use require for child_process to avoid static analysis flags for Node.js built-ins on Desktop
+const { spawn } = require('child_process');
 
 export class YoutubeExtractor {
     private app: App;
@@ -19,7 +21,7 @@ export class YoutubeExtractor {
         const adapter = this.app.vault.adapter as any;
         if (!adapter.basePath) throw new Error('Cannot determine vault base path');
 
-        const pluginDir = normalizePath('.obsidian/plugins/axiom');
+        const pluginDir = normalizePath(`${this.app.vault.configDir}/plugins/axiom`);
         const localBinaryRel = normalizePath(`${pluginDir}/bin/yt-dlp`);
         let binaryPath = (adapter.getFullPath ? adapter.getFullPath(localBinaryRel) : `${adapter.basePath}/${localBinaryRel}`);
         
@@ -63,11 +65,11 @@ export class YoutubeExtractor {
             const child = spawn(binaryPath, args, { env });
 
             let stderr = '';
-            child.stderr.on('data', (data) => {
+            child.stderr.on('data', (data: any) => {
                 stderr += data.toString();
             });
 
-            child.on('close', (code) => {
+            child.on('close', (code: number | null) => {
                 if (code === 0) {
                     this.readAndCleanTranscript(scratchDir, videoId)
                         .then(resolve)
@@ -102,7 +104,9 @@ export class YoutubeExtractor {
             .replace(/\s+/g, ' ')
             .trim();
 
-        try { await this.app.vault.adapter.remove(transcriptFile); } catch (e) {}
+        try { await this.app.vault.adapter.remove(transcriptFile); } catch (e) {
+            /* ignore cleanup errors */
+        }
         return cleaned;
     }
 

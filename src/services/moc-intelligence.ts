@@ -64,8 +64,9 @@ export class MOCIntelligence {
         }));
 
         try {
-            const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
-            const existingContent = mocFile ? await this.app.vault.read(mocFile) : '';
+            const mocFile = this.app.vault.getAbstractFileByPath(mocPath);
+            if (!(mocFile instanceof TFile)) throw new Error('MOC file not found');
+            const existingContent = await this.app.vault.read(mocFile);
             return await this.generateAISynthesis(noteSummaries, existingContent, notes);
         } catch (error) {
             return this.generateAccurateAnalysisFromNotes(notes, noteSummaries);
@@ -118,8 +119,8 @@ Return ONLY valid JSON with these keys: overview, keyThemes, conceptualRelations
     }
 
     private async extractNotesFromMOC(mocPath: string): Promise<MOCNote[]> {
-        const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
-        if (!mocFile) return [];
+        const mocFile = this.app.vault.getAbstractFileByPath(mocPath);
+        if (!(mocFile instanceof TFile)) return [];
         const mocContent = await this.app.vault.read(mocFile);
         const notes: MOCNote[] = [];
         
@@ -140,8 +141,8 @@ Return ONLY valid JSON with these keys: overview, keyThemes, conceptualRelations
     }
 
     private async applyAnalysisToMOC(mocPath: string, analysis: MOCAnalysis): Promise<void> {
-        const mocFile = this.app.vault.getAbstractFileByPath(mocPath) as TFile;
-        if (!mocFile) return;
+        const mocFile = this.app.vault.getAbstractFileByPath(mocPath);
+        if (!(mocFile instanceof TFile)) return;
         let content = await this.app.vault.read(mocFile);
         content = this.updateTemplateSections(content, analysis);
         await this.app.vault.modify(mocFile, content);

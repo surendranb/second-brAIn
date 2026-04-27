@@ -25,11 +25,11 @@ class SummaryView extends ItemView {
 
     constructor(leaf: WorkspaceLeaf, private plugin: AISummarizerPlugin) {
         super(leaf);
-        void this.initializeUsageTracking();
+        this.initializeUsageTracking();
         this.initializeNoteProcessor();
     }
 
-    private async initializeUsageTracking() {
+    private initializeUsageTracking() {
         this.usageHistoryManager = new UsageHistoryManager(this.app);
         if (this.plugin.traceManager) this.plugin.traceManager.setUsageHistoryManager(this.usageHistoryManager);
     }
@@ -46,6 +46,7 @@ class SummaryView extends ItemView {
     getDisplayText() { return 'Axiom'; }
 
     async onOpen(): Promise<void> {
+        await Promise.resolve();
         const { contentEl } = this;
         contentEl.empty();
 
@@ -53,7 +54,7 @@ class SummaryView extends ItemView {
         
         // --- INPUT CARD ---
         const inputCard = mainContainer.createEl('div', { cls: 'axiom-card' });
-        inputCard.createEl('div', { cls: 'axiom-card-header' }).createEl('h3', { text: '📝 Input', cls: 'axiom-card-title' });
+        inputCard.createEl('div', { cls: 'axiom-card-header' }).createEl('h3', { text: 'Input', cls: 'axiom-card-title' });
 
         const configSection = inputCard.createEl('div', { cls: 'axiom-config-section' });
         
@@ -62,8 +63,8 @@ class SummaryView extends ItemView {
         
         // Provider Group
         const providerGroup = dropdownRow.createEl('div', { cls: 'axiom-form-group axiom-form-group-third' });
-        providerGroup.createEl('label', { text: '🔌 Provider', cls: 'axiom-form-label' });
-        const providerDropdown = providerGroup.createEl('select', { cls: 'axiom-select' }) as HTMLSelectElement;
+        providerGroup.createEl('label', { text: 'Provider', cls: 'axiom-form-label' });
+        const providerDropdown = providerGroup.createEl('select', { cls: 'axiom-select' });
         providerDropdown.add(new Option('Gemini', 'gemini'));
         providerDropdown.add(new Option('OpenRouter', 'openrouter'));
         providerDropdown.value = this.plugin.settings.provider;
@@ -75,8 +76,8 @@ class SummaryView extends ItemView {
 
         // Model Group
         const modelGroup = dropdownRow.createEl('div', { cls: 'axiom-form-group axiom-form-group-third' });
-        modelGroup.createEl('label', { text: '🤖 AI model', cls: 'axiom-form-label' });
-        this.modelDropdown = modelGroup.createEl('select', { cls: 'axiom-select' }) as HTMLSelectElement;
+        modelGroup.createEl('label', { text: 'AI model', cls: 'axiom-form-label' });
+        this.modelDropdown = modelGroup.createEl('select', { cls: 'axiom-select' });
         this.populateModelDropdown();
         this.registerDomEvent(this.modelDropdown, 'change', async () => {
             const val = this.modelDropdown.value;
@@ -87,8 +88,8 @@ class SummaryView extends ItemView {
 
         // Intent Group
         const intentGroup = dropdownRow.createEl('div', { cls: 'axiom-form-group axiom-form-group-third' });
-        intentGroup.createEl('label', { text: '🎯 Intent', cls: 'axiom-form-label' });
-        this.intentDropdown = intentGroup.createEl('select', { cls: 'axiom-select' }) as HTMLSelectElement;
+        intentGroup.createEl('label', { text: 'Intent', cls: 'axiom-form-label' });
+        this.intentDropdown = intentGroup.createEl('select', { cls: 'axiom-select' });
         this.populateIntentDropdown();
         this.registerDomEvent(this.intentDropdown, 'change', async () => {
             this.plugin.settings.defaultIntent = this.intentDropdown.value as ProcessingIntent;
@@ -98,7 +99,7 @@ class SummaryView extends ItemView {
 
         // --- DYNAMIC TARGET TOPIC ROW (Hidden by default) ---
         this.targetTopicContainer = configSection.createEl('div', { cls: 'axiom-form-group axiom-is-hidden' });
-        this.targetTopicContainer.createEl('label', { text: '📂 Target collection', cls: 'axiom-form-label' });
+        this.targetTopicContainer.createEl('label', { text: 'Target collection', cls: 'axiom-form-label' });
         
         // Create DataList for autocomplete
         const dataListId = 'axiom-topic-list';
@@ -119,20 +120,20 @@ class SummaryView extends ItemView {
         });
         this.qaCheckbox = qaGroup.createEl('input', { type: 'checkbox' });
         this.qaCheckbox.id = 'axiom-qa-checkbox';
-        qaGroup.createEl('label', { text: '💬 Generate verbatim Q&A note', cls: 'axiom-qa-label', attr: { for: 'axiom-qa-checkbox' } });
+        qaGroup.createEl('label', { text: 'Generate verbatim Q&A note', cls: 'axiom-qa-label', attr: { for: 'axiom-qa-checkbox' } });
 
         // Initial check
         this.toggleTargetTopicVisibility();
 
         const urlGroup = configSection.createEl('div', { cls: 'axiom-form-group' });
-        urlGroup.createEl('label', { text: '🌐 Content URL', cls: 'axiom-form-label' });
+        urlGroup.createEl('label', { text: 'Content URL', cls: 'axiom-form-label' });
         this.urlInput = urlGroup.createEl('input', { type: 'text', placeholder: 'YouTube or Article URL...', cls: 'axiom-input' });
 
         const instructionsGroup = configSection.createEl('div', { cls: 'axiom-form-group' });
-        instructionsGroup.createEl('label', { text: '💡 Instructions', cls: 'axiom-form-label' });
+        instructionsGroup.createEl('label', { text: 'Instructions', cls: 'axiom-form-label' });
         this.promptInput = instructionsGroup.createEl('textarea', { placeholder: 'Extra focus areas...', cls: 'axiom-textarea' });
 
-        const cleanButton = inputCard.createEl('button', { text: '✨ Summarize & organize', cls: 'axiom-clean-button' });
+        const cleanButton = inputCard.createEl('button', { text: 'Summarize & organize', cls: 'axiom-clean-button' });
         this.registerDomEvent(cleanButton, 'click', () => { void this.startNoteGenerationClean(); });
 
         // --- NEW SLEEK PROGRESS AREA ---
@@ -150,8 +151,8 @@ class SummaryView extends ItemView {
 
         // --- CHRONOLOGICAL LOG AREA ---
         const logHeader = progressCard.createEl('div', { cls: 'axiom-log-header' });
-        logHeader.createEl('span', { text: '📜 Activity log' });
-        const copyLogBtn = logHeader.createEl('button', { text: '📋 Copy', cls: 'axiom-copy-log-btn' });
+        logHeader.createEl('span', { text: 'Activity log' });
+        const copyLogBtn = logHeader.createEl('button', { text: 'Copy', cls: 'axiom-copy-log-btn' });
         this.registerDomEvent(copyLogBtn, 'click', () => {
             const logs = Array.from(this.logContainer.querySelectorAll('.axiom-log-entry'))
                 .map(el => el.textContent)
@@ -162,7 +163,7 @@ class SummaryView extends ItemView {
 
         this.logContainer = progressCard.createEl('div', { cls: 'axiom-log-container' });
 
-        this.retryButton = progressCard.createEl('button', { text: '🔄 Retry', cls: 'axiom-retry-button axiom-is-hidden' });
+        this.retryButton = progressCard.createEl('button', { text: 'Retry', cls: 'axiom-retry-button axiom-is-hidden' });
         this.registerDomEvent(this.retryButton, 'click', () => { void this.startNoteGenerationClean(); });
 
         this.createStatsFooter();
@@ -336,7 +337,7 @@ class AISummarizerPlugin extends Plugin {
 
                 
 
-                this.addRibbonIcon('brain', 'Open axiom', () => this.activateView());
+                this.addRibbonIcon('brain', 'Open Axiom', () => { void this.activateView(); });
         this.addSettingTab(new AISummarizerSettingsTab(this.app, this));
         this.registerView(VIEW_TYPE_SUMMARY, (leaf) => new SummaryView(leaf, this));
     }

@@ -71,7 +71,9 @@ export class LangfuseProvider implements TraceProvider {
         }
       };
       await this.sendBatchToLangfuse([event]);
-    } catch (error) {}
+    } catch (error) {
+      /* ignore background tracing failures */
+    }
   }
 
   async updateTrace(traceId: string, metadata: TraceMetadata): Promise<void> {
@@ -94,7 +96,9 @@ export class LangfuseProvider implements TraceProvider {
         }
       };
       await this.sendBatchToLangfuse([event]);
-    } catch (error) {}
+    } catch (error) {
+      /* ignore background tracing failures */
+    }
   }
 
   async startGeneration(traceId: string, metadata: GenerationMetadata): Promise<string> {
@@ -146,7 +150,9 @@ export class LangfuseProvider implements TraceProvider {
         }
       };
       await this.sendBatchToLangfuse([event]);
-    } catch (error) {}
+    } catch (error) {
+      /* ignore background tracing failures */
+    }
   }
 
   async updateGeneration(generationId: string, metadata: GenerationMetadata): Promise<void> {
@@ -174,7 +180,9 @@ export class LangfuseProvider implements TraceProvider {
         }
       };
       await this.sendBatchToLangfuse([event]);
-    } catch (error) {}
+    } catch (error) {
+      /* ignore background tracing failures */
+    }
   }
 
   async startSpan(traceId: string, name: string, metadata?: SpanMetadata): Promise<string> {
@@ -218,7 +226,9 @@ export class LangfuseProvider implements TraceProvider {
         }
       };
       await this.sendBatchToLangfuse([event]);
-    } catch (error) {}
+    } catch (error) {
+      /* ignore background tracing failures */
+    }
   }
 
   isConfigured(): boolean {
@@ -242,7 +252,9 @@ export class LangfuseProvider implements TraceProvider {
           metadata: { sdk_name: 'obsidian-second-brain', sdk_version: '1.0.0' }
         })
       });
-    } catch (error) {}
+    } catch (error) {
+      /* ignore background tracing failures */
+    }
   }
 
   private generateId(): string {

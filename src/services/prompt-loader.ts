@@ -33,7 +33,6 @@ export class PromptLoader {
             // 1. Try to load custom prompts from the vault
             const customPrompts = await this.loadCustomPrompts(intent);
             if (customPrompts) {
-                console.log(`[brAIn] Using custom vault-native prompts for ${intent}`);
                 return customPrompts;
             }
 

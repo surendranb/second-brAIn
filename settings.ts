@@ -339,7 +339,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
         void this.displayIntentManagement(containerEl);
     }
 
-    private async displayIntentManagement(containerEl: HTMLElement): Promise<void> {
+    private displayIntentManagement(containerEl: HTMLElement): void {
         const intentSection = containerEl.createDiv({ cls: 'axiom-intent-section' });
 
         // Intent Selection for Prompt Editing
@@ -371,7 +371,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
         const statusDiv = intentSection.createDiv({ cls: 'axiom-status-div' });
 
         statusDiv.createEl('p', {
-            text: 'Prompts are loaded from JSON files in the prompts/ folder. Each intent has 5 specialized prompts: structure, content, perspectives, connections, and learning.',
+            text: 'Prompts are loaded from JSON files in the prompts/ folder. Each intent has five specialized prompts: structure, content, perspectives, connections, and learning.',
             cls: 'axiom-status-text'
         });
     }

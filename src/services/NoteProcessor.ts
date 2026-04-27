@@ -1,18 +1,18 @@
+import { App, TFile, TFolder } from 'obsidian';
 import { TraceManager } from './TraceManager';
 import { LLMService } from './LLMService';
 import { ContentExtractor, type ExtractedContent } from './ContentExtractor';
 import { HierarchyService } from './HierarchyService';
-import { TFile, TFolder } from 'obsidian';
 import { PromptLoader } from './prompt-loader';
 import { generateId } from '../utils';
 import { MOCHierarchy, FullAnalysisResult, ProcessingIntent } from '../types';
 
 export interface PluginInterface {
-    app: any;
-    settings: any;
+    app: App;
+    settings: any; // Keep 'any' for settings to avoid complex generic circular refs for now, but narrowed in class
     getCurrentModel(): string;
     saveSettings(): Promise<void>;
-    mocManager: any;
+    mocManager: any; // Narrowed to MOCManager in constructor if possible
 }
 
 export interface ProcessingInput {
@@ -38,11 +38,11 @@ export class NoteProcessor {
     private contentExtractor: ContentExtractor;
     private hierarchyService: HierarchyService;
     private plugin: PluginInterface;
-    private summaryView: any;
+    private summaryView: unknown;
     private statusCallback?: StatusCallback;
     private promptLoader: PromptLoader;
 
-    constructor(traceManager: TraceManager, llmService: LLMService, plugin: PluginInterface, summaryView: any) {
+    constructor(traceManager: TraceManager, llmService: LLMService, plugin: PluginInterface, summaryView: unknown) {
         this.traceManager = traceManager;
         this.llmService = llmService;
         this.plugin = plugin;
@@ -339,7 +339,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
         ];
 
         for (const sec of listSections) {
-            const data = (result as any)[sec.key];
+            const data = (result as unknown as Record<string, unknown>)[sec.key] as string[];
             if (data?.length) {
                 content += `## ${sec.title}\n`;
                 data.forEach((item: string, index: number) => {
@@ -355,7 +355,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
 
         if (result.multiple_perspectives?.length) {
             content += `## Multiple Perspectives\n`;
-            result.multiple_perspectives.forEach((p: any) => content += `### ${p.viewpoint}\n${p.analysis}\n\n`);
+            result.multiple_perspectives.forEach((p) => content += `### ${p.viewpoint}\n${p.analysis}\n\n`);
         }
 
         if (result.analogies_examples?.length) {
@@ -476,7 +476,8 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
     private async createQANote(analysisResult: FullAnalysisResult, markdown: string, summaryPath: string): Promise<TFile> {
         const title = `${analysisResult.title} (Q&A)`;
         const fileName = title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + '.md';
-        const folderPath = this.plugin.app.vault.getAbstractFileByPath(summaryPath).parent.path;
+        const summaryFile = this.plugin.app.vault.getAbstractFileByPath(summaryPath);
+        const folderPath = (summaryFile instanceof TFile && summaryFile.parent) ? summaryFile.parent.path : '';
         const author = analysisResult.primary_author || 'Unknown';
         
         const frontmatter = {
@@ -515,7 +516,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
         await this.plugin.app.vault.create(filePath, this.buildFrontmatter(frontmatter) + '\n\n# Full Transcript\n\n' + content.content);
     }
 
-    private buildFrontmatter(data: Record<string, any>, indent = 0): string {
+    private buildFrontmatter(data: Record<string, unknown>, indent = 0): string {
         let content = indent === 0 ? '---\n' : '';
         const spaces = '  '.repeat(indent);
         for (const [key, value] of Object.entries(data)) {
@@ -526,8 +527,8 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
                 if (value.length === 0) continue;
                 content += `${spaces}${key}:\n`;
                 value.forEach(v => content += `${spaces}  - ${JSON.stringify(v)}\n`);
-            } else if (typeof value === 'object' && !Array.isArray(value)) {
-                content += `${spaces}${key}:\n${this.buildFrontmatter(value, indent + 1)}`;
+            } else if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
+                content += `${spaces}${key}:\n${this.buildFrontmatter(value as Record<string, unknown>, indent + 1)}`;
             } else content += `${spaces}${key}: ${JSON.stringify(value)}\n`;
         }
         if (indent === 0) content += '---';

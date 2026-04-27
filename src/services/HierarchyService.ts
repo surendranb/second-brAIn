@@ -17,7 +17,7 @@ export class HierarchyService {
     async analyzeHierarchy(
         title: string, 
         content: string, 
-        metadata: any = {},
+        metadata: Record<string, unknown> = {},
         traceId?: string,
         model?: string,
         vaultMap?: string
@@ -50,7 +50,7 @@ export class HierarchyService {
         }
     }
 
-    private buildHierarchyPrompt(title: string, content: string, metadata: any): string {
+    private buildHierarchyPrompt(title: string, content: string, metadata: Record<string, unknown>): string {
         return `You are an expert knowledge architect building a permanent library. Your goal is to place this content in its "Truest Semantic Home".
 
 GUIDING PRINCIPLES:
@@ -117,7 +117,7 @@ Return ONLY valid JSON in this exact format:
                 },
                 confidence_score: Math.max(0, Math.min(1, parsed.confidence || 0.5)),
                 reasoning: parsed.reasoning || 'No reasoning',
-                alternative_hierarchies: (parsed.alternatives || []).map((alt: any) => ({
+                alternative_hierarchies: (parsed.alternatives || []).map((alt: Record<string, any>) => ({
                     hierarchy: {
                         level1: alt.hierarchy?.level1 || 'Unknown',
                         level2: alt.hierarchy?.level2 || 'Unknown',
@@ -147,7 +147,7 @@ Return ONLY valid JSON in this exact format:
         };
     }
 
-    private getFallbackHierarchy(title: string, content: string, metadata: any): HierarchyAnalysisResult {
+    private getFallbackHierarchy(title: string, content: string, _metadata: Record<string, unknown>): HierarchyAnalysisResult {
         const text = `${title} ${content}`.toLowerCase();
         let level1 = 'General Knowledge', level2 = 'Miscellaneous';
         
