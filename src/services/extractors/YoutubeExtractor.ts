@@ -20,10 +20,18 @@ export class YoutubeExtractor {
         if (!adapter.basePath) throw new Error('Cannot determine vault base path');
 
         const pluginDir = normalizePath('.obsidian/plugins/axiom');
-        const binaryPath = (adapter.getFullPath ? adapter.getFullPath(normalizePath(`${pluginDir}/bin/yt-dlp`)) : `${adapter.basePath}/${pluginDir}/bin/yt-dlp`);
+        const localBinaryRel = normalizePath(`${pluginDir}/bin/yt-dlp`);
+        let binaryPath = (adapter.getFullPath ? adapter.getFullPath(localBinaryRel) : `${adapter.basePath}/${localBinaryRel}`);
+        
+        // Fallback: Check if local binary exists, otherwise use system 'yt-dlp'
+        const exists = await this.app.vault.adapter.exists(localBinaryRel);
+        if (!exists) {
+            binaryPath = 'yt-dlp';
+        }
+
         const scratchDir = normalizePath(`${pluginDir}/scratch`);
         const outputPath = (adapter.getFullPath ? adapter.getFullPath(normalizePath(`${scratchDir}/${videoId}`)) : `${adapter.basePath}/${scratchDir}/${videoId}`);
-
+        
         // Ensure scratch dir exists
         if (!(await this.app.vault.adapter.exists(scratchDir))) {
             await this.app.vault.adapter.mkdir(scratchDir);
@@ -70,7 +78,7 @@ export class YoutubeExtractor {
                 }
             });
 
-            setTimeout(() => { child.kill(); reject(new Error('yt-dlp timed out.')); }, 60000);
+            activeWindow.setTimeout(() => { child.kill(); reject(new Error('yt-dlp timed out.')); }, 60000);
         });
     }
 
@@ -99,7 +107,7 @@ export class YoutubeExtractor {
     }
 
     private extractVideoId(url: string): string | null {
-        const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+        const regex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i;
         const match = url.match(regex);
         return match ? match[1] : null;
     }

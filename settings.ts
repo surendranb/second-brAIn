@@ -23,7 +23,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
             .setDesc('Select the AI provider to use for summarization')
             .addDropdown(dropdown => dropdown
                 .addOption('gemini', 'Google Gemini')
-                .addOption('openrouter', 'Openrouter')
+                .addOption('openrouter', 'OpenRouter')
                 .setValue(this.plugin.settings.provider)
                 .onChange(async (value) => {
                     this.plugin.settings.provider = value as Provider;
@@ -64,8 +64,8 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
         } else if (this.plugin.settings.provider === 'openrouter') {
             // OpenRouter API key
             new Setting(containerEl)
-                .setName('Openrouter API key')
-                .setDesc('Your openrouter API key')
+                .setName('OpenRouter API key')
+                .setDesc('Your OpenRouter API key')
                 .addText(text => text
                     .setPlaceholder('sk-or-...')
                     .setValue(this.plugin.settings.openrouter.apiKey)
@@ -76,8 +76,8 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
 
             // OpenRouter model selection
             new Setting(containerEl)
-                .setName('Openrouter model')
-                .setDesc('Select the openrouter model to use')
+                .setName('OpenRouter model')
+                .setDesc('Select the OpenRouter model to use')
                 .addDropdown(dropdown => {
                     dropdown.selectEl.empty();
                     OPENROUTER_MODELS.forEach((model: GeminiModel) => {

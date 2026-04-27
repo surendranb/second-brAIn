@@ -1,10 +1,9 @@
-import { Plugin, WorkspaceLeaf, ItemView, Notice, TFile } from 'obsidian';
+import { Plugin, WorkspaceLeaf, ItemView, Notice } from 'obsidian';
 import { AISummarizerSettingsTab } from './settings';
 import { PluginIntegration, LLMService, TraceManager } from './src/services';
 import { NoteProcessor } from './src/services/NoteProcessor';
 import { UsageHistoryManager } from './src/services/UsageHistoryManager';
 import { MOCManager } from './src/services/moc-manager';
-import { findUniqueFileName, generateId, estimateTokens, calculateCost, formatTokens } from './src/utils';
 import { GEMINI_MODELS, OPENROUTER_MODELS, PROCESSING_INTENTS, DEFAULT_SETTINGS, type ProcessingIntent, type Provider } from './src/config';
 
 type PluginSettings = typeof DEFAULT_SETTINGS;
@@ -120,7 +119,7 @@ class SummaryView extends ItemView {
         });
         this.qaCheckbox = qaGroup.createEl('input', { type: 'checkbox' });
         this.qaCheckbox.id = 'axiom-qa-checkbox';
-        qaGroup.createEl('label', { text: '💬 Generate verbatim q&a note', cls: 'axiom-qa-label', attr: { for: 'axiom-qa-checkbox' } });
+        qaGroup.createEl('label', { text: '💬 Generate verbatim Q&A note', cls: 'axiom-qa-label', attr: { for: 'axiom-qa-checkbox' } });
 
         // Initial check
         this.toggleTargetTopicVisibility();

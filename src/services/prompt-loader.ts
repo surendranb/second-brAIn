@@ -16,17 +16,7 @@ export interface IntentPrompts {
     learning: string;
 }
 
-interface IntentPromptsJSON {
-    intent: ProcessingIntent;
-    version: string;
-    prompts: {
-        structure: PromptTemplate;
-        content: PromptTemplate;
-        perspectives: PromptTemplate;
-        connections: PromptTemplate;
-        learning: PromptTemplate;
-    };
-}
+// Removed unused interface
 
 export class PromptLoader {
     private promptCache: Map<ProcessingIntent, IntentPrompts> = new Map();
