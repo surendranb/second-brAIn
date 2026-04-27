@@ -1,7 +1,5 @@
 import { Platform, normalizePath, App } from 'obsidian';
-
-// Use require for child_process to avoid static analysis flags for Node.js built-ins on Desktop
-const { spawn } = require('child_process');
+import { spawn } from 'child_process';
 
 export class YoutubeExtractor {
     private app: App;
@@ -12,18 +10,21 @@ export class YoutubeExtractor {
 
     async extract(url: string): Promise<string> {
         if (Platform.isMobile) {
-            throw new Error('YouTube extraction is currently only available on Desktop (requires yt-dlp).');
+            throw new Error('YouTube extraction is currently only available on desktop (requires yt-dlp).');
         }
 
         const videoId = this.extractVideoId(url);
         if (!videoId) throw new Error('Invalid YouTube URL');
 
-        const adapter = this.app.vault.adapter as any;
-        if (!adapter.basePath) throw new Error('Cannot determine vault base path');
+        const adapter = this.app.vault.adapter;
+        // @ts-ignore - Some adapters have basePath, others don't, but we need it for full path calculation on desktop
+        const basePath = adapter.basePath;
+        if (!basePath) throw new Error('Cannot determine vault base path');
 
         const pluginDir = normalizePath(`${this.app.vault.configDir}/plugins/axiom`);
         const localBinaryRel = normalizePath(`${pluginDir}/bin/yt-dlp`);
-        let binaryPath = (adapter.getFullPath ? adapter.getFullPath(localBinaryRel) : `${adapter.basePath}/${localBinaryRel}`);
+        // @ts-ignore - getFullPath is available on most desktop adapters
+        let binaryPath = (adapter.getFullPath ? adapter.getFullPath(localBinaryRel) : `${basePath}/${localBinaryRel}`);
         
         // Fallback: Check if local binary exists, otherwise use system 'yt-dlp'
         const exists = await this.app.vault.adapter.exists(localBinaryRel);
@@ -32,7 +33,8 @@ export class YoutubeExtractor {
         }
 
         const scratchDir = normalizePath(`${pluginDir}/scratch`);
-        const outputPath = (adapter.getFullPath ? adapter.getFullPath(normalizePath(`${scratchDir}/${videoId}`)) : `${adapter.basePath}/${scratchDir}/${videoId}`);
+        // @ts-ignore - getFullPath is available on most desktop adapters
+        const outputPath = (adapter.getFullPath ? adapter.getFullPath(normalizePath(`${scratchDir}/${videoId}`)) : `${basePath}/${scratchDir}/${videoId}`);
         
         // Ensure scratch dir exists
         if (!(await this.app.vault.adapter.exists(scratchDir))) {
@@ -65,7 +67,7 @@ export class YoutubeExtractor {
             const child = spawn(binaryPath, args, { env });
 
             let stderr = '';
-            child.stderr.on('data', (data: any) => {
+            child.stderr.on('data', (data: Buffer) => {
                 stderr += data.toString();
             });
 

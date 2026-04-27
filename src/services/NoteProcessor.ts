@@ -9,10 +9,10 @@ import { MOCHierarchy, FullAnalysisResult, ProcessingIntent } from '../types';
 
 export interface PluginInterface {
     app: App;
-    settings: any; // Keep 'any' for settings to avoid complex generic circular refs for now, but narrowed in class
+    settings: Record<string, any>; // Complex settings object
     getCurrentModel(): string;
     saveSettings(): Promise<void>;
-    mocManager: any; // Narrowed to MOCManager in constructor if possible
+    mocManager: { getMostSpecificMOCDirectory(hierarchy: MOCHierarchy): string };
 }
 
 export interface ProcessingInput {
@@ -360,30 +360,30 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
 
         if (result.analogies_examples?.length) {
             content += `## Analogies & Examples\n`;
-            result.analogies_examples.forEach((e: any) => content += `### ${e.concept}\n**Analogy**: ${e.analogy}\n\n**Real-World Example**: ${e.real_world_example}\n\n`);
+            result.analogies_examples.forEach((e) => content += `### ${e.concept}\n**Analogy**: ${e.analogy}\n\n**Real-World Example**: ${e.real_world_example}\n\n`);
         }
 
         if (result.case_studies?.length) {
             content += `## Case Studies\n`;
-            result.case_studies.forEach((study: any, index: number) => {
-                const title = study.case_study_name || `Case Study ${index + 1}`;
-                content += `### ${title}\n${study.description || String(study)}\n\n`;
+            result.case_studies.forEach((study, index) => {
+                const title = (study as Record<string, string>).case_study_name || `Case Study ${index + 1}`;
+                content += `### ${title}\n${(study as Record<string, string>).description || String(study)}\n\n`;
             });
         }
 
         if (result.knowledge_connections?.length) {
             content += `## Knowledge Connections\n`;
-            result.knowledge_connections.forEach((c: any) => content += `### ${c.related_field}\n**Connection Type**: ${c.connection_type}\n\n${c.detailed_explanation}\n\n`);
+            result.knowledge_connections.forEach((c) => content += `### ${c.related_field}\n**Connection Type**: ${c.connection_type}\n\n${c.detailed_explanation}\n\n`);
         }
 
         if (result.practical_applications?.length) {
             content += `## Practical Applications\n`;
-            result.practical_applications.forEach((a: any) => content += `### ${a.domain}: ${a.application}\n**Implementation**: ${a.implementation}\n\n**Benefits**: ${a.benefits}\n\n`);
+            result.practical_applications.forEach((a) => content += `### ${a.domain}: ${a.application}\n**Implementation**: ${a.implementation}\n\n**Benefits**: ${a.benefits}\n\n`);
         }
 
         if (result.learning_pathways?.length) {
             content += `## Learning Pathways\n`;
-            result.learning_pathways.forEach((p: any) => {
+            result.learning_pathways.forEach((p) => {
                 content += `### ${p.pathway_name}\n**Difficulty**: ${p.difficulty}\n\n`;
                 p.steps.forEach((step: string, i: number) => content += `${i + 1}. ${step}\n`);
                 content += '\n';
@@ -395,7 +395,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
     }
 
     private async getPromptForPass(passIndex: number, intent: string): Promise<string> {
-        const prompts = await this.promptLoader.loadPromptsForIntent(intent as any);
+        const prompts = await this.promptLoader.loadPromptsForIntent(intent as ProcessingIntent);
         const map = [prompts.structure, prompts.content, prompts.perspectives, prompts.connections, prompts.learning];
         return map[passIndex];
     }
@@ -439,8 +439,8 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
 
     private async performVerbatimQAExtraction(extractedContent: ExtractedContent, traceId: string): Promise<string> {
         const promptLoader = new PromptLoader(this.plugin.app);
-        const promptData = await promptLoader.loadPromptsForIntent('verbatim_qa' as any);
-        const promptTemplate = (promptData as any).structure;
+        const promptData = await promptLoader.loadPromptsForIntent('verbatim_qa' as ProcessingIntent);
+        const promptTemplate = (promptData as Record<string, any>).structure;
         
         const CHUNK_SIZE = 15000; // Resolution Fix
         const text = extractedContent.content;

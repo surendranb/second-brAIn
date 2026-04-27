@@ -16,7 +16,7 @@ export interface LevelInfo {
 }
 
 export interface HierarchyMap {
-    [key: string]: any; // Recursive structure
+    [key: string]: unknown; // Changed from any to unknown
 }
 
 export class MOCManager {
@@ -67,17 +67,17 @@ export class MOCManager {
         // Truncate to 50 chars to keep the map as a 'index' not a 'database'
         const cleanDesc = description ? description.substring(0, 50).replace(/\n/g, ' ').trim() + "..." : "Concept";
         
-        if (!map[hierarchy.level1]) map[hierarchy.level1] = {};
-        let current = map[hierarchy.level1];
+        if (!map[hierarchy.level1]) (map as Record<string, unknown>)[hierarchy.level1] = {};
+        let current = map[hierarchy.level1] as Record<string, unknown>;
 
         if (hierarchy.level2) {
             if (!current[hierarchy.level2]) current[hierarchy.level2] = {};
-            current = current[hierarchy.level2];
+            current = current[hierarchy.level2] as Record<string, unknown>;
         }
 
         if (hierarchy.level3) {
             if (!current[hierarchy.level3]) current[hierarchy.level3] = {};
-            current = current[hierarchy.level3];
+            current = current[hierarchy.level3] as Record<string, unknown>;
         }
 
         if (hierarchy.level4) {
@@ -177,6 +177,7 @@ export class MOCManager {
     }
 
     async getMostSpecificMOCPath(hierarchy: MOCHierarchy): Promise<string> { 
+        await Promise.resolve();
         const structure = this.createHierarchicalStructure(hierarchy);
         return structure[structure.length - 1].path;
     }

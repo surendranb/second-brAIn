@@ -14,13 +14,13 @@ export type Provider = 'gemini' | 'openrouter';
 export interface GeminiSettings {
     apiKey: string;
     model: string;
-    models: any[];
+    models: unknown[];
 }
 
 export interface OpenRouterSettings {
     apiKey: string;
     model: string;
-    models: any[];
+    models: unknown[];
 }
 
 export interface LangfuseSettings {

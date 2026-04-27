@@ -3,7 +3,7 @@ import { Readability } from '@mozilla/readability';
 import * as TurndownService from 'turndown';
 
 export class WebExtractor {
-    private turndownService: any; // Using any to avoid type mismatch with Turndown default/namespace imports
+    private turndownService: unknown;
 
     constructor() {
         // @ts-ignore - Turndown constructor sometimes has issues with ES modules in Obsidian environment

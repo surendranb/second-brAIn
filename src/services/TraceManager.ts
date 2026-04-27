@@ -275,6 +275,7 @@ export class TraceManager {
   }
 
   async completeNoteTracking(): Promise<UsageRecord | null> {
+    await Promise.resolve();
     if (!this.currentNoteUsage.noteId || !this.usageHistoryManager) return null;
 
     // We no longer add a final aggregate record here because we now record 

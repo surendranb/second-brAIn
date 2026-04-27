@@ -7,14 +7,14 @@ export interface TraceMetadata {
   userId?: string;
   sessionId?: string;
   tags?: string[];
-  input?: any;
-  output?: any;
-  metadata?: Record<string, any>;
+  input?: unknown;
+  output?: unknown;
+  metadata?: Record<string, unknown>;
 }
 
 export interface GenerationMetadata extends TraceMetadata {
   model?: string;
-  modelParameters?: Record<string, any>;
+  modelParameters?: Record<string, unknown>;
   prompt?: string;
   completion?: string;
   usage?: {
@@ -27,9 +27,9 @@ export interface GenerationMetadata extends TraceMetadata {
 
 export interface SpanMetadata {
   name?: string;
-  input?: any;
-  output?: any;
-  metadata?: Record<string, any>;
+  input?: unknown;
+  output?: unknown;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TraceProvider {
@@ -54,7 +54,7 @@ export interface TraceProvider {
   flush(): Promise<void>;
 
   // Metrics & Deep Linking
-  getMetrics?(): Promise<any>;
+  getMetrics?(): Promise<Record<string, unknown>>;
   getTraceUrl?(traceId: string): string;
 }
 
@@ -85,6 +85,6 @@ export interface ProcessingContext {
   intent: 'url-processing' | 'note-generation' | 'moc-update';
   url?: string;
   noteTitle?: string;
-  userSettings?: any;
+  userSettings?: Record<string, unknown>;
   trace?: TraceContext;
 }

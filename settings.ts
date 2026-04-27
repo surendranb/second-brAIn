@@ -110,7 +110,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
         new Setting(containerEl).setName('Langfuse tracing').setHeading();
 
         new Setting(containerEl)
-            .setName('Enable langfuse tracing')
+            .setName('Enable Langfuse tracing')
             .setDesc('Track AI calls for observability, cost analysis, and performance monitoring')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.langfuse.enabled)
@@ -162,7 +162,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
         new Setting(containerEl).setName('MOC (map of content)').setHeading();
 
         new Setting(containerEl)
-            .setName('Enable moc organization')
+            .setName('Enable MOC organization')
             .setDesc('Automatically organize notes into knowledge hierarchies (maps of content). Notes will be saved alongside mocs in organized folder structures.')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.enableMOC)
@@ -257,7 +257,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
         }
 
         // Debug & analysis
-        new Setting(containerEl).setName('Debug & analysis').setHeading();
+        new Setting(containerEl).setName('Debug and analysis').setHeading();
 
         new Setting(containerEl)
             .setName('Enable debug mode')
@@ -314,7 +314,7 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
         }
 
         // Intent & Prompt Management Section
-        new Setting(containerEl).setName('Intent & prompt management').setHeading();
+        new Setting(containerEl).setName('Intent and prompt management').setHeading();
 
         new Setting(containerEl)
             .setName('Default processing intent')
@@ -392,11 +392,11 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
 
             // Display each prompt type
             const promptTypes = [
-                { key: 'structure', name: 'Structure Analysis', desc: 'Analyzes content structure and metadata' },
-                { key: 'content', name: 'Content Extraction', desc: 'Extracts key information and actionable content' },
-                { key: 'perspectives', name: 'Perspectives Analysis', desc: 'Provides different viewpoints and approaches' },
-                { key: 'connections', name: 'Connections Mapping', desc: 'Identifies relationships and connections' },
-                { key: 'learning', name: 'Learning Enhancement', desc: 'Focuses on learning and improvement opportunities' }
+                { key: 'structure', name: 'Structure analysis', desc: 'Analyzes content structure and metadata' },
+                { key: 'content', name: 'Content extraction', desc: 'Extracts key information and actionable content' },
+                { key: 'perspectives', name: 'Perspectives analysis', desc: 'Provides different viewpoints and approaches' },
+                { key: 'connections', name: 'Connections mapping', desc: 'Identifies relationships and connections' },
+                { key: 'learning', name: 'Learning enhancement', desc: 'Focuses on learning and improvement opportunities' }
             ];
 
             promptTypes.forEach(({ key, name, desc }) => {
@@ -436,15 +436,15 @@ export class AISummarizerSettingsTab extends PluginSettingTab {
 
     private getIntentDisplayName(intent: ProcessingIntent): string {
         const displayNames: Record<ProcessingIntent, string> = {
-            'knowledge_building': 'Knowledge Building',
-            'quick_reference': 'Quick Reference',
-            'research_collection': 'Research Collection',
-            'event_documentation': 'Event Documentation',
-            'professional_intelligence': 'Professional Intelligence',
-            'personal_development': 'Personal Development',
-            'news_events': 'News & Events',
-            'inspiration_capture': 'Inspiration Capture',
-            'how_to': 'How-To Guides',
+            'knowledge_building': 'Knowledge building',
+            'quick_reference': 'Quick reference',
+            'research_collection': 'Research collection',
+            'event_documentation': 'Event documentation',
+            'professional_intelligence': 'Professional intelligence',
+            'personal_development': 'Personal development',
+            'news_events': 'News and events',
+            'inspiration_capture': 'Inspiration capture',
+            'how_to': 'How-to guides',
             'verbatim_qa': 'Verbatim Q&A'
         };
         return displayNames[intent] || intent;

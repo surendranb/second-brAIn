@@ -14,7 +14,7 @@ export class PluginIntegration {
     this.serviceFactory = new ServiceFactory();
   }
   
-  async initialize(pluginSettings: any): Promise<void> {
+  async initialize(pluginSettings: Record<string, unknown>): Promise<void> {
     try {
       const migratedSettings = ServiceFactory.migratePluginSettings(pluginSettings);
       await this.serviceFactory.initializeFromPluginConfig(migratedSettings);
@@ -33,15 +33,6 @@ export class PluginIntegration {
   getTraceManager(): TraceManager {
     if (!this.initialized) throw new Error('Services not initialized');
     return this.serviceFactory.getTraceManager();
-  }
-  
-  isReady(): boolean {
-    return this.initialized && this.serviceFactory.isInitialized();
-  }
-  
-  async reinitialize(pluginSettings: any): Promise<void> {
-    await this.cleanup();
-    await this.initialize(pluginSettings);
   }
   
   async cleanup(): Promise<void> {

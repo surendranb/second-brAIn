@@ -8,7 +8,7 @@ export interface LLMRequest {
   temperature?: number;
   maxTokens?: number;
   systemPrompt?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface LLMResponse {
@@ -19,7 +19,7 @@ export interface LLMResponse {
     completionTokens: number;
     totalTokens: number;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface LLMStreamChunk {

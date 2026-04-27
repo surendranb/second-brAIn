@@ -117,15 +117,15 @@ Return ONLY valid JSON in this exact format:
                 },
                 confidence_score: Math.max(0, Math.min(1, parsed.confidence || 0.5)),
                 reasoning: parsed.reasoning || 'No reasoning',
-                alternative_hierarchies: (parsed.alternatives || []).map((alt: Record<string, any>) => ({
+                alternative_hierarchies: (parsed.alternatives || []).map((alt: Record<string, unknown>) => ({
                     hierarchy: {
-                        level1: alt.hierarchy?.level1 || 'Unknown',
-                        level2: alt.hierarchy?.level2 || 'Unknown',
-                        level3: alt.hierarchy?.level3,
-                        level4: alt.hierarchy?.level4
+                        level1: (alt.hierarchy as Record<string, string>)?.level1 || 'Unknown',
+                        level2: (alt.hierarchy as Record<string, string>)?.level2 || 'Unknown',
+                        level3: (alt.hierarchy as Record<string, string>)?.level3,
+                        level4: (alt.hierarchy as Record<string, string>)?.level4
                     },
-                    strength: alt.strength || 0.5,
-                    reasoning: alt.reasoning
+                    strength: (alt.strength as number) || 0.5,
+                    reasoning: (alt.reasoning as string)
                 }))
             };
         } catch (error) {

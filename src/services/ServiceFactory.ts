@@ -14,7 +14,7 @@ export class ServiceFactory {
   private llmService?: LLMService;
   private traceManager?: TraceManager;
   
-  async initializeFromPluginConfig(pluginConfig: any): Promise<void> {
+  async initializeFromPluginConfig(pluginConfig: Record<string, any>): Promise<void> {
     const serviceConfig = this.convertPluginConfigToServiceConfig(pluginConfig);
     const llmProvider = this.createLLMProvider(serviceConfig);
     const traceProvider = this.createTraceProvider(serviceConfig);
@@ -26,6 +26,7 @@ export class ServiceFactory {
     llmProvider: LLMProvider,
     traceProvider: TraceProvider
   ): Promise<void> {
+    await Promise.resolve();
     this.validateConfig(config);
     this.llmService = new LLMService(llmProvider);
     this.traceManager = new TraceManager(this.llmService, traceProvider);
@@ -51,7 +52,7 @@ export class ServiceFactory {
     this.traceManager = undefined;
   }
   
-  private convertPluginConfigToServiceConfig(pluginConfig: any): ServiceConfig {
+  private convertPluginConfigToServiceConfig(pluginConfig: Record<string, any>): ServiceConfig {
     const provider = pluginConfig.provider || 'gemini';
     let apiKey = '';
     let model = '';
@@ -106,7 +107,7 @@ export class ServiceFactory {
     if (!config.llm || !config.tracing) throw new Error('Configuration required');
   }
   
-  static migratePluginSettings(settings: any): any {
+  static migratePluginSettings(settings: Record<string, unknown>): Record<string, unknown> {
     return settings;
   }
 }

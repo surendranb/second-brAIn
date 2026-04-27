@@ -5,7 +5,7 @@ export interface PromptTemplate {
     role: string;
     instructions: string[];
     template: string;
-    output_schema: Record<string, any>;
+    output_schema: Record<string, unknown>;
 }
 
 export interface IntentPrompts {

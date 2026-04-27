@@ -15,8 +15,8 @@ interface LangfuseEvent {
   id: string;
   timestamp: string;
   type: string;
-  body: any;
-  metadata?: any;
+  body: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 export class LangfuseProvider implements TraceProvider {
@@ -235,7 +235,9 @@ export class LangfuseProvider implements TraceProvider {
     return !!(this.config?.publicKey && this.config?.secretKey && this.baseUrl);
   }
 
-  async flush(): Promise<void> {}
+  async flush(): Promise<void> {
+    await Promise.resolve();
+  }
 
   private async sendBatchToLangfuse(events: LangfuseEvent[]): Promise<void> {
     const url = `${this.baseUrl}/api/public/ingestion`;

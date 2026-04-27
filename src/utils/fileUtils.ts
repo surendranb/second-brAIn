@@ -16,6 +16,7 @@ export function sanitizeFileName(fileName: string): string {
  * Finds a unique filename by adding numbers if conflicts exist
  */
 export async function findUniqueFileName(app: App, folderPath: string, fileName: string): Promise<string> {
+    await Promise.resolve();
     // Check if the original filename is available
     const originalPath = `${folderPath}/${fileName}`;
     const existingFile = app.vault.getAbstractFileByPath(originalPath);

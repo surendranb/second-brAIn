@@ -53,7 +53,7 @@ export class GeminiProvider implements LLMProvider {
       }
     }
 
-    let lastError: any;
+    let lastError: Error | null = null;
     const maxRetries = 3;
     
     for (let i = 0; i < maxRetries; i++) {
@@ -62,10 +62,11 @@ export class GeminiProvider implements LLMProvider {
             const responseText = result.response.text();
             
             // Extract usage information if available
-            const usage = (result.response as any).usageMetadata ? {
-                promptTokens: (result.response as any).usageMetadata.promptTokenCount || 0,
-                completionTokens: (result.response as any).usageMetadata.candidatesTokenCount || 0,
-                totalTokens: (result.response as any).usageMetadata.totalTokenCount || 0
+            const usageMetadata = (result.response as unknown as Record<string, any>).usageMetadata;
+            const usage = usageMetadata ? {
+                promptTokens: (usageMetadata.promptTokenCount as number) || 0,
+                completionTokens: (usageMetadata.candidatesTokenCount as number) || 0,
+                totalTokens: (usageMetadata.totalTokenCount as number) || 0
             } : undefined;
 
             return {
@@ -78,8 +79,8 @@ export class GeminiProvider implements LLMProvider {
                 }
             };
         } catch (error) {
-            lastError = error;
-            const errorMsg = error.message?.toLowerCase() || '';
+            lastError = error as Error;
+            const errorMsg = (error as Error).message?.toLowerCase() || '';
             if (errorMsg.includes('429') || errorMsg.includes('too many requests')) {
                 const waitTime = Math.pow(2, i + 1) * 1000 + Math.random() * 1000;
                 console.warn(`[GeminiProvider] Rate limited (429). Retrying in ${Math.round(waitTime)}ms... (Attempt ${i + 1}/${maxRetries})`);
@@ -89,7 +90,7 @@ export class GeminiProvider implements LLMProvider {
             throw error;
         }
     }
-    throw new Error(`Gemini API error after ${maxRetries} retries: ${lastError.message}`);
+    throw new Error(`Gemini API error after ${maxRetries} retries: ${lastError?.message || 'Unknown error'}`);
   }
 
   /**

@@ -30,6 +30,13 @@ export interface MOCNote {
     hierarchy: MOCHierarchy;
 }
 
+export interface MOCNoteSummary {
+    title: string;
+    summary: string;
+    keyTopics: string[];
+    complexity: string;
+}
+
 export class MOCIntelligence {
     private app: App;
     private llmService?: LLMService;
@@ -73,7 +80,7 @@ export class MOCIntelligence {
         }
     }
 
-    private async generateAISynthesis(noteSummaries: any[], existingMOCContent?: string, fullNotes?: MOCNote[]): Promise<MOCAnalysis> {
+    private async generateAISynthesis(noteSummaries: MOCNoteSummary[], existingMOCContent?: string, fullNotes?: MOCNote[]): Promise<MOCAnalysis> {
         const prompt = this.createUpdatePrompt(noteSummaries, existingMOCContent);
         
         if (!this.llmService) throw new Error('LLMService required');
@@ -105,7 +112,7 @@ export class MOCIntelligence {
         };
     }
 
-    private createUpdatePrompt(noteSummaries: any[], existingMOCContent?: string): string {
+    private createUpdatePrompt(noteSummaries: MOCNoteSummary[], existingMOCContent?: string): string {
         return `You are a Knowledge Weaver. Analyze these notes and update the MOC intelligence. 
         
 RELATIONSHIP TYPES TO IDENTIFY:
@@ -171,14 +178,14 @@ Return ONLY valid JSON with these keys: overview, keyThemes, conceptualRelations
         return content;
     }
 
-    private ensureStringArray(val: any): string[] {
+    private ensureStringArray(val: unknown): string[] {
         return Array.isArray(val) ? val.map(String) : [];
     }
 
     private extractSummaryFromNote(content: string): string { return content.substring(0, 200); }
     private extractTopicsFromNote(content: string): string[] { return []; }
     
-    private extractTemplateSections(notes: MOCNote[]): any {
+    private extractTemplateSections(notes: MOCNote[]): Record<string, any> {
         const res = { learningPaths: [] as string[], coreConcepts: [] as string[], relatedTopics: [] as string[], prerequisites: [] as string[], noteReferences: [] as NoteReference[] };
         notes.forEach(n => {
             res.noteReferences.push({ title: n.title, path: `[[${n.title}]]`, complexity: 'intermediate' });
@@ -186,7 +193,7 @@ Return ONLY valid JSON with these keys: overview, keyThemes, conceptualRelations
         return res;
     }
 
-    private generateAccurateAnalysisFromNotes(notes: MOCNote[], summaries: any[]): MOCAnalysis {
+    private generateAccurateAnalysisFromNotes(notes: MOCNote[], summaries: MOCNoteSummary[]): MOCAnalysis {
         return {
             overview: `Knowledge area with ${notes.length} notes.`, 
             keyThemes: [],
@@ -203,7 +210,7 @@ Return ONLY valid JSON with these keys: overview, keyThemes, conceptualRelations
         };
     }
     
-    private createEmptyAnalysis(): any { 
+    private createEmptyAnalysis(): Record<string, any> { 
         return { learningPaths: [], coreConcepts: [], relatedTopics: [], prerequisites: [], noteReferences: [] }; 
     }
 }

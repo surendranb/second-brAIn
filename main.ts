@@ -63,7 +63,7 @@ class SummaryView extends ItemView {
         
         // Provider Group
         const providerGroup = dropdownRow.createEl('div', { cls: 'axiom-form-group axiom-form-group-third' });
-        providerGroup.createEl('label', { text: 'Provider', cls: 'axiom-form-label' });
+        providerGroup.createEl('label', { text: 'AI provider', cls: 'axiom-form-label' });
         const providerDropdown = providerGroup.createEl('select', { cls: 'axiom-select' });
         providerDropdown.add(new Option('Gemini', 'gemini'));
         providerDropdown.add(new Option('OpenRouter', 'openrouter'));
@@ -88,7 +88,7 @@ class SummaryView extends ItemView {
 
         // Intent Group
         const intentGroup = dropdownRow.createEl('div', { cls: 'axiom-form-group axiom-form-group-third' });
-        intentGroup.createEl('label', { text: 'Intent', cls: 'axiom-form-label' });
+        intentGroup.createEl('label', { text: 'Processing intent', cls: 'axiom-form-label' });
         this.intentDropdown = intentGroup.createEl('select', { cls: 'axiom-select' });
         this.populateIntentDropdown();
         this.registerDomEvent(this.intentDropdown, 'change', async () => {
@@ -130,10 +130,10 @@ class SummaryView extends ItemView {
         this.urlInput = urlGroup.createEl('input', { type: 'text', placeholder: 'YouTube or Article URL...', cls: 'axiom-input' });
 
         const instructionsGroup = configSection.createEl('div', { cls: 'axiom-form-group' });
-        instructionsGroup.createEl('label', { text: 'Instructions', cls: 'axiom-form-label' });
+        instructionsGroup.createEl('label', { text: 'Custom instructions', cls: 'axiom-form-label' });
         this.promptInput = instructionsGroup.createEl('textarea', { placeholder: 'Extra focus areas...', cls: 'axiom-textarea' });
 
-        const cleanButton = inputCard.createEl('button', { text: 'Summarize & organize', cls: 'axiom-clean-button' });
+        const cleanButton = inputCard.createEl('button', { text: 'Summarize and organize', cls: 'axiom-clean-button' });
         this.registerDomEvent(cleanButton, 'click', () => { void this.startNoteGenerationClean(); });
 
         // --- NEW SLEEK PROGRESS AREA ---
@@ -199,7 +199,6 @@ class SummaryView extends ItemView {
         try {
             this.plugin.noteProcessor.setStatusCallback((step, msg, err) => this.updateStatusSteps(step, msg, err));
             
-            // Get optional target topic
             let targetTopic = undefined;
             if (this.intentDropdown.value === 'research_collection' && this.targetTopicInput.value.trim()) {
                 targetTopic = this.targetTopicInput.value.trim();
