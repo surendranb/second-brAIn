@@ -1,4 +1,4 @@
-import { App, TFile, TFolder } from 'obsidian';
+import { App, TFile } from 'obsidian';
 import { TraceManager } from './TraceManager';
 import { LLMService } from './LLMService';
 import { ContentExtractor, type ExtractedContent } from './ContentExtractor';
@@ -9,7 +9,7 @@ import { MOCHierarchy, FullAnalysisResult, ProcessingIntent } from '../types';
 
 export interface PluginInterface {
     app: App;
-    settings: Record<string, any>; // Complex settings object
+    settings: Record<string, unknown>; // Complex settings object
     getCurrentModel(): string;
     saveSettings(): Promise<void>;
     mocManager: { getMostSpecificMOCDirectory(hierarchy: MOCHierarchy): string };
@@ -266,7 +266,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
                 return name;
             }
             return analysisResult.metadata?.speakers?.[0] || analysisResult.metadata?.author || 'Unknown';
-        } catch (e) {
+        } catch {
             return analysisResult.metadata?.speakers?.[0] || analysisResult.metadata?.author || 'Unknown';
         }
     }
@@ -312,7 +312,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
                 else if (cleanedText.startsWith('```')) cleanedText = cleanedText.replace(/^```\s*/, '').replace(/\s*```$/, '');
                 const passResult = JSON.parse(cleanedText);
                 fullResult = { ...fullResult, ...passResult };
-            } catch (error) {
+            } catch {
                 console.error(`Pass ${i + 1} parse failed`);
             }
         }
@@ -367,7 +367,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
             content += `## Case Studies\n`;
             result.case_studies.forEach((study, index) => {
                 const title = (study as Record<string, string>).case_study_name || `Case Study ${index + 1}`;
-                content += `### ${title}\n${(study as Record<string, string>).description || String(study)}\n\n`;
+                content += `### ${title}\n${(study as Record<string, string>).description || JSON.stringify(study)}\n\n`;
             });
         }
 
@@ -440,7 +440,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
     private async performVerbatimQAExtraction(extractedContent: ExtractedContent, traceId: string): Promise<string> {
         const promptLoader = new PromptLoader(this.plugin.app);
         const promptData = await promptLoader.loadPromptsForIntent('verbatim_qa' as ProcessingIntent);
-        const promptTemplate = (promptData as Record<string, any>).structure;
+        const promptTemplate = (promptData as Record<string, string>).structure;
         
         const CHUNK_SIZE = 15000; // Resolution Fix
         const text = extractedContent.content;
@@ -543,7 +543,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
             if (i < mocStructure.length - 1) await new Promise(resolve => setTimeout(resolve, 5000));
             try {
                 await this.plugin.mocManager.mocIntelligence.updateMOCWithIntelligence(levelInfo.path);
-            } catch (error) { console.error(`Failed to update MOC: ${levelInfo.title}`); }
+            } catch { console.error(`Failed to update MOC: ${levelInfo.title}`); }
         }
     }
 
@@ -551,6 +551,6 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
         try {
             const map = await this.plugin.mocManager.loadHierarchy();
             return Object.keys(map).length === 0 ? "No existing MOCs found." : JSON.stringify(map, null, 2);
-        } catch (e) { return "Error retrieving vault map."; }
+        } catch { return "Error retrieving vault map."; }
     }
 }

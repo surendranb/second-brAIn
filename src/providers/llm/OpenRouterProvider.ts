@@ -116,7 +116,7 @@ export class OpenRouterProvider implements LLMProvider {
         maxTokens: 5
       });
       return !!response.text;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

@@ -2,7 +2,7 @@
  * MOCManager - Manages the creation and organization of Maps of Content
  */
 
-import { App, TFile, TFolder, parseYaml, stringifyYaml } from 'obsidian';
+import { App, TFile, parseYaml, stringifyYaml } from 'obsidian';
 import { MOCIntelligence } from './moc-intelligence';
 import { MOCHierarchy, LearningContext } from '../types';
 import { PluginSettings } from '../config';
@@ -56,7 +56,7 @@ export class MOCManager {
                 const content = await this.app.vault.read(file);
                 return (parseYaml(content) as HierarchyMap) || {};
             }
-        } catch (e) {
+        } catch {
             // Ignore missing file errors
         }
         return {};

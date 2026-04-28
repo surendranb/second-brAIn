@@ -194,7 +194,7 @@ export class GeminiProvider implements LLMProvider {
       });
       
       return !!result.response.text();
-    } catch (error) {
+    } catch {
       return false;
     }
   }

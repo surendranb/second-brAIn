@@ -10,11 +10,19 @@ import { OpenRouterProvider } from '../providers/llm/OpenRouterProvider';
 import { LangfuseProvider } from '../providers/tracing/LangfuseProvider';
 import { ConsoleProvider } from '../providers/tracing/ConsoleProvider';
 
+interface PluginConfigLike {
+  provider?: string;
+  gemini?: { apiKey?: string; model?: string };
+  openrouter?: { apiKey?: string; model?: string };
+  langfuse?: { enabled?: boolean; publicKey?: string; secretKey?: string; baseUrl?: string };
+  [key: string]: unknown;
+}
+
 export class ServiceFactory {
   private llmService?: LLMService;
   private traceManager?: TraceManager;
   
-  async initializeFromPluginConfig(pluginConfig: Record<string, any>): Promise<void> {
+  async initializeFromPluginConfig(pluginConfig: PluginConfigLike): Promise<void> {
     const serviceConfig = this.convertPluginConfigToServiceConfig(pluginConfig);
     const llmProvider = this.createLLMProvider(serviceConfig);
     const traceProvider = this.createTraceProvider(serviceConfig);
@@ -52,7 +60,7 @@ export class ServiceFactory {
     this.traceManager = undefined;
   }
   
-  private convertPluginConfigToServiceConfig(pluginConfig: Record<string, any>): ServiceConfig {
+  private convertPluginConfigToServiceConfig(pluginConfig: PluginConfigLike): ServiceConfig {
     const provider = pluginConfig.provider || 'gemini';
     let apiKey = '';
     let model = '';

@@ -51,7 +51,7 @@ export class LangfuseProvider implements TraceProvider {
       };
       await this.sendBatchToLangfuse([event]);
       return traceId;
-    } catch (error) {
+    } catch {
       return 'no-trace';
     }
   }
@@ -71,7 +71,7 @@ export class LangfuseProvider implements TraceProvider {
         }
       };
       await this.sendBatchToLangfuse([event]);
-    } catch (error) {
+    } catch {
       /* ignore background tracing failures */
     }
   }
@@ -96,7 +96,7 @@ export class LangfuseProvider implements TraceProvider {
         }
       };
       await this.sendBatchToLangfuse([event]);
-    } catch (error) {
+    } catch {
       /* ignore background tracing failures */
     }
   }
@@ -123,7 +123,7 @@ export class LangfuseProvider implements TraceProvider {
       };
       await this.sendBatchToLangfuse([event]);
       return generationId;
-    } catch (error) {
+    } catch {
       return 'no-generation';
     }
   }
@@ -150,7 +150,7 @@ export class LangfuseProvider implements TraceProvider {
         }
       };
       await this.sendBatchToLangfuse([event]);
-    } catch (error) {
+    } catch {
       /* ignore background tracing failures */
     }
   }
@@ -180,7 +180,7 @@ export class LangfuseProvider implements TraceProvider {
         }
       };
       await this.sendBatchToLangfuse([event]);
-    } catch (error) {
+    } catch {
       /* ignore background tracing failures */
     }
   }
@@ -205,7 +205,7 @@ export class LangfuseProvider implements TraceProvider {
       };
       await this.sendBatchToLangfuse([event]);
       return spanId;
-    } catch (error) {
+    } catch {
       return 'no-span';
     }
   }
@@ -226,7 +226,7 @@ export class LangfuseProvider implements TraceProvider {
         }
       };
       await this.sendBatchToLangfuse([event]);
-    } catch (error) {
+    } catch {
       /* ignore background tracing failures */
     }
   }
@@ -254,7 +254,7 @@ export class LangfuseProvider implements TraceProvider {
           metadata: { sdk_name: 'obsidian-second-brain', sdk_version: '1.0.0' }
         })
       });
-    } catch (error) {
+    } catch {
       /* ignore background tracing failures */
     }
   }

@@ -2,7 +2,7 @@
  * HierarchyService - AI-Driven MOC Creation
  */
 
-import { MOCHierarchy, HierarchyAnalysisResult } from '../types';
+import { HierarchyAnalysisResult } from '../types';
 import { LLMService, TraceManager } from './index';
 
 export class HierarchyService {
@@ -128,7 +128,7 @@ Return ONLY valid JSON in this exact format:
                     reasoning: (alt.reasoning as string)
                 }))
             };
-        } catch (error) {
+        } catch {
             return this.extractBasicHierarchy(responseText);
         }
     }

@@ -351,7 +351,7 @@ class AISummarizerPlugin extends Plugin {
             await this.serviceIntegration.initialize(this.settings);
             this.llmService = this.serviceIntegration.getLLMService();
             this.traceManager = this.serviceIntegration.getTraceManager();
-            if (this.mocManager) this.mocManager.mocIntelligence.setLLMService(this.llmService!);
+            if (this.mocManager && this.llmService) this.mocManager.mocIntelligence.setLLMService(this.llmService);
         } catch (e) { console.error('Service init failed', e); }
     }
 
@@ -362,7 +362,7 @@ class AISummarizerPlugin extends Plugin {
             await this.serviceIntegration.reinitialize(this.settings);
             this.llmService = this.serviceIntegration.getLLMService();
             this.traceManager = this.serviceIntegration.getTraceManager();
-            if (this.mocManager) this.mocManager.mocIntelligence.setLLMService(this.llmService!);
+            if (this.mocManager && this.llmService) this.mocManager.mocIntelligence.setLLMService(this.llmService);
         }
         this.app.workspace.getLeavesOfType(VIEW_TYPE_SUMMARY).forEach(l => {
             if (l.view instanceof SummaryView) {
@@ -385,7 +385,7 @@ class AISummarizerPlugin extends Plugin {
                 await leaf.setViewState({ type: VIEW_TYPE_SUMMARY, active: true });
             }
         }
-        if (leaf) workspace.revealLeaf(leaf);
+        if (leaf) void workspace.revealLeaf(leaf);
     }
 }
 

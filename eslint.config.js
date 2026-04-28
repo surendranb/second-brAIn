@@ -1,5 +1,4 @@
 import obsidianmd from "eslint-plugin-obsidianmd";
-import tseslint from "typescript-eslint";
 import tsparser from "@typescript-eslint/parser";
 
 export default [

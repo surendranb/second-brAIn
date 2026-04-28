@@ -105,7 +105,7 @@ export interface FullAnalysisResult {
     hierarchy_reasoning?: string;
     primary_author?: string;
     learning_context?: LearningContext;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 export interface HierarchyAnalysisResult {

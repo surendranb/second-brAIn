@@ -35,7 +35,7 @@ export function extractPlatformFromUrl(url: string): string {
 /**
  * Formats MOC context for AI consumption
  */
-export function formatMOCContextForAI(existingMOCs: any[]): string {
+export function formatMOCContextForAI(existingMOCs: { domain?: string }[]): string {
     if (existingMOCs.length === 0) {
         return "No existing MOCs. Create first hierarchy.";
     }

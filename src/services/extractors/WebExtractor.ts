@@ -72,7 +72,7 @@ export class WebExtractor {
             if (href && !href.startsWith('http') && !href.startsWith('#')) {
                 try {
                     a.setAttribute('href', new URL(href, base).href);
-                } catch (e) {
+                } catch {
                     /* ignore invalid URLs during link fixing */
                 }
             }
@@ -83,7 +83,7 @@ export class WebExtractor {
             if (src && !src.startsWith('http')) {
                 try {
                     img.setAttribute('src', new URL(src, base).href);
-                } catch (e) {
+                } catch {
                     /* ignore invalid URLs during link fixing */
                 }
             }

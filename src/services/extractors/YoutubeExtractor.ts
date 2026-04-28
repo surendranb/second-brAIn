@@ -106,7 +106,7 @@ export class YoutubeExtractor {
             .replace(/\s+/g, ' ')
             .trim();
 
-        try { await this.app.vault.adapter.remove(transcriptFile); } catch (e) {
+        try { await this.app.vault.adapter.remove(transcriptFile); } catch {
             /* ignore cleanup errors */
         }
         return cleaned;

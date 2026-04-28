@@ -185,7 +185,7 @@ Return ONLY valid JSON with these keys: overview, keyThemes, conceptualRelations
     private extractSummaryFromNote(content: string): string { return content.substring(0, 200); }
     private extractTopicsFromNote(content: string): string[] { return []; }
     
-    private extractTemplateSections(notes: MOCNote[]): Record<string, any> {
+    private extractTemplateSections(notes: MOCNote[]): Record<string, unknown> {
         const res = { learningPaths: [] as string[], coreConcepts: [] as string[], relatedTopics: [] as string[], prerequisites: [] as string[], noteReferences: [] as NoteReference[] };
         notes.forEach(n => {
             res.noteReferences.push({ title: n.title, path: `[[${n.title}]]`, complexity: 'intermediate' });
@@ -210,7 +210,7 @@ Return ONLY valid JSON with these keys: overview, keyThemes, conceptualRelations
         };
     }
     
-    private createEmptyAnalysis(): Record<string, any> { 
+    private createEmptyAnalysis(): Record<string, unknown> { 
         return { learningPaths: [], coreConcepts: [], relatedTopics: [], prerequisites: [], noteReferences: [] }; 
     }
 }

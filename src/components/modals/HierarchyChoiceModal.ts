@@ -88,7 +88,7 @@ export class HierarchyChoiceModal extends Modal {
         }
 
         // Radio button for single selection
-        const radio = optionContainer.createEl('input', { type: 'radio', cls: 'axiom-hierarchy-radio' }) as HTMLInputElement;
+        const radio = optionContainer.createEl('input', { type: 'radio', cls: 'axiom-hierarchy-radio' });
         radio.name = 'hierarchy-choice';
 
         if (isPrimary) {

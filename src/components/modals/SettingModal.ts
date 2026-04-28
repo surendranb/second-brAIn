@@ -54,7 +54,7 @@ export class SettingModal extends Modal {
                 .setName('Gemini model')
                 .setDesc('Select the Gemini model to use')
                 .addDropdown(dropdown => {
-                    this.settings.gemini.models.forEach((model: any) => {
+                    this.settings.gemini.models.forEach((model: GeminiModel) => {
                         dropdown.addOption(model.id, `${model.name} - ${model.description}`);
                     });
                     return dropdown

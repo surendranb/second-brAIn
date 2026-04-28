@@ -25,7 +25,7 @@ export interface LLMResponse {
 export interface LLMStreamChunk {
   text: string;
   isComplete: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface LLMProvider {

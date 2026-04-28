@@ -78,7 +78,7 @@ export interface TraceContext {
   generationName?: string;
   pass?: string;
   intent?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProcessingContext {
