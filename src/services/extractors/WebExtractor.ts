@@ -3,7 +3,7 @@ import { Readability } from '@mozilla/readability';
 import * as TurndownService from 'turndown';
 
 export class WebExtractor {
-    private turndownService: unknown;
+    private turndownService: any;
 
     constructor() {
         // @ts-ignore - Turndown constructor sometimes has issues with ES modules in Obsidian environment
@@ -49,7 +49,7 @@ export class WebExtractor {
             }
 
             // Convert HTML content to Markdown
-            const markdownContent = this.turndownService.turndown(article.content);
+            const markdownContent = this.turndownService.turndown((article as any).content);
 
             return {
                 title: article.title || 'Untitled',

@@ -10,7 +10,7 @@ import { OpenRouterProvider } from '../providers/llm/OpenRouterProvider';
 import { LangfuseProvider } from '../providers/tracing/LangfuseProvider';
 import { ConsoleProvider } from '../providers/tracing/ConsoleProvider';
 
-interface PluginConfigLike {
+export interface PluginConfigLike {
   provider?: string;
   gemini?: { apiKey?: string; model?: string };
   openrouter?: { apiKey?: string; model?: string };
@@ -75,7 +75,7 @@ export class ServiceFactory {
 
     return {
       llm: {
-        provider: provider,
+        provider: provider as 'gemini' | 'openai' | 'claude' | 'local' | 'openrouter',
         apiKey: apiKey,
         model: model,
         temperature: 0.3,

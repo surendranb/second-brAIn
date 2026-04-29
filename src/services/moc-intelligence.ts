@@ -104,11 +104,11 @@ export class MOCIntelligence {
             knowledgeGaps: this.ensureStringArray(aiResponse.knowledgeGaps),
             crossDomainConnections: this.ensureStringArray(aiResponse.crossDomainConnections),
             synthesizedInsights: this.ensureStringArray(aiResponse.synthesizedInsights),
-            learningPaths: templateSections.learningPaths,
-            coreConcepts: templateSections.coreConcepts,
-            relatedTopics: templateSections.relatedTopics,
-            prerequisites: templateSections.prerequisites,
-            noteReferences: templateSections.noteReferences
+            learningPaths: templateSections.learningPaths as string[],
+            coreConcepts: templateSections.coreConcepts as string[],
+            relatedTopics: templateSections.relatedTopics as string[],
+            prerequisites: templateSections.prerequisites as string[],
+            noteReferences: templateSections.noteReferences as NoteReference[]
         };
     }
 

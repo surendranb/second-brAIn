@@ -7,12 +7,15 @@ import { PromptLoader } from './prompt-loader';
 import { generateId } from '../utils';
 import { MOCHierarchy, FullAnalysisResult, ProcessingIntent } from '../types';
 
+import { MOCManager } from './moc-manager';
+import { PluginSettings } from '../config/defaults';
+
 export interface PluginInterface {
     app: App;
-    settings: Record<string, unknown>; // Complex settings object
+    settings: PluginSettings;
     getCurrentModel(): string;
     saveSettings(): Promise<void>;
-    mocManager: { getMostSpecificMOCDirectory(hierarchy: MOCHierarchy): string };
+    mocManager: MOCManager;
 }
 
 export interface ProcessingInput {
@@ -265,9 +268,13 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
                 this.updateStatus(3, `👤 Author identified: ${name}`);
                 return name;
             }
-            return analysisResult.metadata?.speakers?.[0] || analysisResult.metadata?.author || 'Unknown';
+            if ((analysisResult.metadata as any)?.type === 'video') {
+                return (analysisResult.metadata as any)?.speakers?.[0] || (analysisResult.metadata as any)?.author || 'Unknown';
+            } else {
+                return (analysisResult.metadata as any)?.speakers?.[0] || (analysisResult.metadata as any)?.author || 'Unknown';
+            }
         } catch {
-            return analysisResult.metadata?.speakers?.[0] || analysisResult.metadata?.author || 'Unknown';
+            return (analysisResult.metadata as any)?.speakers?.[0] || (analysisResult.metadata as any)?.author || 'Unknown';
         }
     }
 
@@ -440,7 +447,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
     private async performVerbatimQAExtraction(extractedContent: ExtractedContent, traceId: string): Promise<string> {
         const promptLoader = new PromptLoader(this.plugin.app);
         const promptData = await promptLoader.loadPromptsForIntent('verbatim_qa' as ProcessingIntent);
-        const promptTemplate = (promptData as Record<string, string>).structure;
+        const promptTemplate = (promptData as unknown as Record<string, string>).structure;
         
         const CHUNK_SIZE = 15000; // Resolution Fix
         const text = extractedContent.content;

@@ -2,7 +2,7 @@
  * Plugin Integration - Handles service initialization
  */
 
-import { ServiceFactory } from './ServiceFactory';
+import { ServiceFactory, type PluginConfigLike } from './ServiceFactory';
 import { LLMService } from './LLMService';
 import { TraceManager } from './TraceManager';
 
@@ -14,7 +14,7 @@ export class PluginIntegration {
     this.serviceFactory = new ServiceFactory();
   }
   
-  async initialize(pluginSettings: Record<string, unknown>): Promise<void> {
+  async initialize(pluginSettings: PluginConfigLike): Promise<void> {
     try {
       const migratedSettings = ServiceFactory.migratePluginSettings(pluginSettings);
       await this.serviceFactory.initializeFromPluginConfig(migratedSettings);

@@ -100,8 +100,8 @@ export class TraceManager {
         totalTokens: response.usage?.totalTokens || 0,
         cost,
         model: request.model || 'gemini-2.5-flash',
-        intent: request.metadata?.intent,
-        pass: request.metadata?.pass
+        intent: (request.metadata as any)?.intent,
+        pass: (request.metadata as any)?.pass
       });
       
       return response;
@@ -130,7 +130,7 @@ export class TraceManager {
       metadata: {
         pass: traceContext.pass,
         intent: traceContext.intent,
-        ...request.metadata
+        ...(request.metadata as any)
       }
     });
     
@@ -163,7 +163,7 @@ export class TraceManager {
         totalTokens: response.usage?.totalTokens || 0,
         cost: cost,
         model: request.model || 'gemini-2.5-flash',
-        intent: request.metadata?.intent,
+        intent: (request.metadata as any)?.intent,
         pass: traceContext.pass,
         duration: duration
       });
