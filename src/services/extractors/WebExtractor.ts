@@ -2,8 +2,12 @@ import { requestUrl } from 'obsidian';
 import { Readability } from '@mozilla/readability';
 import * as TurndownService from 'turndown';
 
+interface TurndownLike {
+    turndown(html: string): string;
+}
+
 export class WebExtractor {
-    private turndownService: any;
+    private turndownService: TurndownLike;
 
     constructor() {
         // @ts-ignore - Turndown constructor sometimes has issues with ES modules in Obsidian environment
@@ -49,7 +53,7 @@ export class WebExtractor {
             }
 
             // Convert HTML content to Markdown
-            const markdownContent = this.turndownService.turndown((article as any).content);
+            const markdownContent = this.turndownService.turndown(article.content || '');
 
             return {
                 title: article.title || 'Untitled',

@@ -62,7 +62,7 @@ export class GeminiProvider implements LLMProvider {
             const responseText = result.response.text();
             
             // Extract usage information if available
-            const usageMetadata = (result.response as unknown as Record<string, any>).usageMetadata;
+            const usageMetadata = (result.response as unknown as Record<string, unknown>).usageMetadata as Record<string, unknown> | undefined;
             const usage = usageMetadata ? {
                 promptTokens: (usageMetadata.promptTokenCount as number) || 0,
                 completionTokens: (usageMetadata.candidatesTokenCount as number) || 0,

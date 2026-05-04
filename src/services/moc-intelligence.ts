@@ -75,7 +75,7 @@ export class MOCIntelligence {
             if (!(mocFile instanceof TFile)) throw new Error('MOC file not found');
             const existingContent = await this.app.vault.read(mocFile);
             return await this.generateAISynthesis(noteSummaries, existingContent, notes);
-        } catch (error) {
+        } catch {
             return this.generateAccurateAnalysisFromNotes(notes, noteSummaries);
         }
     }

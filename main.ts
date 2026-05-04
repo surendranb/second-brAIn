@@ -348,7 +348,7 @@ class AISummarizerPlugin extends Plugin {
     async initializeServices() {
         try {
             this.serviceIntegration = new PluginIntegration();
-            await this.serviceIntegration.initialize(this.settings as any);
+            await this.serviceIntegration.initialize(this.settings as unknown as import('./src/services/ServiceFactory').PluginConfigLike);
             this.llmService = this.serviceIntegration.getLLMService();
             this.traceManager = this.serviceIntegration.getTraceManager();
             if (this.mocManager && this.llmService) this.mocManager.mocIntelligence.setLLMService(this.llmService);
@@ -359,7 +359,7 @@ class AISummarizerPlugin extends Plugin {
     async saveSettings() {
         await this.saveData(this.settings);
         if (this.serviceIntegration) {
-            await this.serviceIntegration.initialize(this.settings as any);
+            await this.serviceIntegration.initialize(this.settings as unknown as import('./src/services/ServiceFactory').PluginConfigLike);
             this.llmService = this.serviceIntegration.getLLMService();
             this.traceManager = this.serviceIntegration.getTraceManager();
             if (this.mocManager && this.llmService) this.mocManager.mocIntelligence.setLLMService(this.llmService);

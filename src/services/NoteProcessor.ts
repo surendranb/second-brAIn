@@ -5,7 +5,7 @@ import { ContentExtractor, type ExtractedContent } from './ContentExtractor';
 import { HierarchyService } from './HierarchyService';
 import { PromptLoader } from './prompt-loader';
 import { generateId } from '../utils';
-import { MOCHierarchy, FullAnalysisResult, ProcessingIntent } from '../types';
+import { FullAnalysisResult, ProcessingIntent } from '../types';
 
 import { MOCManager } from './moc-manager';
 import { PluginSettings } from '../config/defaults';
@@ -268,13 +268,15 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
                 this.updateStatus(3, `👤 Author identified: ${name}`);
                 return name;
             }
-            if ((analysisResult.metadata as any)?.type === 'video') {
-                return (analysisResult.metadata as any)?.speakers?.[0] || (analysisResult.metadata as any)?.author || 'Unknown';
-            } else {
-                return (analysisResult.metadata as any)?.speakers?.[0] || (analysisResult.metadata as any)?.author || 'Unknown';
-            }
+            const meta = analysisResult.metadata as Record<string, unknown> | undefined;
+            const speakers = meta?.speakers as string[] | undefined;
+            const author = meta?.author as string | undefined;
+            return speakers?.[0] || author || 'Unknown';
         } catch {
-            return (analysisResult.metadata as any)?.speakers?.[0] || (analysisResult.metadata as any)?.author || 'Unknown';
+            const meta = analysisResult.metadata as Record<string, unknown> | undefined;
+            const speakers = meta?.speakers as string[] | undefined;
+            const author = meta?.author as string | undefined;
+            return speakers?.[0] || author || 'Unknown';
         }
     }
 
