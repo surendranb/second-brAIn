@@ -1,6 +1,6 @@
 {
 	"name": "brAIn",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Building your knowledge base with AI",
 	"main": "main.js",
 	"scripts": {
