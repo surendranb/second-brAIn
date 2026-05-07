@@ -1,7 +1,7 @@
 {
 	"id": "axiom",
 	"name": "Axiom",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"description": "Multi-pass AI agent for autonomous knowledge synthesis from YouTube and Web articles.",
 	"author": "Surendran",
 	"minAppVersion": "1.4.0",
