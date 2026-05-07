@@ -268,12 +268,12 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
                 this.updateStatus(3, `👤 Author identified: ${name}`);
                 return name;
             }
-            const meta = analysisResult.metadata as Record<string, unknown> | undefined;
+            const meta = analysisResult.metadata;
             const speakers = meta?.speakers as string[] | undefined;
             const author = meta?.author as string | undefined;
             return speakers?.[0] || author || 'Unknown';
         } catch {
-            const meta = analysisResult.metadata as Record<string, unknown> | undefined;
+            const meta = analysisResult.metadata;
             const speakers = meta?.speakers as string[] | undefined;
             const author = meta?.author as string | undefined;
             return speakers?.[0] || author || 'Unknown';
@@ -448,7 +448,7 @@ Return ONLY the name (e.g. "James Clear"). If unknown, return "Unknown".`;
 
     private async performVerbatimQAExtraction(extractedContent: ExtractedContent, traceId: string): Promise<string> {
         const promptLoader = new PromptLoader(this.plugin.app);
-        const promptData = await promptLoader.loadPromptsForIntent('verbatim_qa' as ProcessingIntent);
+        const promptData = await promptLoader.loadPromptsForIntent('verbatim_qa');
         const promptTemplate = (promptData as unknown as Record<string, string>).structure;
         
         const CHUNK_SIZE = 15000; // Resolution Fix

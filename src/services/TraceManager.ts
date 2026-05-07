@@ -130,7 +130,7 @@ export class TraceManager {
       metadata: {
         pass: traceContext.pass,
         intent: traceContext.intent,
-        ...(request.metadata as Record<string, unknown> | undefined)
+        ...request.metadata
       }
     });
     

@@ -67,7 +67,7 @@ export class MOCManager {
         // Truncate to 50 chars to keep the map as a 'index' not a 'database'
         const cleanDesc = description ? description.substring(0, 50).replace(/\n/g, ' ').trim() + "..." : "Concept";
         
-        if (!map[hierarchy.level1]) (map as Record<string, unknown>)[hierarchy.level1] = {};
+        if (!map[hierarchy.level1]) map[hierarchy.level1] = {};
         let current = map[hierarchy.level1] as Record<string, unknown>;
 
         if (hierarchy.level2) {
